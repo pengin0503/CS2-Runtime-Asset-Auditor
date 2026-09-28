@@ -12,7 +12,7 @@ it("renders a native floating launcher with a Japanese status tooltip", () => {
     />
   );
   expect(html).toContain('data-variant="floating"');
-  expect(html).toContain("CS2 ランタイムプロファイラー");
+  expect(html).toContain("CS2 Runtime Asset Auditor");
   expect(html).toContain("指定速度 4×");
   expect(html).toContain("詳細キャプチャ中");
 });

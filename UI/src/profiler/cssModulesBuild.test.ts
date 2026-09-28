@@ -6,7 +6,7 @@ import webpack, { type Configuration, type Stats } from "webpack";
 import { describe, expect, it } from "vitest";
 
 const require = createRequire(import.meta.url);
-const testUserDataPath = path.join(os.tmpdir(), "cs2-runtime-profiler-ui-vitest");
+const testUserDataPath = path.join(os.tmpdir(), "cs2-runtime-asset-auditor-ui-vitest");
 
 function compile(config: Configuration): Promise<Stats> {
   return new Promise((resolve, reject) => {
@@ -69,9 +69,9 @@ describe("CSS Modules build", () => {
       const result = stats.toJson({ all: false, errors: true, assets: true });
 
       expect(result.errors ?? []).toEqual([]);
-      expect((result.assets ?? []).map((asset) => asset.name)).toContain("CS2RuntimeProfiler.css");
+      expect((result.assets ?? []).map((asset) => asset.name)).toContain("CS2RuntimeAssetAuditor.css");
 
-      const modulePath = path.join(testUserDataPath, "Mods", "CS2RuntimeProfiler", "CS2RuntimeProfiler.mjs");
+      const modulePath = path.join(testUserDataPath, "Mods", "CS2RuntimeAssetAuditor", "CS2RuntimeAssetAuditor.mjs");
       const moduleSource = await readFile(modulePath, "utf8");
       expect(moduleSource).toMatch(/hasCSS/);
     });

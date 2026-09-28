@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="NUnit" Version="4.2.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Core/**/*.cs" LinkBase="Core" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Advisor/Settings/**/*.cs" LinkBase="Advisor/Settings" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Attribution/AssemblyAttributor.cs" Link="Attribution/AssemblyAttributor.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Profiling/IRecorderBackend.cs" Link="Profiling/IRecorderBackend.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Profiling/RecorderManager.cs" Link="Profiling/RecorderManager.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Profiling/DeepCaptureController.cs" Link="Profiling/DeepCaptureController.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Profiling/HarmonyRuntimeResolver.cs" Link="Profiling/HarmonyRuntimeResolver.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Profiling/ManagedSystemTimingCaptureLifecycle.cs" Link="Profiling/ManagedSystemTimingCaptureLifecycle.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Collectors/IMetricCollector.cs" Link="Collectors/IMetricCollector.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Collectors/ReflectionMetricAccessor.cs" Link="Collectors/ReflectionMetricAccessor.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Collectors/PathfindingCollector.cs" Link="Collectors/PathfindingCollector.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Collectors/EntityMetricsCollector.cs" Link="Collectors/EntityMetricsCollector.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/PrivacySanitizer.cs" Link="Export/PrivacySanitizer.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/PerformanceReport.cs" Link="Export/PerformanceReport.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/PerformanceReportSerializer.cs" Link="Export/PerformanceReportSerializer.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/ProfilerReportBuilder.cs" Link="Export/ProfilerReportBuilder.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/ReportFileWriter.cs" Link="Export/ReportFileWriter.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/RuntimeReportMetadata.cs" Link="Export/RuntimeReportMetadata.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/UI/UiSnapshot.cs" Link="UI/UiSnapshot.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/UI/UiSnapshotBuilder.cs" Link="UI/UiSnapshotBuilder.cs" />
+  </ItemGroup>
+</Project>

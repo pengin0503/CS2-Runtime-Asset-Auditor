@@ -41,7 +41,7 @@ describe("Japanese profiler UI regression coverage", () => {
   });
 
   it("registers Japanese option localization through the game localization manager", () => {
-    const localePath = path.resolve(process.cwd(), "../src/CS2RuntimeProfiler/Localization/LocaleJA.cs");
+    const localePath = path.resolve(process.cwd(), "../src/CS2RuntimeAssetAuditor/Localization/LocaleJA.cs");
     expect(existsSync(localePath)).toBe(true);
     if (!existsSync(localePath)) return;
 
@@ -49,10 +49,10 @@ describe("Japanese profiler UI regression coverage", () => {
     expect(locale).toContain("GetSettingsLocaleID");
     expect(locale).toContain("GetOptionLabelLocaleID");
     expect(locale).toContain("GetOptionDescLocaleID");
-    expect(locale).toContain("ランタイムプロファイラー");
+    expect(locale).toContain("CS2 Runtime Asset Auditor");
     expect(locale).toContain("監視を有効化");
 
-    const mod = readFileSync(path.resolve(process.cwd(), "../src/CS2RuntimeProfiler/Mod.cs"), "utf8");
+    const mod = readFileSync(path.resolve(process.cwd(), "../src/CS2RuntimeAssetAuditor/Mod.cs"), "utf8");
     expect(mod).toContain('localizationManager.AddSource("ja-JP"');
   });
 });

@@ -16,7 +16,7 @@ interface ProfilerHudProps {
 // GameTopLeft row aligns it like the other floating launchers; the previous vertically centering
 // flex wrapper most likely stretched to the row height (badges on other launchers) and pushed it down.
 export function ProfilerHud({ snapshot, panelVisible, onToggle }: ProfilerHudProps) {
-  const tooltip = `CS2 ランタイムプロファイラーを開く\n指定速度 ${formatSpeed(snapshot.selectedSpeed)} / 実効速度 ${formatSpeed(snapshot.actualSpeed)} / ${captureStateLabel(snapshot.state, snapshot.isDeepCapture)}`;
+  const tooltip = `CS2 Runtime Asset Auditorを開く\n指定速度 ${formatSpeed(snapshot.selectedSpeed)} / 実効速度 ${formatSpeed(snapshot.actualSpeed)} / ${captureStateLabel(snapshot.state, snapshot.isDeepCapture)}`;
   return (
     <Tooltip tooltip={tooltip}>
       <Button
@@ -26,7 +26,7 @@ export function ProfilerHud({ snapshot, panelVisible, onToggle }: ProfilerHudPro
         selected={panelVisible}
         onSelect={onToggle}
         aria-pressed={panelVisible}
-        aria-label="CS2 ランタイムプロファイラー"
+        aria-label="CS2 Runtime Asset Auditor"
       />
     </Tooltip>
   );

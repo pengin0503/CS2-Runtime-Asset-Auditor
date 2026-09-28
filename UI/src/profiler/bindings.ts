@@ -225,7 +225,7 @@ export const EMPTY_SNAPSHOT: UiSnapshot = {
   }
 };
 
-const GROUP = "CS2RuntimeProfiler";
+const GROUP = "CS2RuntimeAssetAuditor";
 
 const snapshotBinding = bindValue<UiSnapshot>(GROUP, "snapshot", EMPTY_SNAPSHOT);
 const hudSnapshotBinding = bindValue<UiHudSnapshot>(GROUP, "hudSnapshot", EMPTY_HUD_SNAPSHOT);

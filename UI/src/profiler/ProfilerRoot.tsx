@@ -154,10 +154,10 @@ export function ProfilerRoot() {
 
   return (
     <InputActionConsumer actions={BACK_ACTIONS} ignoreFocusState>
-      <div ref={panelRef} className={styles.panel} style={panelStyle} role="dialog" aria-label="CS2 ランタイムプロファイラー">
+      <div ref={panelRef} className={styles.panel} style={panelStyle} role="dialog" aria-label="CS2 Runtime Asset Auditor">
         <header className={styles.panelHeader}>
           <div className={styles.dragHandle} onMouseDown={beginDrag("move")} title="ドラッグしてパネルを移動">
-            <strong>CS2 ランタイムプロファイラー</strong>
+            <strong>CS2 Runtime Asset Auditor</strong>
             <small>{snapshot.capture.isDeepCapture ? "詳細キャプチャ実行中" : `低負荷監視・${captureStateLabel(snapshot.capture.state)}`}</small>
           </div>
           <div className={styles.headerActions}>

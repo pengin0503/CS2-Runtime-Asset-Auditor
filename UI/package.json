@@ -1,5 +1,5 @@
 {
-  "name": "cs2-runtime-profiler-ui",
+  "name": "cs2-runtime-asset-auditor-ui",
   "version": "0.1.0",
   "private": true,
   "main": "build/index.js",

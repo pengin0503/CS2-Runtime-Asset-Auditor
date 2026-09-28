@@ -3,7 +3,7 @@ import path from "node:path";
 import { expect, it } from "vitest";
 
 const source = fs.readFileSync(
-  path.resolve(process.cwd(), "../src/CS2RuntimeProfiler/UI/ProfilerUISystem.cs"),
+  path.resolve(process.cwd(), "../src/CS2RuntimeAssetAuditor/UI/ProfilerUISystem.cs"),
   "utf8"
 );
 

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 describe("repository issue regressions", () => {
   it("preserves Unity recorder handles until rediscovery succeeds", () => {
-    const source = readFileSync(path.resolve(process.cwd(), "../src/CS2RuntimeProfiler/Profiling/UnityRecorderBackend.cs"), "utf8");
+    const source = readFileSync(path.resolve(process.cwd(), "../src/CS2RuntimeAssetAuditor/Profiling/UnityRecorderBackend.cs"), "utf8");
     const discoveryIndex = source.indexOf("ProfilerRecorderHandle.GetAvailable");
     const clearIndex = source.indexOf("_handles.Clear()");
 
@@ -13,8 +13,8 @@ describe("repository issue regressions", () => {
   });
 
   it("uses the current runtime clock for manual capture requests instead of the latest sampled timestamp", () => {
-    const globalSource = readFileSync(path.resolve(process.cwd(), "../src/CS2RuntimeProfiler/Collectors/GlobalMetricsCollector.cs"), "utf8");
-    const captureSource = readFileSync(path.resolve(process.cwd(), "../src/CS2RuntimeProfiler/Profiling/CaptureRuntimeSystem.cs"), "utf8");
+    const globalSource = readFileSync(path.resolve(process.cwd(), "../src/CS2RuntimeAssetAuditor/Collectors/GlobalMetricsCollector.cs"), "utf8");
+    const captureSource = readFileSync(path.resolve(process.cwd(), "../src/CS2RuntimeAssetAuditor/Profiling/CaptureRuntimeSystem.cs"), "utf8");
 
     expect(globalSource).toContain("CurrentTimestampSeconds => _clock.Elapsed.TotalSeconds");
     expect(captureSource).toContain("_global?.CurrentTimestampSeconds");
@@ -24,7 +24,7 @@ describe("repository issue regressions", () => {
   it("closes the profiler panel through the game's Back input action instead of a DOM keydown listener", () => {
     const source = readFileSync(new URL("./ProfilerRoot.tsx", import.meta.url), "utf8");
     const bindings = readFileSync(new URL("./bindings.ts", import.meta.url), "utf8");
-    const system = readFileSync(path.resolve(process.cwd(), "../src/CS2RuntimeProfiler/UI/ProfilerUISystem.cs"), "utf8");
+    const system = readFileSync(path.resolve(process.cwd(), "../src/CS2RuntimeAssetAuditor/UI/ProfilerUISystem.cs"), "utf8");
 
     // Escape arrives through the game's input system as the "Back" action; the vanilla pause menu
     // consumed it before any DOM listener ran, so a keydown listener never closed the panel.
@@ -39,9 +39,9 @@ describe("repository issue regressions", () => {
   });
 
   it("keeps review hardening wiring and export documentation aligned", () => {
-    const reportBuilder = readFileSync(path.resolve(process.cwd(), "../src/CS2RuntimeProfiler/Export/ProfilerReportBuilder.cs"), "utf8");
-    const domains = readFileSync(path.resolve(process.cwd(), "../src/CS2RuntimeProfiler/Collectors/DomainMetricsSystem.cs"), "utf8");
-    const timing = readFileSync(path.resolve(process.cwd(), "../src/CS2RuntimeProfiler/Core/CaptureSystemTimingFinalizer.cs"), "utf8");
+    const reportBuilder = readFileSync(path.resolve(process.cwd(), "../src/CS2RuntimeAssetAuditor/Export/ProfilerReportBuilder.cs"), "utf8");
+    const domains = readFileSync(path.resolve(process.cwd(), "../src/CS2RuntimeAssetAuditor/Collectors/DomainMetricsSystem.cs"), "utf8");
+    const timing = readFileSync(path.resolve(process.cwd(), "../src/CS2RuntimeAssetAuditor/Core/CaptureSystemTimingFinalizer.cs"), "utf8");
     const readme = readFileSync(path.resolve(process.cwd(), "../README.md"), "utf8");
 
     expect(reportBuilder).toContain("HasAvailableMetric(report.Pathfinding)");

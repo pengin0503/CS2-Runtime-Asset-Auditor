@@ -46,7 +46,7 @@ module.exports = {
         test: /\.(png|jpe?g|gif|svg)$/i,
         include: path.join(__dirname, "src", "images"),
         type: "asset/resource",
-        generator: { filename: "cs2-runtime-profiler-images/[name][ext]" }
+        generator: { filename: "cs2-runtime-asset-auditor-images/[name][ext]" }
       }
     ]
   },

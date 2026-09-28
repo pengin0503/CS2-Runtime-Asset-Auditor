@@ -8,7 +8,7 @@ function repoFile(relativePath: string): string {
 
 describe("runtime settings and panel ergonomics", () => {
   it("exposes display, capture, sampling and advanced settings through the native options UI", () => {
-    const source = repoFile("src/CS2RuntimeProfiler/Setting.cs");
+    const source = repoFile("src/CS2RuntimeAssetAuditor/Setting.cs");
 
     for (const property of [
       "EnableMonitoring",
@@ -45,8 +45,8 @@ describe("runtime settings and panel ergonomics", () => {
   });
 
   it("persists a user-adjusted panel position and size through hidden settings", () => {
-    const setting = repoFile("src/CS2RuntimeProfiler/Setting.cs");
-    const system = repoFile("src/CS2RuntimeProfiler/UI/ProfilerUISystem.cs");
+    const setting = repoFile("src/CS2RuntimeAssetAuditor/Setting.cs");
+    const system = repoFile("src/CS2RuntimeAssetAuditor/UI/ProfilerUISystem.cs");
     const root = readFileSync(new URL("./ProfilerRoot.tsx", import.meta.url), "utf8");
 
     for (const property of ["PanelLeft", "PanelTop", "PanelWidth", "PanelHeight"]) {
@@ -73,7 +73,7 @@ describe("runtime settings and panel ergonomics", () => {
   });
 
   it("localizes the new option groups and user-facing controls in Japanese", () => {
-    const locale = repoFile("src/CS2RuntimeProfiler/Localization/LocaleJA.cs");
+    const locale = repoFile("src/CS2RuntimeAssetAuditor/Localization/LocaleJA.cs");
 
     for (const text of [
       "表示",
