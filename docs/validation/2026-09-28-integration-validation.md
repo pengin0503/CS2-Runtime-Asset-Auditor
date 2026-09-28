@@ -1,14 +1,22 @@
 # 統合版の検証状況 — 2026-09-28
 
+## 計画の進捗確認（main: `3e4064b7aa4c65da449305f10327a653c8255088`）
+
+実装計画の Task 1〜10 と Task 11 の CI・README・検証記録は、順番に対応するコミットを確認済み。計画全体の検証完了とは扱わない。残る Task 11 の条件付き実行は Adapter テスト、統合 Mod の Release ビルド、実ゲーム 15 シナリオである。
+
+- 純粋テスト: [Pure Core Tests 実行結果](https://github.com/pengin0503/CS2-Runtime-Asset-Auditor/actions/runs/36496648664) — main の上記コミットで success。
+- UI テスト・本番ビルド: [UI Tests 実行結果](https://github.com/pengin0503/CS2-Runtime-Asset-Auditor/actions/runs/36446498816) — UI の最終変更コミット `93ce32644e26791909e26699419e32b085c2e10b` で success。以後の変更は C# のプライバシー処理とテストのみ。
+- ゲーム依存の検証を実行するには、起動可能な .NET SDK、対応する CS2 管理 DLL と公式 Modding Toolchain 一式、実ゲーム環境が必要。現在の作業環境ではこの組み合わせが揃わない。参照 DLL の断片が見つかっても、完全なツールチェーンや実機検証の代わりにはしない。
+
 ## 自動検証
 
 | 対象 | 結果 | 根拠・制約 |
 | --- | --- | --- |
-| .NET 純粋テスト | PASS | GitHub Actions `Pure Core Tests`。ローカルには `dotnet` SDK がなく、GitHub Actions で実行。 |
+| .NET 純粋テスト | PASS | GitHub Actions `Pure Core Tests`。この作業環境の `dotnet` コマンドは利用不可。GitHub Actions で実行。 |
 | UI テスト | PASS | `npm test`。統合ナビゲーション、スキャン状態、一覧、関連付け等を含む。 |
 | UI 本番ビルド | PASS | `npm run build`、webpack compiled successfully。 |
-| Adapter テスト | NOT RUN | CS2 管理 DLL と公式 Modding Toolchain がこの実行環境にない。 |
-| Mod Release ビルド | NOT RUN | `dotnet` SDK、CS2 管理 DLL、公式 `Mod.props` / `Mod.targets` がこの実行環境にない。ゲーム API との適合は未確認。 |
+| Adapter テスト | NOT RUN | 対応する CS2 管理 DLL と公式 Modding Toolchain 一式が揃わず、この環境からは実行できない。 |
+| Mod Release ビルド | NOT RUN | 起動可能な `dotnet` SDK、対応する CS2 管理 DLL、公式 Modding Toolchain 一式が揃わない。ゲーム API との適合は未確認。 |
 
 ## 実ゲームでの確認
 
