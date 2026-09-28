@@ -45,6 +45,7 @@ namespace CS2RuntimeAssetAuditor.Export
                 report.Captures.Add(new ReportCapture
                 {
                     Id = capture.Id, TriggerKind = capture.TriggerKind, TriggeredAtSeconds = capture.TriggeredAtSeconds,
+                    SessionId = capture.SessionId, StartedAtUtc = capture.StartedAtUtc, CompletedAtUtc = capture.CompletedAtUtc,
                     TriggerSelectedSpeed = capture.TriggerSelectedSpeed, TriggerActualSpeed = capture.TriggerActualSpeed, TriggerEfficiency = capture.TriggerEfficiency,
                     DurationSeconds = capture.DurationSeconds, DiscoveredMarkers = capture.DiscoveredMarkers, AttemptedMarkers = capture.AttemptedMarkers,
                     ActivatedMarkers = capture.ActivatedMarkers, SampledMarkers = capture.SampledMarkers, CapturedMarkers = capture.CapturedMarkers,

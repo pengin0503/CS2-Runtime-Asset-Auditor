@@ -212,6 +212,7 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                     _diagnostics.Snapshot(),
                     scope,
                     includedKeys);
+                StampAssetReport(report, auditSystem);
                 if (string.Equals(request.Format, "Csv", StringComparison.Ordinal))
                 {
                     var directory = Path.Combine(EnvPath.kUserDataPath, "ModsData", Mod.Id);
@@ -245,11 +246,22 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
         {
             var auditSystem = GetAuditSystem();
             if (auditSystem?.Capabilities == null) return null;
-            return _reportBuilder.BuildCurrent(auditSystem.CatalogRecords, auditSystem.CatalogGeneration,
+            var report = _reportBuilder.BuildCurrent(auditSystem.CatalogRecords, auditSystem.CatalogGeneration,
                 auditSystem.CatalogGeneration > 0 ? auditSystem.CatalogCapturedAt : (DateTimeOffset?)null,
                 auditSystem.PublishedCensus, auditSystem.PublishedAnalysis, auditSystem.Capabilities,
                 typeof(Mod).Assembly.GetName().Version?.ToString() ?? "unknown", DateTimeOffset.UtcNow,
                 _diagnostics.Snapshot(), ExportScope.Full, null);
+            StampAssetReport(report, auditSystem);
+            return report;
+        }
+
+        private static void StampAssetReport(AuditReport report, AssetAuditSystem system)
+        {
+            if (system.PublishedAnalysis == null || system.PublishedAssetSnapshotId == null) return;
+            report.SessionId = system.PublishedAssetSnapshotSessionId;
+            report.AssetSnapshotId = system.PublishedAssetSnapshotId;
+            report.StartedAtUtc = system.PublishedAssetSnapshotStartedAtUtc?.ToString("O");
+            report.CompletedAtUtc = system.PublishedAssetSnapshotCompletedAtUtc?.ToString("O");
         }
 
         private IEnumerable<PrefabKey>? ResolveExportKeys(AssetAuditSystem auditSystem, UiExportRequest request, ExportScope scope)
@@ -305,10 +317,11 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                 typeof(Mod).Assembly.GetName().Version?.ToString() ?? "unknown");
             snapshot.SessionId = Mod.SessionContext?.SessionId;
             var analysis = GetCurrentAnalysis(auditSystem);
-            if (analysis != null && snapshot.SessionId != null)
+            if (analysis != null && auditSystem?.PublishedAssetSnapshotSessionId == snapshot.SessionId)
             {
-                snapshot.Summary.LatestAssetSnapshotId = snapshot.SessionId + "/analysis/" + analysis.AnalysisGeneration;
-                snapshot.Summary.LatestAssetSnapshotCompletedAtUtc = analysis.CapturedAt.ToUniversalTime().ToString("O");
+                snapshot.Summary.LatestAssetSnapshotId = auditSystem.PublishedAssetSnapshotId;
+                snapshot.Summary.LatestAssetSnapshotStartedAtUtc = auditSystem.PublishedAssetSnapshotStartedAtUtc?.ToString("O");
+                snapshot.Summary.LatestAssetSnapshotCompletedAtUtc = auditSystem.PublishedAssetSnapshotCompletedAtUtc?.ToString("O");
             }
             UiAnalysisProjection.ApplyDeepInspections(snapshot, analysis);
             snapshot.Diagnostics = CreateDiagnostics(auditSystem);

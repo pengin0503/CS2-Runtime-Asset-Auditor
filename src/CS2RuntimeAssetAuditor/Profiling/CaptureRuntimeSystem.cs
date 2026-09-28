@@ -111,6 +111,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
 
                 if (beforeSession == null && afterSession != null && afterState == CaptureState.DeepCapture)
                 {
+                    afterSession.MarkStarted(Mod.EnsureDiagnosticSession(World).SessionId, DateTimeOffset.UtcNow);
                     Mod.WorkCoordinator.Request(DiagnosticWorkKind.RuntimeDeepCapture);
                     RefreshSystemCatalogForCapture(afterSession);
                     StartManagedTimingForCapture(afterSession);
@@ -152,6 +153,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
             _controller?.RequestManualCapture(now, _global?.GetRecentHistory(GetPrebufferSeconds()));
             if (before == null && _controller?.CurrentSession != null && _controller.State == CaptureState.DeepCapture)
             {
+                _controller.CurrentSession.MarkStarted(Mod.EnsureDiagnosticSession(World).SessionId, DateTimeOffset.UtcNow);
                 Mod.WorkCoordinator.Request(DiagnosticWorkKind.RuntimeDeepCapture);
                 RefreshSystemCatalogForCapture(_controller.CurrentSession);
                 StartManagedTimingForCapture(_controller.CurrentSession);
@@ -252,6 +254,8 @@ namespace CS2RuntimeAssetAuditor.Profiling
         {
             if (capture == null)
                 return;
+
+            capture.MarkCompleted(DateTimeOffset.UtcNow);
 
             Mod.WorkCoordinator.Complete(DiagnosticWorkKind.RuntimeDeepCapture);
 

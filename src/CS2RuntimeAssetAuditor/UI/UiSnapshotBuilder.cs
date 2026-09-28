@@ -150,6 +150,7 @@ namespace CS2RuntimeAssetAuditor.UI
             return new CaptureSummaryUi
             {
                 Id = capture.Id, TriggerKind = capture.Trigger.Kind.ToString(), TriggeredAtSeconds = capture.Trigger.TimestampSeconds,
+                SessionId = capture.SessionId, StartedAtUtc = capture.StartedAtUtc?.ToString("O"), CompletedAtUtc = capture.CompletedAtUtc?.ToString("O"),
                 TriggerSelectedSpeed = capture.TriggerSelectedSpeed, TriggerActualSpeed = capture.TriggerActualSpeed, TriggerEfficiency = capture.TriggerEfficiency,
                 DurationSeconds = duration, DiscoveredMarkers = capture.MarkerCoverage.Discovered, AttemptedMarkers = capture.MarkerCoverage.Attempted,
                 ActivatedMarkers = capture.MarkerCoverage.Activated, SampledMarkers = capture.MarkerCoverage.Sampled, CapturedMarkers = capture.MarkerCoverage.Captured,

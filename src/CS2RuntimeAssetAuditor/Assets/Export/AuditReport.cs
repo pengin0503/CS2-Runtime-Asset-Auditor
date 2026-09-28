@@ -32,6 +32,10 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
         [DataMember(Name = "diagnostics", Order = 16)] public ReportDiagnostic[] Diagnostics { get; set; } = new ReportDiagnostic[0];
         [DataMember(Name = "exportScope", Order = 17)] public string ExportScope { get; set; } = "Full";
         [DataMember(Name = "analysis", Order = 18)] public ReportAnalysis Analysis { get; set; } = new ReportAnalysis();
+        [DataMember(Name = "sessionId", Order = 19, EmitDefaultValue = true)] public string? SessionId { get; set; }
+        [DataMember(Name = "assetSnapshotId", Order = 20, EmitDefaultValue = true)] public string? AssetSnapshotId { get; set; }
+        [DataMember(Name = "startedAtUtc", Order = 21, EmitDefaultValue = true)] public string? StartedAtUtc { get; set; }
+        [DataMember(Name = "completedAtUtc", Order = 22, EmitDefaultValue = true)] public string? CompletedAtUtc { get; set; }
     }
 
     [DataContract]

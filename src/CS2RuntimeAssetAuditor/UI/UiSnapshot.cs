@@ -103,6 +103,9 @@ namespace CS2RuntimeAssetAuditor.UI
     public sealed class CaptureSummaryUi
     {
         public string Id { get; set; } = string.Empty;
+        public string SessionId { get; set; }
+        public string StartedAtUtc { get; set; }
+        public string CompletedAtUtc { get; set; }
         public string TriggerKind { get; set; } = string.Empty;
         public double TriggeredAtSeconds { get; set; }
         public double? TriggerSelectedSpeed { get; set; }

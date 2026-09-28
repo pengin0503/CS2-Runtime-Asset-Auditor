@@ -49,6 +49,20 @@ namespace CS2RuntimeAssetAuditor.Core
         }
 
         public string Id { get; }
+        public string SessionId { get; private set; }
+        public DateTimeOffset? StartedAtUtc { get; private set; }
+        public DateTimeOffset? CompletedAtUtc { get; private set; }
+        public void MarkStarted(string sessionId, DateTimeOffset startedAtUtc)
+        {
+            if (StartedAtUtc.HasValue || string.IsNullOrWhiteSpace(sessionId)) return;
+            SessionId = sessionId;
+            StartedAtUtc = startedAtUtc.ToUniversalTime();
+        }
+        public void MarkCompleted(DateTimeOffset completedAtUtc)
+        {
+            if (StartedAtUtc.HasValue && completedAtUtc >= StartedAtUtc.Value)
+                CompletedAtUtc = completedAtUtc.ToUniversalTime();
+        }
         public CaptureTrigger Trigger { get; }
         public MarkerCoverageInfo MarkerCoverage { get; private set; }
         public SystemTimingSnapshot SystemTiming { get; private set; }

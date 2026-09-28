@@ -9,11 +9,13 @@ import { OverviewTab } from "./tabs/OverviewTab";
 import { SettingsTab } from "./tabs/SettingsTab";
 import { WarningsTab } from "./tabs/WarningsTab";
 import type { AssetQueryState, ExportAssetKey } from "./types";
+import type { CaptureSummaryUi } from "../profiler/bindings";
+import { RuntimeContextCard } from "./RuntimeContextCard";
 import { DEFAULT_ASSET_QUERY_STATE } from "./types";
 import type { AssetSectionName } from "../shell/navigation";
 import styles from "./assetAuditor.module.scss";
 
-export function AssetSection({ view, active }: { view: AssetSectionName | "overview"; active: boolean }) {
+export function AssetSection({ view, active, capture }: { view: AssetSectionName | "overview"; active: boolean; capture?: CaptureSummaryUi | null }) {
   const snapshot = useAuditorSnapshot();
   const exportedReport = useExportedReport();
   const [query, setQuery] = useState<AssetQueryState>(DEFAULT_ASSET_QUERY_STATE);
@@ -37,6 +39,8 @@ export function AssetSection({ view, active }: { view: AssetSectionName | "overv
   return (
     <section className={styles.assetSection} aria-label="アセット診断">
       <ScanStatus scan={snapshot.scanStatus} onCancel={nativeBindings.cancelCensus} />
+      {capture && <RuntimeContextCard capture={capture} sessionId={snapshot.sessionId} summary={snapshot.summary}
+        onRunAudit={() => nativeBindings.requestAssetAudit(settings)} />}
       {view === "overview" && <OverviewTab snapshot={snapshot} bindings={nativeBindings} />}
       {view === "catalog" && <AssetsTab page={snapshot.assetPage} query={query} onQueryChange={updateQuery}
         findings={findings} onSelectedAssetChange={setSelectedAsset} onDeepInspect={nativeBindings.requestDeepInspection} />}

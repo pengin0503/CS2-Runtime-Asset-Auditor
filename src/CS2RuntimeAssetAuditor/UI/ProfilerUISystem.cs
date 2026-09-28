@@ -12,6 +12,7 @@ using CS2RuntimeAssetAuditor.Export;
 using CS2RuntimeAssetAuditor.Profiling;
 using CS2RuntimeAssetAuditor.Assets.Export;
 using CS2RuntimeAssetAuditor.Assets.UI;
+using CS2RuntimeAssetAuditor.Coordination;
 using Game;
 using Game.UI;
 
@@ -248,7 +249,21 @@ namespace CS2RuntimeAssetAuditor.UI
                 gameVersion: exportSnapshot.Diagnostics?.GameVersion,
                 profilerVersion: exportSnapshot.Diagnostics?.ProfilerVersion);
             var assets = assetSection ?? World.GetExistingSystemManaged<AssetAuditUISystem>()?.BuildCurrentReport();
-            return RuntimeAssetAuditReportBuilder.Build(runtime, assets, Mod.EnsureDiagnosticSession(World), DateTimeOffset.UtcNow);
+            var links = new List<DiagnosticEvidenceLink>();
+            if (assets?.AssetSnapshotId != null
+                && DateTimeOffset.TryParse(assets.StartedAtUtc, out var assetStarted)
+                && DateTimeOffset.TryParse(assets.CompletedAtUtc, out var assetCompleted))
+            {
+                foreach (var capture in runtime.Captures)
+                {
+                    if (!DateTimeOffset.TryParse(capture.StartedAtUtc, out var started)
+                        || !DateTimeOffset.TryParse(capture.CompletedAtUtc, out var completed)) continue;
+                    var link = DiagnosticEvidenceBridge.TryLink(capture.SessionId, capture.Id, started, completed,
+                        assets.SessionId, assets.AssetSnapshotId, assetStarted, assetCompleted);
+                    if (link != null) links.Add(link);
+                }
+            }
+            return RuntimeAssetAuditReportBuilder.Build(runtime, assets, Mod.EnsureDiagnosticSession(World), DateTimeOffset.UtcNow, links);
         }
 
         private void RefreshSnapshot()

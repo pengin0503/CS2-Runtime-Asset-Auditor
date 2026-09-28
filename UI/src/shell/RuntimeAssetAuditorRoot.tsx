@@ -62,6 +62,7 @@ export function RuntimeAssetAuditorRoot() {
   const [section, setSection] = useState<TopSection>("overview");
   const [runtimeView, setRuntimeView] = useState<RuntimeSection>("systems");
   const [assetView, setAssetView] = useState<AssetSectionName>("catalog");
+  const [investigationCaptureId, setInvestigationCaptureId] = useState<string | null>(null);
   const [rect, setRect] = useState<PanelRect | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -195,9 +196,10 @@ export function RuntimeAssetAuditorRoot() {
             {section === "runtime" && runtimeView === "mods" && <ModsTab mods={snapshot.mods} systems={snapshot.systems} />}
             {section === "runtime" && runtimeView === "pathfinding" && <PathfindingTab metrics={snapshot.pathfinding.metrics} />}
             {section === "runtime" && runtimeView === "timeline" && <TimelineTab points={snapshot.timeline} />}
-            {section === "runtime" && runtimeView === "captures" && <CapturesTab captures={snapshot.captures} onSelect={selectCapture} />}
+            {section === "runtime" && runtimeView === "captures" && <CapturesTab captures={snapshot.captures} onSelect={selectCapture}
+              onInvestigate={id => { setInvestigationCaptureId(id); selectCapture(id); setAssetView("catalog"); setSection("assets"); }} />}
             {section === "assets" && <><p>アセットの形状・テクスチャ・配置数は調査の手がかりです。個々のアセットのフレーム時間や GPU 負荷を測定した値ではありません。</p>
-              <AssetSection view={assetView} active={visible} /></>}
+              <AssetSection view={assetView} active={visible} capture={snapshot.captures.find(capture => capture.id === investigationCaptureId)} /></>}
             {section === "advisor" && <PerformanceAdvisorTab advisor={snapshot.advisor} captures={snapshot.captures}
               onDiagnose={requestAdvisorDiagnosis} onBaseline={selectAdvisorBaseline} onManualCapture={requestManualCapture}
               onRediagnose={requestAdvisorRediagnosis}

@@ -82,6 +82,9 @@ export interface CorrelatedChangeUi {
 
 export interface CaptureSummaryUi {
   id: string;
+  sessionId?: string | null;
+  startedAtUtc?: string | null;
+  completedAtUtc?: string | null;
   triggerKind: string;
   triggeredAtSeconds: number;
   durationSeconds: number;

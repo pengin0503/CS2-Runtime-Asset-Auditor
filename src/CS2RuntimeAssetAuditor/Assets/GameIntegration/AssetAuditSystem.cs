@@ -67,6 +67,10 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
         public string DiagnosticWorkStatus { get; private set; } = "Idle";
         public CensusSnapshot? PublishedCensus => _publishedState.Census;
         public AssetAnalysisSnapshot? PublishedAnalysis => _publishedState.Analysis;
+        public string? PublishedAssetSnapshotId { get; private set; }
+        public string? PublishedAssetSnapshotSessionId { get; private set; }
+        public DateTimeOffset? PublishedAssetSnapshotStartedAtUtc { get; private set; }
+        public DateTimeOffset? PublishedAssetSnapshotCompletedAtUtc { get; private set; }
         public RenderGraphSnapshot? PublishedRuntimeRenderGraph => _publishedRuntimeRenderGraph;
         public string? LastDiagnosticCode { get; private set; }
         public int UnmatchedPrefabReferenceCount => _censusAccess?.UnmatchedPrefabReferenceCount ?? 0;
@@ -534,6 +538,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
                     FailDeepInspection("APA-DEEP-003", "deep_inspection_publish_world_mismatch");
                     return;
                 }
+                StampPublishedAnalysis(session, enriched);
                 session.Complete();
                 LastDiagnosticCode = observation.Availability == Core.Observations.Availability.Failed ? observation.DiagnosticCode : null;
                 _activeDeepInspectionKey = default;
@@ -567,10 +572,21 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
                 return;
             }
 
+            StampPublishedAnalysis(session, snapshot);
+
             _publishedRuntimeRenderGraph = collector.RenderGraph;
             session.Complete();
             LastDiagnosticCode = null;
             _analysisCollector = null;
+        }
+
+        private void StampPublishedAnalysis(ScanSession session, AssetAnalysisSnapshot snapshot)
+        {
+            var context = Mod.EnsureDiagnosticSession(World);
+            PublishedAssetSnapshotSessionId = context.SessionId;
+            PublishedAssetSnapshotId = context.SessionId + "/analysis/" + snapshot.AnalysisGeneration;
+            PublishedAssetSnapshotStartedAtUtc = session.StartedAt.ToUniversalTime();
+            PublishedAssetSnapshotCompletedAtUtc = snapshot.CapturedAt.ToUniversalTime();
         }
 
         private void AdvanceCensusScan()

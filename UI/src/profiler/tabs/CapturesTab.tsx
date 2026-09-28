@@ -22,7 +22,7 @@ function ChangeRow({ change }: { change: CorrelatedChangeUi }) {
   );
 }
 
-export function CapturesTab({ captures, onSelect }: { captures: CaptureSummaryUi[]; onSelect?: (id: string) => void }) {
+export function CapturesTab({ captures, onSelect, onInvestigate }: { captures: CaptureSummaryUi[]; onSelect?: (id: string) => void; onInvestigate?: (id: string) => void }) {
   const [expanded, setExpanded] = useState<string | null>(captures?.[0]?.id ?? null);
   if (!captures?.length) return <p className={styles.empty}>完了した詳細キャプチャはまだありません。</p>;
 
@@ -41,6 +41,7 @@ export function CapturesTab({ captures, onSelect }: { captures: CaptureSummaryUi
             </Button>
             {open && (
               <div className={styles.captureBody}>
+                <Button as="button" variant="flat" onSelect={() => onInvestigate?.(capture.id)}>アセットを調査</Button>
                 <div className={styles.captureFacts}>
                   <span>サンプル取得マーカー <b>{capture.capturedMarkers}/{capture.discoveredMarkers}</b></span>
                   <span>警告 <b>{capture.warningCount}</b></span>
