@@ -25,7 +25,7 @@ public class UnifiedPrivacySanitizerTests
         var assets = new AuditReport { GameVersion = "/home/alice/assets/file" };
         var report = RuntimeAssetAuditReportBuilder.Build(runtime, assets,
             DiagnosticSessionContext.Create("game", "build", DateTimeOffset.UtcNow), DateTimeOffset.UtcNow);
-        var json = @"{""runtime"":""runtime"",""nested"":{""assets"":""assets""}}";
+        var json = RuntimeAssetAuditReportSerializer.Serialize(report);
         Assert.That(json, Does.Not.Contain("Alice").IgnoreCase);
         Assert.That(json, Does.Not.Contain("/home/alice"));
         Assert.That(json, Does.Contain("redacted"));
