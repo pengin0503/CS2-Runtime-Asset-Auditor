@@ -31,7 +31,7 @@ namespace CS2RuntimeAssetAuditor.Localization
                 { _setting.GetOptionDescLocaleID(nameof(Setting.EnableAutomaticCapture)), "シミュレーション効率が設定した閾値を一定時間下回ったときに詳細キャプチャを自動開始します。手動キャプチャには影響しません。" },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.UiScalePercent)), "UI倍率" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.UiScalePercent)), "プロファイラーパネルの表示倍率を75～150%で調整します。" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.UiScalePercent)), "診断パネル全体の表示倍率を75～150%で調整します。" },
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.UiRefreshMilliseconds)), "UI更新間隔（ミリ秒）" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.UiRefreshMilliseconds)), "プロファイラーUIの更新頻度を調整します。大きい値ほどUI更新の負荷が下がります。" },
 
@@ -55,7 +55,37 @@ namespace CS2RuntimeAssetAuditor.Localization
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.ProfilerOverheadLimitPercent)), "許容プロファイラー負荷（%）" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.ProfilerOverheadLimitPercent)), "詳細キャプチャ中にこの割合を繰り返し超えた場合、同時マーカー数やサンプリング頻度を自動的に下げます。" },
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.MaxCompletedCaptures)), "保持するキャプチャ数" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.MaxCompletedCaptures)), "ゲーム内で保持する完了済みキャプチャ履歴の最大数です。上限を下げると古い履歴から削除されます。" }
+                { _setting.GetOptionDescLocaleID(nameof(Setting.MaxCompletedCaptures)), "ゲーム内で保持する完了済みキャプチャ履歴の最大数です。上限を下げると古い履歴から削除されます。" },
+                { _setting.GetOptionGroupLocaleID(Setting.ScanningGroup), "スキャン" },
+                { _setting.GetOptionGroupLocaleID(Setting.AnalysisGroup), "分析" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.CollectSubordinateObjects)), "従属オブジェクトを収集" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.CollectSubordinateObjects)), "対応する従属オブジェクトを次回の Census に含めます。無効時は 0 ではなく未スキャンとして扱います。" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.CollectNetworkEdges)), "ネットワークエッジを収集" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.CollectNetworkEdges)), "対応するネットワークエッジの証拠を次回の Census に含めます。" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.FrameBudgetMsOption)), "フレーム予算（ms）" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.FrameBudgetMsOption)), "監査処理を分割実行するときに 1 フレームで使用する管理処理時間の上限です。" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.ProgressUpdateMs)), "進捗更新間隔（ms）" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.ProgressUpdateMs)), "スキャン中に進捗だけが変化した場合の UI 更新間隔です。" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.RefreshCatalogAtScanStart)), "スキャン開始時にカタログを更新" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.RefreshCatalogAtScanStart)), "次回の Asset Audit 開始前に Prefab カタログを更新します。" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.EnableHeuristicFindings)), "ヒューリスティック検出" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.EnableHeuristicFindings)), "バージョン管理された証拠ベースのヒューリスティック検出を有効にします。" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.EnablePeerOutliers)), "同種アセット外れ値分析" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.EnablePeerOutliers)), "比較可能な母集団が十分にある場合、同種アセットとの比較を有効にします。" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.ComparisonPopulationOption)), "比較対象" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.ComparisonPopulationOption)), "比較・外れ値分析に使用するアセット母集団を選択します。" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.ShowNoticeFindings)), "Notice を表示" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.ShowNoticeFindings)), "Warnings 画面に情報レベルの Notice を表示します。" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.PageSize)), "アセットページサイズ" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.PageSize)), "UI が 1 回に要求するアセット件数です。" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.MetadataCacheLimit)), "メタデータキャッシュ上限" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.MetadataCacheLimit)), "保持するメタデータキャッシュ件数の上限です。" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.DeepInspectionLimit)), "Deep Inspection 上限" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.DeepInspectionLimit)), "Deep Inspection で扱う選択数の上限です。" },
+                { _setting.GetEnumValueLocaleID(Setting.ComparisonPopulationChoice.SameCategory), "同一カテゴリ" },
+                { _setting.GetEnumValueLocaleID(Setting.ComparisonPopulationChoice.BuiltinDlc), "バニラ / DLC" },
+                { _setting.GetEnumValueLocaleID(Setting.ComparisonPopulationChoice.Custom), "カスタムアセット" },
+                { _setting.GetEnumValueLocaleID(Setting.ComparisonPopulationChoice.SameSourcePack), "同一ソースパック" }
             };
         }
 

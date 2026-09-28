@@ -92,6 +92,14 @@ namespace CS2RuntimeAssetAuditor.Assets.Core.Scanning
             State = ScanState.Cancelled;
         }
 
+        public void MarkInterruptedByRuntimeCapture()
+        {
+            if (State != ScanState.CancellationRequested)
+                throw new InvalidOperationException("A runtime capture can interrupt only a cancelling scan.");
+            DiagnosticCode = "InterruptedByRuntimeCapture";
+            State = ScanState.InterruptedByRuntimeCapture;
+        }
+
         public void Fail(string diagnosticCode)
         {
             if (State != ScanState.Running && State != ScanState.CancellationRequested)

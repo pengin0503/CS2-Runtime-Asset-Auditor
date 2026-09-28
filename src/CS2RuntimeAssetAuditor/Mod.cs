@@ -1,7 +1,9 @@
 using Colossal.IO.AssetDatabase;
 using Colossal.Logging;
 using CS2RuntimeAssetAuditor.Collectors;
+using CS2RuntimeAssetAuditor.Assets.GameIntegration;
 using CS2RuntimeAssetAuditor.Advisor;
+using CS2RuntimeAssetAuditor.Coordination;
 using CS2RuntimeAssetAuditor.Export;
 using CS2RuntimeAssetAuditor.Localization;
 using CS2RuntimeAssetAuditor.Profiling;
@@ -9,6 +11,7 @@ using CS2RuntimeAssetAuditor.UI;
 using Game;
 using Game.Modding;
 using Game.SceneFlow;
+using Unity.Entities;
 
 namespace CS2RuntimeAssetAuditor
 {
@@ -17,6 +20,24 @@ namespace CS2RuntimeAssetAuditor
         public const string Id = "CS2RuntimeAssetAuditor";
         public static readonly ILog Log = LogManager.GetLogger($"{nameof(CS2RuntimeAssetAuditor)}.{nameof(Mod)}").SetShowsErrorsInUI(false);
         public static Setting Settings { get; private set; }
+        private static World _sessionWorld;
+        private static DiagnosticSessionContext _sessionContext;
+        private static DiagnosticWorkCoordinator _workCoordinator = new DiagnosticWorkCoordinator();
+
+        public static DiagnosticSessionContext SessionContext => _sessionContext;
+        public static DiagnosticWorkCoordinator WorkCoordinator => _workCoordinator;
+
+        public static DiagnosticSessionContext EnsureDiagnosticSession(World world)
+        {
+            if (!ReferenceEquals(_sessionWorld, world))
+            {
+                _sessionWorld = world;
+                _sessionContext = DiagnosticSessionContext.Create(
+                    UnityEngine.Application.version, BuildIdentityProvider.Current, System.DateTimeOffset.UtcNow);
+                _workCoordinator = new DiagnosticWorkCoordinator();
+            }
+            return _sessionContext;
+        }
 
         public void OnLoad(UpdateSystem updateSystem)
         {
@@ -31,14 +52,13 @@ namespace CS2RuntimeAssetAuditor
             if (localizationManager != null)
             {
                 localizationManager.AddSource("ja-JP", new LocaleJA(Settings));
-                // Keep the options readable even when the game falls back to its base locale.
-                // This mod intentionally presents its user-facing interface in Japanese.
-                localizationManager.AddSource("en-US", new LocaleJA(Settings));
+                localizationManager.AddSource("en-US", new LocaleEN(Settings));
             }
 
             AssetDatabase.global.LoadSettings(Id, Settings, new Setting(this));
             Settings.RegisterInOptionsUI();
 
+            updateSystem.UpdateAt<AssetAuditSystem>(SystemUpdatePhase.MainLoop);
             updateSystem.UpdateAt<GlobalMetricsCollector>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAt<DomainMetricsSystem>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAt<CaptureRuntimeSystem>(SystemUpdatePhase.UIUpdate);
@@ -53,6 +73,9 @@ namespace CS2RuntimeAssetAuditor
             ProfilerReportBuilder.CaptureConfigurationProvider = null;
             Settings?.UnregisterInOptionsUI();
             Settings = null;
+            _sessionWorld = null;
+            _sessionContext = null;
+            _workCoordinator = new DiagnosticWorkCoordinator();
         }
     }
 }

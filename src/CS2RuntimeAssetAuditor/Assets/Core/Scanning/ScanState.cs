@@ -7,6 +7,7 @@ namespace CS2RuntimeAssetAuditor.Assets.Core.Scanning
         CancellationRequested,
         Cancelled,
         Failed,
-        Completed
+        Completed,
+        InterruptedByRuntimeCapture
     }
 }

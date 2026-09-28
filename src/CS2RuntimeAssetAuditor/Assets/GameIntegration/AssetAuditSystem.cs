@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using CS2RuntimeAssetAuditor.Coordination;
 using CS2RuntimeAssetAuditor.Assets.Core.Capabilities;
 using CS2RuntimeAssetAuditor.Assets.Core.Census;
 using CS2RuntimeAssetAuditor.Assets.Core.Diagnostics;
@@ -43,6 +44,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
         private bool _assetAuditRefreshCatalog = true;
         private bool _assetAuditEnableHeuristics = true;
         private bool _deepInspectionRequested;
+        private bool _interruptedByRuntimeCapture;
         private RenderAssetKey _requestedDeepInspectionKey;
         private RenderAssetKey _activeDeepInspectionKey;
         private double _assetAuditFrameBudgetMs = 1.0;
@@ -62,6 +64,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
         public ScanSession? CurrentScan { get; private set; }
         public bool IsScanActive => CurrentScan != null && (CurrentScan.State == ScanState.Running || CurrentScan.State == ScanState.CancellationRequested);
         public bool IsCensusScanActive => IsScanActive && CurrentScan?.Kind == ScanKind.Census;
+        public string DiagnosticWorkStatus { get; private set; } = "Idle";
         public CensusSnapshot? PublishedCensus => _publishedState.Census;
         public AssetAnalysisSnapshot? PublishedAnalysis => _publishedState.Analysis;
         public RenderGraphSnapshot? PublishedRuntimeRenderGraph => _publishedRuntimeRenderGraph;
@@ -124,6 +127,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
         protected override void OnCreate()
         {
             base.OnCreate();
+            Mod.EnsureDiagnosticSession(World);
             WorldGeneration = Interlocked.Increment(ref _nextWorldGeneration);
             _publishedState.ResetForWorld(WorldGeneration);
             Capabilities = CapabilityProbe.Probe(World);
@@ -133,8 +137,55 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
 
         protected override void OnUpdate()
         {
-            UpdateScans();
-            FreezeTelemetryAfterScanEnds();
+            if (Mod.WorkCoordinator.ConsumeAssetInterruptionRequest())
+                InterruptForRuntimeCapture();
+            try
+            {
+                UpdateScans();
+                FreezeTelemetryAfterScanEnds();
+            }
+            finally
+            {
+                if (!IsScanActive && !_censusCleanupRequested && !_catalogCaptureActive
+                    && !_catalogScanRequested && !_censusScanRequested && !_assetAuditRequested && !_deepInspectionRequested)
+                {
+                    Mod.WorkCoordinator.Complete(DiagnosticWorkKind.AssetHeavyScan);
+                    if (DiagnosticWorkStatus == "Running") DiagnosticWorkStatus = "Idle";
+                }
+            }
+        }
+
+        private bool TryBeginHeavyWork()
+        {
+            var decision = Mod.WorkCoordinator.Request(DiagnosticWorkKind.AssetHeavyScan);
+            if (decision == DiagnosticWorkDecision.Queued)
+            {
+                DiagnosticWorkStatus = "WaitingForRuntimeCapture";
+                return false;
+            }
+            if (decision == DiagnosticWorkDecision.Started)
+                _interruptedByRuntimeCapture = false;
+            DiagnosticWorkStatus = "Running";
+            return true;
+        }
+
+        private void InterruptForRuntimeCapture()
+        {
+            _interruptedByRuntimeCapture = true;
+            DiagnosticWorkStatus = "InterruptedByRuntimeCapture";
+            LastDiagnosticCode = "InterruptedByRuntimeCapture";
+            _catalogScanRequested = false;
+            _censusScanRequested = false;
+            _assetAuditRequested = false;
+            _deepInspectionRequested = false;
+            _assetAuditWaitingForCatalog = false;
+            if (CurrentScan?.State == ScanState.Running)
+                CurrentScan.RequestCancellation();
+            if (_catalogCaptureActive && CurrentScan == null)
+            {
+                _catalog?.CancelCapture();
+                _catalogCaptureActive = false;
+            }
         }
 
         private void UpdateScans()
@@ -156,24 +207,28 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
 
             if (_censusScanRequested && !IsScanActive && !_catalogCaptureActive)
             {
+                if (!TryBeginHeavyWork()) return;
                 StartCensusScan();
                 return;
             }
 
             if (_assetAuditRequested && !IsScanActive && !_catalogCaptureActive)
             {
+                if (!TryBeginHeavyWork()) return;
                 StartAssetAudit();
                 return;
             }
 
             if (_deepInspectionRequested && !IsScanActive && !_catalogCaptureActive)
             {
+                if (!TryBeginHeavyWork()) return;
                 StartDeepInspection();
                 return;
             }
 
             if (_catalogScanRequested && !_catalogCaptureActive)
             {
+                if (!TryBeginHeavyWork()) return;
                 StartCatalogCapture();
                 return;
             }
@@ -197,6 +252,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
 
         protected override void OnDestroy()
         {
+            Mod.WorkCoordinator.Complete(DiagnosticWorkKind.AssetHeavyScan);
             if (CurrentScan?.State == ScanState.Running)
                 CurrentScan.RequestCancellation();
             _catalog?.CancelCapture();
@@ -660,7 +716,11 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
             _assetAuditWaitingForCatalog = false;
             _analysisCollector = null;
             _activeDeepInspectionKey = default;
-            CurrentScan.MarkCancelled();
+            if (_interruptedByRuntimeCapture)
+                CurrentScan.MarkInterruptedByRuntimeCapture();
+            else
+                CurrentScan.MarkCancelled();
+            _interruptedByRuntimeCapture = false;
         }
 
         private void FailCensusScan(string diagnosticCode, CapabilityId capability, string capabilityDetail)
@@ -719,7 +779,13 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
             _censusReducer = null;
             _networkCaptureStarted = false;
             if (CurrentScan?.State == ScanState.CancellationRequested)
-                CurrentScan.MarkCancelled();
+            {
+                if (_interruptedByRuntimeCapture)
+                    CurrentScan.MarkInterruptedByRuntimeCapture();
+                else
+                    CurrentScan.MarkCancelled();
+                _interruptedByRuntimeCapture = false;
+            }
         }
 
         private void StartTelemetry(DateTimeOffset startedAt)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using CS2RuntimeAssetAuditor.Collectors;
+using CS2RuntimeAssetAuditor.Coordination;
 using CS2RuntimeAssetAuditor.Core;
 using CS2RuntimeAssetAuditor.Export;
 using Game;
@@ -43,6 +44,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
         protected override void OnCreate()
         {
             base.OnCreate();
+            Mod.EnsureDiagnosticSession(World);
             _global = World.GetOrCreateSystemManaged<GlobalMetricsCollector>();
             _domains = World.GetOrCreateSystemManaged<DomainMetricsSystem>();
             _deepRecorders = new RecorderManager(new UnityRecorderBackend());
@@ -109,6 +111,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
 
                 if (beforeSession == null && afterSession != null && afterState == CaptureState.DeepCapture)
                 {
+                    Mod.WorkCoordinator.Request(DiagnosticWorkKind.RuntimeDeepCapture);
                     RefreshSystemCatalogForCapture(afterSession);
                     StartManagedTimingForCapture(afterSession);
                 }
@@ -117,6 +120,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
                     && beforeState == CaptureState.DeepCapture
                     && afterState != CaptureState.DeepCapture)
                 {
+                    Mod.WorkCoordinator.Complete(DiagnosticWorkKind.RuntimeDeepCapture);
                     FinishManagedTimingForCapture(afterSession);
                 }
 
@@ -148,6 +152,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
             _controller?.RequestManualCapture(now, _global?.GetRecentHistory(GetPrebufferSeconds()));
             if (before == null && _controller?.CurrentSession != null && _controller.State == CaptureState.DeepCapture)
             {
+                Mod.WorkCoordinator.Request(DiagnosticWorkKind.RuntimeDeepCapture);
                 RefreshSystemCatalogForCapture(_controller.CurrentSession);
                 StartManagedTimingForCapture(_controller.CurrentSession);
             }
@@ -159,6 +164,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
 
         protected override void OnDestroy()
         {
+            Mod.WorkCoordinator.Complete(DiagnosticWorkKind.RuntimeDeepCapture);
             if (_controller != null)
                 _controller.CaptureCompleted -= HandleCaptureCompleted;
             _managedTimingLifecycle?.Abort();
@@ -246,6 +252,8 @@ namespace CS2RuntimeAssetAuditor.Profiling
         {
             if (capture == null)
                 return;
+
+            Mod.WorkCoordinator.Complete(DiagnosticWorkKind.RuntimeDeepCapture);
 
             try
             {
