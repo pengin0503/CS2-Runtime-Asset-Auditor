@@ -11,12 +11,13 @@ describe("Japanese profiler UI regression coverage", () => {
   });
 
   it("uses Japanese labels and CS2-native select events for the main tabs", () => {
-    const source = readFileSync(new URL("./ProfilerRoot.tsx", import.meta.url), "utf8");
+    const source = readFileSync(new URL("../shell/RuntimeAssetAuditorRoot.tsx", import.meta.url), "utf8");
+    const navigation = readFileSync(new URL("../shell/navigation.ts", import.meta.url), "utf8");
     for (const label of ["概要", "システム", "MOD", "経路探索", "タイムライン", "キャプチャ", "改善提案", "診断"]) {
-      expect(source).toContain(label);
+      expect(navigation).toContain(label);
     }
     expect(source).toContain('from "cs2/ui"');
-    expect(source).toContain("onSelect={() => setTab(id)}");
+    expect(source).toContain("onSelect={() => setSection(id)}");
   });
 
   it("renders the top-left launcher as a floating CS2 icon button", () => {

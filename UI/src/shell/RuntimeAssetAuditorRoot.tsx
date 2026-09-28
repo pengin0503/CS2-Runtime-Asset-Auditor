@@ -20,20 +20,21 @@ import {
   usePanelVisible,
   useProfilerSnapshot,
   useUiScalePercent
-} from "./bindings";
-import { OverviewTab } from "./tabs/OverviewTab";
-import { SystemsTab } from "./tabs/SystemsTab";
-import { ModsTab } from "./tabs/ModsTab";
-import { PathfindingTab } from "./tabs/PathfindingTab";
-import { TimelineTab } from "./tabs/TimelineTab";
-import { CapturesTab } from "./tabs/CapturesTab";
-import { DiagnosticsTab } from "./tabs/DiagnosticsTab";
-import { PerformanceAdvisorTab } from "./tabs/PerformanceAdvisorTab";
-import { captureStateLabel } from "./text";
-import { PanelRect, clampPanelRect, movePanelRect, resizePanelRect } from "./panelLayout";
-import styles from "./profiler.module.scss";
+} from "../profiler/bindings";
+import { OverviewTab } from "../profiler/tabs/OverviewTab";
+import { SystemsTab } from "../profiler/tabs/SystemsTab";
+import { ModsTab } from "../profiler/tabs/ModsTab";
+import { PathfindingTab } from "../profiler/tabs/PathfindingTab";
+import { TimelineTab } from "../profiler/tabs/TimelineTab";
+import { CapturesTab } from "../profiler/tabs/CapturesTab";
+import { DiagnosticsTab } from "../profiler/tabs/DiagnosticsTab";
+import { PerformanceAdvisorTab } from "../profiler/tabs/PerformanceAdvisorTab";
+import { captureStateLabel } from "../profiler/text";
+import { PanelRect, clampPanelRect, movePanelRect, resizePanelRect } from "../profiler/panelLayout";
+import styles from "../profiler/profiler.module.scss";
+import { AssetSection } from "../assets/AssetSection";
+import { TOP_SECTIONS, RUNTIME_SECTIONS, ASSET_SECTIONS, type TopSection, type RuntimeSection, type AssetSectionName } from "./navigation";
 
-type ProfilerTab = "overview" | "systems" | "mods" | "pathfinding" | "timeline" | "captures" | "diagnostics" | "advisor";
 type DragMode = "move" | "resize";
 
 interface DragState {
@@ -52,13 +53,15 @@ function viewport() {
 // Registering a Back consumer while the panel is open lets the game route Back to this panel.
 const BACK_ACTIONS = { Back: closePanel };
 
-export function ProfilerRoot() {
+export function RuntimeAssetAuditorRoot() {
   const visible = usePanelVisible();
   const snapshot = useProfilerSnapshot();
   const exportResult = useExportResult();
   const uiScalePercent = useUiScalePercent();
   const savedLayout = usePanelLayout();
-  const [tab, setTab] = useState<ProfilerTab>("overview");
+  const [section, setSection] = useState<TopSection>("overview");
+  const [runtimeView, setRuntimeView] = useState<RuntimeSection>("systems");
+  const [assetView, setAssetView] = useState<AssetSectionName>("catalog");
   const [rect, setRect] = useState<PanelRect | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -141,17 +144,6 @@ export function ProfilerRoot() {
         maxHeight: `calc(${100 * inverseScale}vh - ${110 * inverseScale}rem)`
       };
 
-  const tabs: Array<[ProfilerTab, string]> = [
-    ["overview", "概要"],
-    ["systems", "システム"],
-    ["mods", "MOD"],
-    ["pathfinding", "経路探索"],
-    ["timeline", "タイムライン"],
-    ["captures", "キャプチャ"],
-    ["advisor", "改善提案"],
-    ["diagnostics", "診断"]
-  ];
-
   return (
     <InputActionConsumer actions={BACK_ACTIONS} ignoreFocusState>
       <div ref={panelRef} className={styles.panel} style={panelStyle} role="dialog" aria-label="CS2 Runtime Asset Auditor">
@@ -170,15 +162,15 @@ export function ProfilerRoot() {
           </div>
         </header>
 
-        <nav className={styles.tabs} aria-label="プロファイラー表示切替">
-          {tabs.map(([id, label]) => (
+        <nav className={styles.tabs} aria-label="診断表示切替">
+          {TOP_SECTIONS.map(({ id, label }) => (
             <Button
               as="button"
               variant="flat"
               key={id}
-              selected={tab === id}
-              className={`${styles.tabButton} ${tab === id ? styles.activeTab : ""}`}
-              onSelect={() => setTab(id)}
+              selected={section === id}
+              className={`${styles.tabButton} ${section === id ? styles.activeTab : ""}`}
+              onSelect={() => setSection(id)}
             >
               {label}
             </Button>
@@ -187,18 +179,31 @@ export function ProfilerRoot() {
 
         <Scrollable vertical trackVisibility="scrollable" className={styles.panelBody}>
           <div className={styles.panelContent}>
-            {tab === "overview" && <OverviewTab snapshot={snapshot} onManualCapture={requestManualCapture} onExport={exportReport} exportResult={exportResult} />}
-            {tab === "systems" && <SystemsTab systems={snapshot.systems} />}
-            {tab === "mods" && <ModsTab mods={snapshot.mods} systems={snapshot.systems} />}
-            {tab === "pathfinding" && <PathfindingTab metrics={snapshot.pathfinding.metrics} />}
-            {tab === "timeline" && <TimelineTab points={snapshot.timeline} />}
-            {tab === "captures" && <CapturesTab captures={snapshot.captures} onSelect={selectCapture} />}
-            {tab === "advisor" && <PerformanceAdvisorTab advisor={snapshot.advisor} captures={snapshot.captures}
+            {section === "runtime" && <nav className={styles.tabs} aria-label="ランタイム表示切替">
+              {RUNTIME_SECTIONS.map(({ id, label }) => <Button as="button" variant="flat" key={id}
+                selected={runtimeView === id} className={`${styles.tabButton} ${runtimeView === id ? styles.activeTab : ""}`}
+                onSelect={() => setRuntimeView(id)}>{label}</Button>)}
+            </nav>}
+            {section === "assets" && <nav className={styles.tabs} aria-label="アセット表示切替">
+              {ASSET_SECTIONS.map(({ id, label }) => <Button as="button" variant="flat" key={id}
+                selected={assetView === id} className={`${styles.tabButton} ${assetView === id ? styles.activeTab : ""}`}
+                onSelect={() => setAssetView(id)}>{label}</Button>)}
+            </nav>}
+            {section === "overview" && <><OverviewTab snapshot={snapshot} onManualCapture={requestManualCapture} onExport={exportReport} exportResult={exportResult} />
+              <AssetSection view="overview" active={visible} /></>}
+            {section === "runtime" && runtimeView === "systems" && <SystemsTab systems={snapshot.systems} />}
+            {section === "runtime" && runtimeView === "mods" && <ModsTab mods={snapshot.mods} systems={snapshot.systems} />}
+            {section === "runtime" && runtimeView === "pathfinding" && <PathfindingTab metrics={snapshot.pathfinding.metrics} />}
+            {section === "runtime" && runtimeView === "timeline" && <TimelineTab points={snapshot.timeline} />}
+            {section === "runtime" && runtimeView === "captures" && <CapturesTab captures={snapshot.captures} onSelect={selectCapture} />}
+            {section === "assets" && <><p>アセットの形状・テクスチャ・配置数は調査の手がかりです。個々のアセットのフレーム時間や GPU 負荷を測定した値ではありません。</p>
+              <AssetSection view={assetView} active={visible} /></>}
+            {section === "advisor" && <PerformanceAdvisorTab advisor={snapshot.advisor} captures={snapshot.captures}
               onDiagnose={requestAdvisorDiagnosis} onBaseline={selectAdvisorBaseline} onManualCapture={requestManualCapture}
               onRediagnose={requestAdvisorRediagnosis}
               onApply={advisorApply} onUndo={advisorUndo} onUndoSession={advisorUndoSession}
               onResolveConflict={advisorResolveConflict} />}
-            {tab === "diagnostics" && <DiagnosticsTab diagnostics={snapshot.diagnostics} captures={snapshot.captures} />}
+            {section === "diagnostics" && <DiagnosticsTab diagnostics={snapshot.diagnostics} captures={snapshot.captures} />}
           </div>
         </Scrollable>
 

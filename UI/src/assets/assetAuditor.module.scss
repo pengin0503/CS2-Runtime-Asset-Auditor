@@ -1,0 +1,22 @@
+.assetSection { display: flex; flex-direction: column; gap: 8rem; min-width: 0; color: #edf3f4; }
+.assetSection :global(.apa__tab-content) { display: flex; flex-direction: column; gap: 9rem; min-width: 0; }
+.assetSection :global(.apa__section-heading), .assetSection :global(.apa__scan-heading), .assetSection :global(.apa__table-footer) { display: flex; justify-content: space-between; align-items: center; gap: 10rem; }
+.assetSection :global(.apa__eyebrow), .assetSection :global(.apa__muted), .assetSection :global(.apa__progress-copy) { font-size: 10rem; opacity: .72; }
+.assetSection :global(.apa__actions), .assetSection :global(.apa__pager), .assetSection :global(.apa__filters) { display: flex; flex-wrap: wrap; gap: 6rem; }
+.assetSection :global(.apa__button), .assetSection :global(.apa__link-button), .assetSection :global(.apa__tab) { padding: 5rem 8rem; border-width: 1rem; border-style: solid; border-color: rgba(230,240,255,.25); border-radius: 4rem; background-color: rgba(255,255,255,.08); color: #edf3f4; cursor: pointer; }
+.assetSection :global(.apa__button--primary) { background-color: #337660; }
+.assetSection :global(.apa__scan-status), .assetSection :global(.apa__asset-row), .assetSection :global(.apa__asset-detail), .assetSection :global(.apa__evidence), .assetSection :global(.apa__setting-row) { padding: 8rem; border-bottom-width: 1rem; border-bottom-style: solid; border-bottom-color: rgba(255,255,255,.12); background-color: rgba(255,255,255,.035); }
+.assetSection :global(.apa__asset-row), .assetSection :global(.apa__setting-row) { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8rem; }
+.assetSection :global(.apa__asset-main) { display: flex; flex-direction: column; min-width: 145rem; flex-grow: 1; }
+.assetSection :global(.apa__asset-facts) { display: flex; flex-wrap: wrap; gap: 10rem; font-size: 10rem; }
+.assetSection :global(.apa__asset-id) { opacity: .65; font-size: 9rem; overflow: hidden; text-overflow: ellipsis; }
+.assetSection :global(.apa__field) { display: flex; flex-direction: column; gap: 4rem; }
+.assetSection :global(.apa__field input) { padding: 6rem; color: #edf3f4; background-color: #172128; border-width: 1rem; border-style: solid; border-color: rgba(255,255,255,.3); }
+.assetSection :global(.apa__choices), .assetSection :global(.apa__compare-list) { display: flex; flex-wrap: wrap; gap: 5rem; }
+.assetSection :global(.apa__button[aria-pressed="true"]) { border-color: #81d9c0; background-color: #315c51; }
+.assetSection :global(.apa__progress) { display: block; height: 6rem; background-color: #324148; }
+.assetSection :global(.apa__progress span) { display: block; height: 6rem; background-color: #7fceb6; }
+.assetSection :global(.apa__warning) { color: #f6c476; }
+.assetSection :global(.apa__metric-grid) { display: flex; flex-wrap: wrap; gap: 8rem; }
+.assetSection :global(.apa__metric-card) { display: flex; flex-direction: column; min-width: 140rem; flex-grow: 1; padding: 8rem; background-color: rgba(255,255,255,.05); }
+.exportResult pre { white-space: pre-wrap; word-break: break-word; max-height: 160rem; overflow: hidden; }

@@ -63,9 +63,10 @@ function text(node: any): string {
 
 describe("Performance Advisor read-only tab", () => {
   it("is a Japanese tab inside the existing scroll viewport", () => {
-    const root = readFileSync(new URL("./ProfilerRoot.tsx", import.meta.url), "utf8");
-    expect(root).toContain('["advisor", "改善提案"]');
-    expect(root.indexOf('tab === "advisor"')).toBeGreaterThan(root.indexOf('<Scrollable vertical'));
+    const root = readFileSync(new URL("../shell/RuntimeAssetAuditorRoot.tsx", import.meta.url), "utf8");
+    const navigation = readFileSync(new URL("../shell/navigation.ts", import.meta.url), "utf8");
+    expect(navigation).toContain('{ id: "advisor", label: "改善提案" }');
+    expect(root.indexOf('section === "advisor"')).toBeGreaterThan(root.indexOf('<Scrollable vertical'));
   });
 
   it("separates priority, headroom and no-recommendation groups and collapses the last by default", () => {

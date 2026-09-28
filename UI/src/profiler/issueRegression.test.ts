@@ -22,7 +22,7 @@ describe("repository issue regressions", () => {
   });
 
   it("closes the profiler panel through the game's Back input action instead of a DOM keydown listener", () => {
-    const source = readFileSync(new URL("./ProfilerRoot.tsx", import.meta.url), "utf8");
+    const source = readFileSync(new URL("../shell/RuntimeAssetAuditorRoot.tsx", import.meta.url), "utf8");
     const bindings = readFileSync(new URL("./bindings.ts", import.meta.url), "utf8");
     const system = readFileSync(path.resolve(process.cwd(), "../src/CS2RuntimeAssetAuditor/UI/ProfilerUISystem.cs"), "utf8");
 

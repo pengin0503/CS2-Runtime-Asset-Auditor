@@ -35,7 +35,7 @@ describe("runtime settings and panel ergonomics", () => {
 
   it("scrolls the panel body with the vanilla Scrollable inside a definite flex viewport", () => {
     const stylesheet = readFileSync(new URL("./profiler.module.scss", import.meta.url), "utf8");
-    const root = readFileSync(new URL("./ProfilerRoot.tsx", import.meta.url), "utf8");
+    const root = readFileSync(new URL("../shell/RuntimeAssetAuditorRoot.tsx", import.meta.url), "utf8");
     const panelBody = stylesheet.match(/\.panelBody\s*\{([\s\S]*?)\}/)?.[1] ?? "";
 
     // Gameface draws no native scrollbar for overflow containers; Scrollable renders a draggable track.
@@ -47,7 +47,7 @@ describe("runtime settings and panel ergonomics", () => {
   it("persists a user-adjusted panel position and size through hidden settings", () => {
     const setting = repoFile("src/CS2RuntimeAssetAuditor/Setting.cs");
     const system = repoFile("src/CS2RuntimeAssetAuditor/UI/ProfilerUISystem.cs");
-    const root = readFileSync(new URL("./ProfilerRoot.tsx", import.meta.url), "utf8");
+    const root = readFileSync(new URL("../shell/RuntimeAssetAuditorRoot.tsx", import.meta.url), "utf8");
 
     for (const property of ["PanelLeft", "PanelTop", "PanelWidth", "PanelHeight"]) {
       expect(setting).toMatch(new RegExp(`\\[SettingsUIHidden\\]\\s*public int ${property}`));
@@ -64,7 +64,7 @@ describe("runtime settings and panel ergonomics", () => {
 
   it("binds the configured UI scale into the profiler panel", () => {
     const bindings = readFileSync(new URL("./bindings.ts", import.meta.url), "utf8");
-    const root = readFileSync(new URL("./ProfilerRoot.tsx", import.meta.url), "utf8");
+    const root = readFileSync(new URL("../shell/RuntimeAssetAuditorRoot.tsx", import.meta.url), "utf8");
 
     expect(bindings).toContain('bindValue<number>(GROUP, "uiScalePercent"');
     expect(bindings).toContain("useUiScalePercent");

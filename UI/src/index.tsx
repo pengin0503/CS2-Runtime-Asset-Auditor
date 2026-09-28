@@ -1,6 +1,6 @@
 import React from "react";
 import type { ModRegistrar } from "cs2/modding";
-import { ProfilerRoot } from "./profiler/ProfilerRoot";
+import { RuntimeAssetAuditorRoot } from "./shell/RuntimeAssetAuditorRoot";
 import { ProfilerHud } from "./profiler/components/ProfilerHud";
 import { togglePanel, usePanelVisible, useProfilerHudSnapshot } from "./profiler/bindings";
 
@@ -14,7 +14,7 @@ function ProfilerHudEntry() {
 
 const register: ModRegistrar = moduleRegistry => {
   moduleRegistry.append("GameTopLeft", ProfilerHudEntry);
-  moduleRegistry.append("Game", ProfilerRoot);
+  moduleRegistry.append("Game", RuntimeAssetAuditorRoot);
 };
 
 export default register;

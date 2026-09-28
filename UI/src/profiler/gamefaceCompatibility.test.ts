@@ -55,7 +55,7 @@ describe("Gameface markup compatibility", () => {
     const rejected: Array<[string, RegExp]> = [
       ["<table> layout", /<(table|thead|tbody|tr|td|th)[\s>]/],
       ["<details>/<summary>", /<(details|summary)[\s>]/],
-      ["native form controls", /<(input|select|textarea|label)[\s>]/],
+      ["native form controls other than text search", /<(select|textarea|label)[\s>]|<input(?!\s+type="search")[\s>]/],
       ["inline data: URI images", /data:image\//],
       ["DOM keydown handling (use a cs2/input consumer)", /addEventListener\(\s*["']key(down|up|press)["']/]
     ];
