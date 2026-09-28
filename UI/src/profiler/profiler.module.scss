@@ -1,0 +1,140 @@
+.panel {
+  position: absolute;
+  top: 72rem;
+  left: 28rem;
+  width: 1080rem;
+  max-width: calc(100vw - 56rem);
+  height: calc(100vh - 110rem);
+  max-height: calc(100vh - 110rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  pointer-events: auto;
+  color: #edf3f8;
+  background-color: rgba(18,23,30,.97);
+  border-width: 1rem;
+  border-style: solid;
+  border-color: rgba(255,255,255,.15);
+  border-radius: 10rem;
+  box-shadow: 0 8rem 30rem rgba(0,0,0,.5);
+  z-index: 1000;
+  font-size: 13rem;
+}
+.panelHeader { display: flex; justify-content: space-between; align-items: center; gap: 10rem; padding: 12rem 14rem; border-bottom-width: 1rem; border-bottom-style: solid; border-bottom-color: rgba(255,255,255,.1); }
+.dragHandle { display: flex; flex-direction: column; gap: 2rem; flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 0; cursor: move; }
+.dragHandle strong { font-size: 16rem; }
+.dragHandle small { opacity: .65; }
+.headerActions { display: flex; align-items: center; gap: 6rem; flex-shrink: 0; }
+.headerButton { height: 30rem; padding: 0 10rem !important; border-width: 0 !important; border-style: none !important; border-radius: 6rem !important; background-color: rgba(255,255,255,.08) !important; color: #edf3f8 !important; cursor: pointer; font-size: 11rem; white-space: nowrap; }
+.closeButton { width: 30rem; min-width: 30rem; height: 30rem; padding: 0 !important; border-width: 0 !important; border-style: none !important; border-radius: 6rem !important; background-color: rgba(255,255,255,.08) !important; color: #edf3f8 !important; cursor: pointer; font-size: 20rem; }
+.tabs { display: flex; gap: 5rem; padding: 8rem 12rem; border-bottom-width: 1rem; border-bottom-style: solid; border-bottom-color: rgba(255,255,255,.08); overflow-x: auto; }
+.tabButton, .actionRow button { border-width: 0 !important; border-style: none !important; border-radius: 5rem !important; background-color: rgba(255,255,255,.07) !important; color: #edf3f8 !important; padding: 6rem 10rem !important; cursor: pointer; white-space: nowrap; }
+.tabButton:hover, .actionRow button:hover { background-color: rgba(255,255,255,.13) !important; }
+.activeTab { background-color: rgba(86,166,255,.34) !important; box-shadow: inset 0 0 0 1rem rgba(104,185,255,.45); }
+.panelBody { flex: 1 1 0; min-height: 0; }
+.panelContent { padding: 12rem 16rem 12rem 12rem; }
+.resizeGrip { position: absolute; right: 0; bottom: 0; width: 18rem; height: 18rem; cursor: nwse-resize; border-right-width: 3rem; border-right-style: solid; border-right-color: rgba(255,255,255,.35); border-bottom-width: 3rem; border-bottom-style: solid; border-bottom-color: rgba(255,255,255,.35); border-bottom-right-radius: 8rem; z-index: 2; }
+.resizeGrip:hover { border-right-color: rgba(104,185,255,.8); border-bottom-color: rgba(104,185,255,.8); }
+.tabBody { display: flex; flex-direction: column; gap: 14rem; }
+.tabBody section { display: flex; flex-direction: column; gap: 5rem; }
+.tabBody h3 { margin: 0 0 3rem; font-size: 13rem; }
+.summaryGrid { display: flex !important; flex-wrap: wrap; gap: 7rem !important; }
+.summaryCard { display: flex; flex-direction: column; gap: 2rem; width: 31%; min-height: 54rem; padding: 8rem; border-radius: 6rem; background-color: rgba(255,255,255,.055); }
+.summaryCard span, .summaryCard small { opacity: .68; font-size: 10rem; }
+.summaryCard strong { font-size: 18rem; }
+.actionRow { display: flex; align-items: center; gap: 6rem; flex-wrap: wrap; }
+.actionRow button[disabled] { opacity: .45; cursor: default; }
+.exportResult { opacity: .7; font-size: 10rem; }
+.metricList { display: flex; flex-direction: column; gap: 4rem; }
+.metricRow { display: flex; align-items: center; gap: 8rem; min-height: 34rem; padding: 4rem 7rem; border-radius: 5rem; background-color: rgba(255,255,255,.035); }
+.metricIdentity { display: flex; flex-direction: column; min-width: 0; flex-grow: 1; flex-shrink: 1; flex-basis: 0; }
+.metricIdentity strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.metricIdentity small { opacity: .55; font-size: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.metricValue { width: 100rem; flex-shrink: 0; font-variant-numeric: tabular-nums; text-align: right; }
+.badge { display: flex; justify-content: center; padding: 2rem 6rem; border-radius: 999rem; font-size: 9rem; white-space: nowrap; }
+.badgeFull { background-color: rgba(74,190,118,.18); }
+.badgeManaged { background-color: rgba(91,151,255,.18); }
+.badgeIndirect { background-color: rgba(230,184,74,.18); }
+.badgeUnavailable { background-color: rgba(160,166,177,.16); opacity: .75; }
+.empty { opacity: .65; margin: 10rem 2rem; }
+.explainer { margin: 0; opacity: .72; line-height: 1.45; }
+.details { margin-top: 3rem; padding: 6rem 8rem; background-color: rgba(255,255,255,.04); border-radius: 4rem; line-height: 1.4; font-size: 11rem; display: flex; flex-direction: column; gap: 2rem; }
+
+.systemList { display: flex; flex-direction: column; font-size: 11rem; }
+.systemEntry { display: flex; flex-direction: column; border-bottom-width: 1rem; border-bottom-style: solid; border-bottom-color: rgba(255,255,255,.07); padding-bottom: 3rem; }
+.systemRow { display: flex; align-items: center; gap: 6rem; min-height: 30rem; }
+.systemHeader { border-bottom-width: 1rem; border-bottom-style: solid; border-bottom-color: rgba(255,255,255,.18); padding-bottom: 4rem; }
+.systemNameCell { display: flex; flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 120rem; overflow: hidden; }
+.systemValueCell { display: flex; justify-content: flex-end; width: 72rem; flex-shrink: 0; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.systemBadgeCell { display: flex; justify-content: flex-end; width: 68rem; flex-shrink: 0; }
+.systemNameButton { display: flex !important; flex-direction: column; align-items: flex-start !important; width: 100%; min-width: 0; padding: 3rem 4rem !important; border-width: 0 !important; border-style: none !important; border-radius: 4rem !important; background-color: transparent !important; color: #edf3f8 !important; text-align: left !important; cursor: pointer; }
+.systemNameButton:hover { background-color: rgba(255,255,255,.05) !important; }
+.systemNameButton strong, .systemNameButton small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.systemNameButton small { opacity: .55; font-size: 9rem; }
+.sortButton { padding: 3rem 5rem !important; border-width: 0 !important; border-style: none !important; border-radius: 4rem !important; background-color: rgba(255,255,255,.07) !important; color: #edf3f8 !important; font-size: 10rem; white-space: nowrap; cursor: pointer; }
+.sortActive { background-color: rgba(86,166,255,.34) !important; }
+
+.modGrid { display: flex; flex-wrap: wrap; gap: 7rem; }
+.modCard { display: flex !important; flex-direction: column; align-items: stretch !important; gap: 5rem; width: 49%; padding: 10rem !important; border-width: 1rem !important; border-style: solid !important; border-color: rgba(255,255,255,.08) !important; border-radius: 7rem !important; background-color: rgba(255,255,255,.045) !important; color: #edf3f8 !important; text-align: left !important; cursor: pointer; }
+.modCard:hover { background-color: rgba(255,255,255,.075) !important; }
+.modCard > span { display: flex; justify-content: space-between; gap: 10rem; opacity: .82; }
+.modCardExpanded { width: 100%; }
+.modCard > .modBreakdown { display: flex; flex-direction: column; justify-content: flex-start; gap: 3rem; margin-top: 4rem; padding: 6rem; border-radius: 5rem; background-color: rgba(0,0,0,.18); opacity: 1; font-size: 10rem; }
+.modBreakdownRow { display: flex; justify-content: space-between; gap: 10rem; }
+.modBreakdownRow em { font-style: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex-grow: 1; flex-shrink: 1; flex-basis: 0; }
+.modBreakdownRow b { flex-shrink: 0; }
+.modBreakdown small { opacity: .65; }
+
+.seriesControls { display: flex; flex-wrap: wrap; gap: 5rem; }
+.seriesToggle { display: flex !important; align-items: center !important; gap: 5rem; padding: 4rem 8rem !important; border-width: 0 !important; border-style: none !important; border-radius: 5rem !important; background-color: rgba(255,255,255,.045) !important; color: #edf3f8 !important; opacity: .55; font-size: 10rem; cursor: pointer; }
+.seriesToggleOn { opacity: 1; background-color: rgba(255,255,255,.09) !important; }
+.seriesSwatch { width: 10rem; height: 10rem; border-radius: 2rem; border-width: 2rem; border-style: solid; }
+.chartWrap { min-height: 260rem; padding: 6rem; border-radius: 7rem; background-color: rgba(0,0,0,.18); }
+.timelineChart { width: 100%; height: 260rem; overflow: visible; }
+.chartAxis { stroke: rgba(255,255,255,.2); stroke-width: 2; }
+.chartLine { stroke-width: 3; vector-effect: non-scaling-stroke; }
+.chartPoint { cursor: pointer; }
+.chartPoint:hover { r: 8; }
+.chartNote { margin: 0; opacity: .6; font-size: 10rem; }
+.selectedPoint { display: flex; flex-wrap: wrap; gap: 8rem; padding: 8rem; border-radius: 6rem; background-color: rgba(255,255,255,.04); }
+
+.captureList { display: flex; flex-direction: column; gap: 8rem; }
+.captureCard { border-width: 1rem; border-style: solid; border-color: rgba(255,255,255,.08); border-radius: 7rem; overflow: hidden; background-color: rgba(255,255,255,.035); }
+.captureHeader { width: 100%; display: flex !important; flex-wrap: wrap; align-items: center !important; gap: 7rem; padding: 9rem !important; border-width: 0 !important; border-style: none !important; color: #edf3f8 !important; background-color: transparent !important; text-align: left !important; cursor: pointer; }
+.captureHeader:hover { background-color: rgba(255,255,255,.04) !important; }
+.captureHeader > span { width: 16%; }
+.captureHeader > span:first-child { display: flex; flex-direction: column; width: 28%; }
+.captureHeader small { opacity: .5; font-size: 9rem; }
+.captureBody { display: flex; flex-direction: column; gap: 7rem; padding: 10rem; border-top-width: 1rem; border-top-style: solid; border-top-color: rgba(255,255,255,.07); }
+.captureBody h3 { margin: 4rem 0 0; }
+.captureFacts { display: flex; flex-wrap: wrap; gap: 8rem 16rem; }
+.changeRow { display: flex; align-items: center; gap: 8rem; padding: 5rem 7rem; border-radius: 5rem; background-color: rgba(255,255,255,.035); }
+.changeRow > span:first-child { flex-grow: 1; flex-shrink: 1; flex-basis: 0; }
+.changeRow > span:nth-child(2) { width: 160rem; flex-shrink: 0; }
+.changeRow > b { width: 90rem; flex-shrink: 0; }
+.warningBox { display: flex; flex-direction: column; gap: 3rem; padding: 8rem; border-radius: 5rem; background-color: rgba(230,184,74,.08); }
+.warningBox span { opacity: .75; }
+
+.diagnosticsGrid { display: flex; flex-wrap: wrap; gap: 6rem; }
+.diagnosticItem { display: flex; justify-content: space-between; gap: 12rem; width: 48%; padding: 7rem 9rem; border-radius: 5rem; background-color: rgba(255,255,255,.04); }
+.diagnosticItem span { opacity: .65; }
+.diagnosticItem strong { text-align: right; }
+.diagnosticMessage { margin: 0; padding: 6rem 8rem; border-left-width: 2rem; border-left-style: solid; border-left-color: rgba(99,181,255,.45); background-color: rgba(99,181,255,.05); }
+
+@media (max-width: 900px) {
+  .panel { width: calc(100vw - 24rem); max-width: calc(100vw - 24rem); left: 12rem; }
+  .summaryCard { width: 46%; }
+  .modCard, .diagnosticItem { width: 100%; }
+  .captureHeader > span { width: 47%; }
+  .captureHeader > span:first-child { width: 47%; }
+  .changeRow { flex-wrap: wrap; }
+  .changeRow > span:first-child { width: 47%; flex-basis: auto; }
+  .changeRow > span:nth-child(2) { width: 47%; }
+}
+.advisorTab { display: flex; flex-direction: column; gap: 8rem; min-width: 0; }
+.advisorActions { display: flex; flex-direction: column; gap: 5rem; }
+.advisorCapture { display: flex; align-items: center; gap: 6rem; flex-wrap: wrap; padding: 5rem 7rem; border-radius: 4rem; background-color: rgba(255,255,255,.06); }
+.advisorGroup { display: flex; flex-direction: column; gap: 5rem; padding-top: 5rem; border-top-width: 1rem; border-top-style: solid; border-top-color: rgba(255,255,255,.15); }
+.advisorCard { display: flex; flex-direction: column; gap: 4rem; min-width: 0; padding: 7rem; border-radius: 4rem; background-color: rgba(255,255,255,.06); overflow-wrap: break-word; }
+.advisorDetails { display: flex; flex-direction: column; gap: 3rem; }
+.advisorObservation { display: flex; flex-direction: column; gap: 3rem; padding: 7rem; border-radius: 4rem; background-color: rgba(86,166,255,.1); }

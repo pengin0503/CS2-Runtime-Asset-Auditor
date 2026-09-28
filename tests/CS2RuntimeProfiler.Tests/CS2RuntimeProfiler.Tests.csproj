@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="NUnit" Version="4.2.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../src/CS2RuntimeProfiler/Core/**/*.cs" LinkBase="Core" />
+    <Compile Include="../../src/CS2RuntimeProfiler/Advisor/Settings/**/*.cs" LinkBase="Advisor/Settings" />
+    <Compile Include="../../src/CS2RuntimeProfiler/Attribution/AssemblyAttributor.cs" Link="Attribution/AssemblyAttributor.cs" />
+    <Compile Include="../../src/CS2RuntimeProfiler/Profiling/IRecorderBackend.cs" Link="Profiling/IRecorderBackend.cs" />
+    <Compile Include="../../src/CS2RuntimeProfiler/Profiling/RecorderManager.cs" Link="Profiling/RecorderManager.cs" />
+    <Compile Include="../../src/CS2RuntimeProfiler/Profiling/DeepCaptureController.cs" Link="Profiling/DeepCaptureController.cs" />
+    <Compile Include="../../src/CS2RuntimeProfiler/Profiling/HarmonyRuntimeResolver.cs" Link="Profiling/HarmonyRuntimeResolver.cs" />
+    <Compile Include="../../src/CS2RuntimeProfiler/Profiling/ManagedSystemTimingCaptureLifecycle.cs" Link="Profiling/ManagedSystemTimingCaptureLifecycle.cs" />
+    <Compile Include="../../src/CS2RuntimeProfiler/Collectors/IMetricCollector.cs" Link="Collectors/IMetricCollector.cs" />
+    <Compile Include="../../src/CS2RuntimeProfiler/Collectors/ReflectionMetricAccessor.cs" Link="Collectors/ReflectionMetricAccessor.cs" />
+    <Compile Include="../../src/CS2RuntimeProfiler/Collectors/PathfindingCollector.cs" Link="Collectors/PathfindingCollector.cs" />
+    <Compile Include="../../src/CS2RuntimeProfiler/Collectors/EntityMetricsCollector.cs" Link="Collectors/EntityMetricsCollector.cs" />
+    <Compile Include="../../src/CS2RuntimeProfiler/Export/PrivacySanitizer.cs" Link="Export/PrivacySanitizer.cs" />
+    <Compile Include="../../src/CS2RuntimeProfiler/Export/PerformanceReport.cs" Link="Export/PerformanceReport.cs" />
+    <Compile Include="../../src/CS2RuntimeProfiler/Export/PerformanceReportSerializer.cs" Link="Export/PerformanceReportSerializer.cs" />
+    <Compile Include="../../src/CS2RuntimeProfiler/Export/ProfilerReportBuilder.cs" Link="Export/ProfilerReportBuilder.cs" />
+    <Compile Include="../../src/CS2RuntimeProfiler/Export/ReportFileWriter.cs" Link="Export/ReportFileWriter.cs" />
+    <Compile Include="../../src/CS2RuntimeProfiler/Export/RuntimeReportMetadata.cs" Link="Export/RuntimeReportMetadata.cs" />
+    <Compile Include="../../src/CS2RuntimeProfiler/UI/UiSnapshot.cs" Link="UI/UiSnapshot.cs" />
+    <Compile Include="../../src/CS2RuntimeProfiler/UI/UiSnapshotBuilder.cs" Link="UI/UiSnapshotBuilder.cs" />
+  </ItemGroup>
+</Project>
