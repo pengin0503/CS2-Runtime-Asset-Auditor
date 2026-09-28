@@ -3,6 +3,7 @@
     <OutputType>Library</OutputType>
     <TargetFramework>net48</TargetFramework>
     <LangVersion>9</LangVersion>
+    <Nullable>enable</Nullable>
     <Configurations>Debug;Release</Configurations>
     <RootNamespace>CS2RuntimeAssetAuditor</RootNamespace>
     <AssemblyName>CS2RuntimeAssetAuditor</AssemblyName>
@@ -26,6 +27,7 @@
     <Reference Include="Colossal.UI"><Private>false</Private></Reference>
     <Reference Include="Colossal.UI.Binding"><Private>false</Private></Reference>
     <Reference Include="UnityEngine.CoreModule"><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.PerformanceReportingModule"><Private>false</Private></Reference>
     <Reference Include="Unity.Profiling.Core"><Private>false</Private></Reference>
     <Reference Include="Unity.Burst"><Private>false</Private></Reference>
     <Reference Include="Unity.Collections"><Private>false</Private></Reference>
