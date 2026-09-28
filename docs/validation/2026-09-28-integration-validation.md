@@ -1,11 +1,11 @@
 # 統合版の検証状況 — 2026-09-28
 
-## 計画の進捗確認（main: `3e4064b7aa4c65da449305f10327a653c8255088`）
+## 計画の進捗確認（実装照合基準: `6d7fbd6b4e66c4aa287596e5cfbc0c179732aa7d`）
 
 実装計画の Task 1〜10 と Task 11 の CI・README・検証記録は、順番に対応するコミットを確認済み。計画全体の検証完了とは扱わない。残る Task 11 の条件付き実行は Adapter テスト、統合 Mod の Release ビルド、実ゲーム 15 シナリオである。
 
-- 純粋テスト: [Pure Core Tests 実行結果](https://github.com/pengin0503/CS2-Runtime-Asset-Auditor/actions/runs/36496648664) — main の上記コミットで success。
-- UI テスト・本番ビルド: [UI Tests 実行結果](https://github.com/pengin0503/CS2-Runtime-Asset-Auditor/actions/runs/36446498816) — UI の最終変更コミット `93ce32644e26791909e26699419e32b085c2e10b` で success。以後の変更は C# のプライバシー処理とテストのみ。
+- 純粋テスト: [Pure Core Tests 実行結果](https://github.com/pengin0503/CS2-Runtime-Asset-Auditor/actions/runs/36497888177) — 上記コミットで success。
+- UI テスト・本番ビルド: [UI Tests 実行結果](https://github.com/pengin0503/CS2-Runtime-Asset-Auditor/actions/runs/36497888262) — 上記コミットで success。移植元の操作・設定・エクスポート・Deep Inspection と、バインド済みスナップショットの参照安定性を統合 UI 上の回帰テストで確認。
 - ゲーム依存の検証を実行するには、起動可能な .NET SDK、対応する CS2 管理 DLL と公式 Modding Toolchain 一式、実ゲーム環境が必要。現在の作業環境ではこの組み合わせが揃わない。参照 DLL の断片が見つかっても、完全なツールチェーンや実機検証の代わりにはしない。
 
 ## 自動検証
