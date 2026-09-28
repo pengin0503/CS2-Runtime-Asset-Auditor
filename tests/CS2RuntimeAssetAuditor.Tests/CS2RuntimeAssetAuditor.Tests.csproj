@@ -12,6 +12,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Coordination/**/*.cs" LinkBase="Coordination" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/Core/**/*.cs" LinkBase="Assets/Core" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/GameIntegration/Census/CensusSample.cs" Link="Assets/GameIntegration/CensusSample.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Core/**/*.cs" LinkBase="Core" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Advisor/Settings/**/*.cs" LinkBase="Advisor/Settings" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Attribution/AssemblyAttributor.cs" Link="Attribution/AssemblyAttributor.cs" />
