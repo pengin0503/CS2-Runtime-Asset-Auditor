@@ -12,10 +12,12 @@ export function AssetDetails({
   asset,
   findings,
   onDeepInspect,
+  onOpenRuntimeCaptures,
 }: {
   asset: AssetRow;
   findings: UiFinding[];
   onDeepInspect?: (renderKey: string) => void;
+  onOpenRuntimeCaptures?: () => void;
 }): React.JSX.Element {
   const assetFindings = findings.filter((finding) =>
     (!finding.prefabId || finding.prefabId === asset.prefabId)
@@ -38,6 +40,7 @@ export function AssetDetails({
         <h3>City Exposure</h3>
         <p><strong>{formatCountKind(asset.countKind)}:</strong> {formatObservation(asset.instances)}</p>
         <p className="apa__muted">Instance counts indicate city exposure, not render cost.</p>
+        {onOpenRuntimeCaptures && <button type="button" className="apa__button" onClick={onOpenRuntimeCaptures}>ランタイムキャプチャを表示</button>}
       </section>
       <RenderStructure coverage={asset.renderCoverage ?? "NotScanned"} relations={asset.renderRelations ?? []} onDeepInspect={onDeepInspect} />
       <GeometryDetails asset={asset} />

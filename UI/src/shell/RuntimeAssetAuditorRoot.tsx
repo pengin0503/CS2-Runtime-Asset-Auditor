@@ -199,7 +199,8 @@ export function RuntimeAssetAuditorRoot() {
             {section === "runtime" && runtimeView === "captures" && <CapturesTab captures={snapshot.captures} onSelect={selectCapture}
               onInvestigate={id => { setInvestigationCaptureId(id); selectCapture(id); setAssetView("catalog"); setSection("assets"); }} />}
             {section === "assets" && <><p>アセットの形状・テクスチャ・配置数は調査の手がかりです。個々のアセットのフレーム時間や GPU 負荷を測定した値ではありません。</p>
-              <AssetSection view={assetView} active={visible} capture={snapshot.captures.find(capture => capture.id === investigationCaptureId)} /></>}
+              <AssetSection view={assetView} active={visible} capture={snapshot.captures.find(capture => capture.id === investigationCaptureId)}
+                onOpenRuntimeCaptures={() => { setRuntimeView("captures"); setSection("runtime"); }} /></>}
             {section === "advisor" && <PerformanceAdvisorTab advisor={snapshot.advisor} captures={snapshot.captures}
               onDiagnose={requestAdvisorDiagnosis} onBaseline={selectAdvisorBaseline} onManualCapture={requestManualCapture}
               onRediagnose={requestAdvisorRediagnosis}

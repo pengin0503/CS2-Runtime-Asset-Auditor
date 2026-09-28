@@ -15,7 +15,7 @@ import { DEFAULT_ASSET_QUERY_STATE } from "./types";
 import type { AssetSectionName } from "../shell/navigation";
 import styles from "./assetAuditor.module.scss";
 
-export function AssetSection({ view, active, capture }: { view: AssetSectionName | "overview"; active: boolean; capture?: CaptureSummaryUi | null }) {
+export function AssetSection({ view, active, capture, onOpenRuntimeCaptures }: { view: AssetSectionName | "overview"; active: boolean; capture?: CaptureSummaryUi | null; onOpenRuntimeCaptures?: () => void }) {
   const snapshot = useAuditorSnapshot();
   const exportedReport = useExportedReport();
   const [query, setQuery] = useState<AssetQueryState>(DEFAULT_ASSET_QUERY_STATE);
@@ -43,7 +43,7 @@ export function AssetSection({ view, active, capture }: { view: AssetSectionName
         onRunAudit={() => nativeBindings.requestAssetAudit(settings)} />}
       {view === "overview" && <OverviewTab snapshot={snapshot} bindings={nativeBindings} />}
       {view === "catalog" && <AssetsTab page={snapshot.assetPage} query={query} onQueryChange={updateQuery}
-        findings={findings} onSelectedAssetChange={setSelectedAsset} onDeepInspect={nativeBindings.requestDeepInspection} />}
+        findings={findings} onSelectedAssetChange={setSelectedAsset} onDeepInspect={nativeBindings.requestDeepInspection} onOpenRuntimeCaptures={onOpenRuntimeCaptures} />}
       {view === "census" && <CensusTab snapshot={snapshot} />}
       {view === "findings" && <WarningsTab findings={findings} />}
       {view === "compare" && <CompareTab assets={snapshot.assetPage.items.slice(0, 4)} findings={findings} />}

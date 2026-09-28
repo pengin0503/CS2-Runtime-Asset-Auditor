@@ -17,9 +17,10 @@ interface AssetsTabProps {
   findings?: UiFinding[];
   onSelectedAssetChange?: (asset: ExportAssetKey | null) => void;
   onDeepInspect?: (renderKey: string) => void;
+  onOpenRuntimeCaptures?: () => void;
 }
 
-export function AssetsTab({ page, query, onQueryChange, findings = [], onSelectedAssetChange, onDeepInspect }: AssetsTabProps): React.JSX.Element {
+export function AssetsTab({ page, query, onQueryChange, findings = [], onSelectedAssetChange, onDeepInspect, onOpenRuntimeCaptures }: AssetsTabProps): React.JSX.Element {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const selected = useMemo(() => page.items.find((item) => `${item.prefabType}:${item.prefabId}` === selectedKey) ?? null, [page.items, selectedKey]);
 
@@ -47,7 +48,7 @@ export function AssetsTab({ page, query, onQueryChange, findings = [], onSelecte
       </div>
       <VirtualAssetTable page={page} onPageChange={(offset) => onQueryChange({ offset })} onSelect={(asset) => setSelectedKey(`${asset.prefabType}:${asset.prefabId}`)} selectedKey={selected ? `${selected.prefabType}:${selected.prefabId}` : null} />
       <button type="button" className="apa__link-button" onClick={() => onQueryChange(DEFAULT_ASSET_QUERY_STATE)}>Reset filters</button>
-      {selected ? <AssetDetails asset={selected} findings={findings} onDeepInspect={onDeepInspect} /> : null}
+      {selected ? <AssetDetails asset={selected} findings={findings} onDeepInspect={onDeepInspect} onOpenRuntimeCaptures={onOpenRuntimeCaptures} /> : null}
     </section>
   );
 }
