@@ -10,6 +10,8 @@ using CS2RuntimeAssetAuditor.Collectors;
 using CS2RuntimeAssetAuditor.Core;
 using CS2RuntimeAssetAuditor.Export;
 using CS2RuntimeAssetAuditor.Profiling;
+using CS2RuntimeAssetAuditor.Assets.Export;
+using CS2RuntimeAssetAuditor.Assets.UI;
 using Game;
 using Game.UI;
 
@@ -226,12 +228,7 @@ namespace CS2RuntimeAssetAuditor.UI
         {
             try
             {
-                var exportSnapshot = UiSnapshotBuilder.BuildForExport(CreateSnapshotInput());
-                var report = ProfilerReportBuilder.Build(
-                    exportSnapshot,
-                    gameVersion: exportSnapshot.Diagnostics?.GameVersion,
-                    profilerVersion: exportSnapshot.Diagnostics?.ProfilerVersion);
-                var result = _exporter.Export(report);
+                var result = _exporter.Export(BuildCurrentUnifiedReport());
                 var message = result.Success
                     ? $"ok:{Path.GetFileName(result.Path)}"
                     : $"error:{result.Error}";
@@ -242,6 +239,16 @@ namespace CS2RuntimeAssetAuditor.UI
                 Mod.Log.Error(ex, "UI-triggered profiler report export failed");
                 _exportResultBinding.Update($"error:{PrivacySanitizer.Sanitize(ex.Message)}");
             }
+        }
+
+        public RuntimeAssetAuditReport BuildCurrentUnifiedReport(AuditReport assetSection = null)
+        {
+            var exportSnapshot = UiSnapshotBuilder.BuildForExport(CreateSnapshotInput());
+            var runtime = ProfilerReportBuilder.Build(exportSnapshot,
+                gameVersion: exportSnapshot.Diagnostics?.GameVersion,
+                profilerVersion: exportSnapshot.Diagnostics?.ProfilerVersion);
+            var assets = assetSection ?? World.GetExistingSystemManaged<AssetAuditUISystem>()?.BuildCurrentReport();
+            return RuntimeAssetAuditReportBuilder.Build(runtime, assets, Mod.EnsureDiagnosticSession(World), DateTimeOffset.UtcNow);
         }
 
         private void RefreshSnapshot()

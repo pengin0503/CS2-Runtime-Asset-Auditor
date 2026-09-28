@@ -10,6 +10,10 @@ using CS2RuntimeAssetAuditor.Assets.Core.Query;
 using CS2RuntimeAssetAuditor.Assets.Core.Rendering;
 using CS2RuntimeAssetAuditor.Assets.Export;
 using CS2RuntimeAssetAuditor.Assets.GameIntegration;
+using CS2RuntimeAssetAuditor.Export;
+using System.IO;
+using System.Text;
+using Colossal.PSI.Environment;
 using Game.UI;
 using Unity.Entities;
 
@@ -19,8 +23,7 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
     {
         private readonly UiSnapshotBuilder _snapshotBuilder = new UiSnapshotBuilder();
         private readonly DiagnosticAggregator _diagnostics = new DiagnosticAggregator();
-        private readonly AuditReportSerializer _reportSerializer = new AuditReportSerializer();
-        private readonly AuditReportBuilder _reportBuilder = new AuditReportBuilder(new PrivacySanitizer());
+        private readonly AuditReportBuilder _reportBuilder = new AuditReportBuilder(new CS2RuntimeAssetAuditor.Assets.Export.PrivacySanitizer());
         private readonly CsvSummaryExporter _csvExporter = new CsvSummaryExporter();
 
         private ValueBinding<string>? _snapshotBinding;
@@ -209,15 +212,44 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                     _diagnostics.Snapshot(),
                     scope,
                     includedKeys);
-                _exportBinding.Update(string.Equals(request.Format, "Csv", StringComparison.Ordinal)
-                    ? _csvExporter.Export(report)
-                    : _reportSerializer.Serialize(report));
+                if (string.Equals(request.Format, "Csv", StringComparison.Ordinal))
+                {
+                    var directory = Path.Combine(EnvPath.kUserDataPath, "ModsData", Mod.Id);
+                    Directory.CreateDirectory(directory);
+                    var stem = $"CS2RuntimeAssetAuditor-assets-{DateTime.Now:yyyy-MM-dd_HHmmss_fff}";
+                    var csv = _csvExporter.Export(report);
+                    var path = ReportFileWriter.WriteUnique(directory, stem, stream =>
+                    {
+                        using (var writer = new StreamWriter(stream, new UTF8Encoding(false))) writer.Write(csv);
+                    }, ".csv");
+                    _exportBinding.Update("ok:" + Path.GetFileName(path));
+                }
+                else
+                {
+                    var profiler = World.GetExistingSystemManaged<global::CS2RuntimeAssetAuditor.UI.ProfilerUISystem>();
+                    var unified = profiler != null
+                        ? profiler.BuildCurrentUnifiedReport(report)
+                        : RuntimeAssetAuditReportBuilder.Build(null, report, Mod.EnsureDiagnosticSession(World), DateTimeOffset.UtcNow);
+                    var result = new ReportExporter().Export(unified);
+                    _exportBinding.Update(result.Success ? "ok:" + Path.GetFileName(result.Path) : "error:" + result.Error);
+                }
             }
             catch
             {
                 _diagnostics.Add("APA-EXP-001", "audit_report_export_failed");
                 _exportBinding.Update("{\"errorCode\":\"APA-EXP-001\"}");
             }
+        }
+
+        public AuditReport? BuildCurrentReport()
+        {
+            var auditSystem = GetAuditSystem();
+            if (auditSystem?.Capabilities == null) return null;
+            return _reportBuilder.BuildCurrent(auditSystem.CatalogRecords, auditSystem.CatalogGeneration,
+                auditSystem.CatalogGeneration > 0 ? auditSystem.CatalogCapturedAt : (DateTimeOffset?)null,
+                auditSystem.PublishedCensus, auditSystem.PublishedAnalysis, auditSystem.Capabilities,
+                typeof(Mod).Assembly.GetName().Version?.ToString() ?? "unknown", DateTimeOffset.UtcNow,
+                _diagnostics.Snapshot(), ExportScope.Full, null);
         }
 
         private IEnumerable<PrefabKey>? ResolveExportKeys(AssetAuditSystem auditSystem, UiExportRequest request, ExportScope scope)

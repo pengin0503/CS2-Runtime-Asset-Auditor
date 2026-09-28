@@ -7,7 +7,7 @@ namespace CS2RuntimeAssetAuditor.Export
     {
         private const int MaxCollisionRetries = 1000;
 
-        public static string WriteUnique(string directory, string stem, Action<Stream> write)
+        public static string WriteUnique(string directory, string stem, Action<Stream> write, string extension = ".json")
         {
             if (string.IsNullOrWhiteSpace(directory))
                 throw new ArgumentException("A report directory is required.", nameof(directory));
@@ -19,7 +19,7 @@ namespace CS2RuntimeAssetAuditor.Export
             for (var attempt = 0; attempt < MaxCollisionRetries; attempt++)
             {
                 var suffix = attempt == 0 ? string.Empty : $"-{attempt}";
-                var path = Path.Combine(directory, stem + suffix + ".json");
+                var path = Path.Combine(directory, stem + suffix + extension);
                 FileStream stream;
 
                 try

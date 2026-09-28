@@ -24,7 +24,7 @@ namespace CS2RuntimeAssetAuditor.Export
 
     public sealed class ReportExporter
     {
-        public ReportExportResult Export(PerformanceReport report)
+        public ReportExportResult Export(RuntimeAssetAuditReport report)
         {
             try
             {
@@ -32,8 +32,8 @@ namespace CS2RuntimeAssetAuditor.Export
                 Directory.CreateDirectory(directory);
 
                 var timestamp = DateTime.Now;
-                var stem = $"CS2Profiler-report-{timestamp:yyyy-MM-dd_HHmmss_fff}";
-                var json = PerformanceReportSerializer.Serialize(report);
+                var stem = $"CS2RuntimeAssetAuditor-report-{timestamp:yyyy-MM-dd_HHmmss_fff}";
+                var json = RuntimeAssetAuditReportSerializer.Serialize(report);
                 var encoding = new UTF8Encoding(false);
                 var path = ReportFileWriter.WriteUnique(directory, stem, stream =>
                 {

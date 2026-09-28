@@ -38,7 +38,7 @@ namespace CS2RuntimeAssetAuditor.Export
                     RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             }
 
-            return sanitized;
+            return new global::CS2RuntimeAssetAuditor.Assets.Export.PrivacySanitizer().SanitizeText(sanitized);
         }
     }
 }

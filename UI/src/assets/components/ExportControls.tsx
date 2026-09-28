@@ -35,11 +35,11 @@ export function ExportControls({
             selectedKeys: effectiveScope === "Selected" && selectedAsset ? [selectedAsset] : [],
           })}
         >
-          Prepare {format === "Json" ? "JSON" : "CSV"} export
+          Save {format === "Json" ? "unified JSON" : "Asset CSV"} report
         </button>
       </div>
       {selectedUnavailable ? <p className="apa__muted">Select an asset to enable Selected export.</p> : null}
-      <p className="apa__muted">Filtered export uses the complete current filter result in C#, not only the visible page.</p>
+      <p className="apa__muted">Reports are saved in ModsData/CS2RuntimeAssetAuditor. Filtered Asset CSV includes all matching rows, not only the visible page.</p>
     </section>
   );
 }
