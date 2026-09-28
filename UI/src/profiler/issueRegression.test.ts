@@ -51,7 +51,7 @@ describe("repository issue regressions", () => {
     expect(domains).toContain("ComponentType.ReadOnly<PrisonerTransport>()");
     expect(timing).toContain("timeMarkers={diagnostics.TimeMarkerCount}");
     expect(timing).toContain("ambiguousMatches={diagnostics.AmbiguousMatchCount}");
-    expect(readme).toContain("CS2Profiler-report-YYYY-MM-DD_HHmmss_fff.json");
+    expect(readme).toContain("CS2RuntimeAssetAuditor-report-YYYY-MM-DD_HHmmss_fff.json");
     expect(readme).toContain("`-1`、`-2`");
   });
 

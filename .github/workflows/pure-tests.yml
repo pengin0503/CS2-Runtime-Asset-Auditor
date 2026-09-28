@@ -18,4 +18,4 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - name: Run pure tests
-        run: dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -v minimal
+        run: dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release -v minimal

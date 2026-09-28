@@ -2,7 +2,7 @@ namespace CS2RuntimeAssetAuditor.Assets.Core
 {
     public static class ProjectInfo
     {
-        public static string ProductName { get; } = "CS2 Asset Performance Auditor";
+        public static string ProductName { get; } = "CS2 Runtime Asset Auditor";
 
         public static bool UsesHarmony { get; } = false;
 
