@@ -17,20 +17,25 @@ namespace CS2RuntimeAssetAuditor.Export
             using (var stream = new MemoryStream())
             {
                 serializer.WriteObject(stream, report);
-                return SanitizeJsonStrings(Encoding.UTF8.GetString(stream.ToArray()));
+                return SanitizeJsonStrings(Encoding.UTF8.GetString(stream.ToArray()), PrivacySanitizer.Sanitize);
             }
         }
 
-        private static string SanitizeJsonStrings(string json)
+        internal static string SanitizeJsonStrings(string json, Func<string, string> sanitize)
         {
             // Sanitize decoded values, including escaped Windows paths, then encode them again.
             return JsonString.Replace(json, match =>
             {
+                // A JSON string followed by a colon is a property name, not report data.
+                var next = match.Index + match.Length;
+                while (next < json.Length && char.IsWhiteSpace(json[next])) next++;
+                if (next < json.Length && json[next] == ':') return match.Value;
+
                 var stringSerializer = new DataContractJsonSerializer(typeof(string));
                 using (var input = new MemoryStream(Encoding.UTF8.GetBytes(match.Value)))
                 {
                     var value = (string)stringSerializer.ReadObject(input);
-                    var clean = PrivacySanitizer.Sanitize(value);
+                    var clean = sanitize(value);
                     using (var output = new MemoryStream())
                     {
                         stringSerializer.WriteObject(output, clean);
