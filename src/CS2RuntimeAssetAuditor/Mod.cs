@@ -2,6 +2,7 @@ using Colossal.IO.AssetDatabase;
 using Colossal.Logging;
 using CS2RuntimeAssetAuditor.Collectors;
 using CS2RuntimeAssetAuditor.Assets.GameIntegration;
+using CS2RuntimeAssetAuditor.Assets.UI;
 using CS2RuntimeAssetAuditor.Advisor;
 using CS2RuntimeAssetAuditor.Coordination;
 using CS2RuntimeAssetAuditor.Export;
@@ -64,6 +65,8 @@ namespace CS2RuntimeAssetAuditor
             updateSystem.UpdateAt<CaptureRuntimeSystem>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAt<AdvisorSystem>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAt<ProfilerUISystem>(SystemUpdatePhase.UIUpdate);
+            updateSystem.UpdateAt<AssetAuditUISystem>(SystemUpdatePhase.UIUpdate);
+            updateSystem.UpdateAt<AssetAuditSettingsSyncSystem>(SystemUpdatePhase.UIUpdate);
         }
 
         public void OnDispose()

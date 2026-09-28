@@ -18,6 +18,12 @@
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/GameIntegration/Prefabs/SourceMetadataReader.cs" Link="Assets/GameIntegration/SourceMetadataReader.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/GameIntegration/Rendering/IRenderAssetResolver.cs" Link="Assets/GameIntegration/IRenderAssetResolver.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/GameIntegration/Rendering/RenderGraphBuilder.cs" Link="Assets/GameIntegration/RenderGraphBuilder.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/UI/UiContracts.cs" Link="Assets/UI/UiContracts.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/UI/UiExportContracts.cs" Link="Assets/UI/UiExportContracts.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/UI/UiAnalysisProjection.cs" Link="Assets/UI/UiAnalysisProjection.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/UI/UiPublishPolicy.cs" Link="Assets/UI/UiPublishPolicy.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/UI/AssetAuditBindingNames.cs" Link="Assets/UI/AssetAuditBindingNames.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/Export/**/*.cs" LinkBase="Assets/Export" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Core/**/*.cs" LinkBase="Core" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Advisor/Settings/**/*.cs" LinkBase="Advisor/Settings" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Attribution/AssemblyAttributor.cs" Link="Attribution/AssemblyAttributor.cs" />
