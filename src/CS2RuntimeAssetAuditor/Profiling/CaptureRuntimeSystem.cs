@@ -30,6 +30,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
         private string _managedInstrumentationUnavailableReason;
         private double _lastObservedTimestamp = double.NegativeInfinity;
         private double _lastOverheadShare;
+        private long _observedSessionGeneration = -1;
 
         private IReadOnlyList<SystemDescriptor> Systems => _systemCatalog?.Snapshot ?? Array.Empty<SystemDescriptor>();
 
@@ -44,7 +45,6 @@ namespace CS2RuntimeAssetAuditor.Profiling
         protected override void OnCreate()
         {
             base.OnCreate();
-            Mod.EnsureDiagnosticSession(World);
             _global = World.GetOrCreateSystemManaged<GlobalMetricsCollector>();
             _domains = World.GetOrCreateSystemManaged<DomainMetricsSystem>();
             _deepRecorders = new RecorderManager(new UnityRecorderBackend());
@@ -76,6 +76,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
         protected override void OnUpdate()
         {
             ApplyRuntimeSettings();
+            ObserveSessionChange();
 
             var monitoringEnabled = Mod.Settings == null || Mod.Settings.EnableMonitoring;
             var transition = _monitoringGate.Observe(monitoringEnabled);
@@ -84,11 +85,13 @@ namespace CS2RuntimeAssetAuditor.Profiling
             {
                 FinishManagedTimingForCapture(_controller?.CurrentSession);
                 _controller?.InterruptActiveCapture(
-                    "Monitoring was disabled; the active capture was finalized early and recorder activity was stopped.");
+                    "Monitoring was disabled; the active capture was finalized early and recorder activity was stopped.",
+                    CaptureInterruptionReason.MonitoringDisabled);
                 _managedTimingLifecycle?.Abort();
             }
 
-            if (!monitoringEnabled)
+            // Captures belong to a loaded gameplay city; menus, the editor and loading screens are not measured.
+            if (!monitoringEnabled || !Mod.Sessions.IsActive)
                 return;
 
             var latest = _global?.Latest;
@@ -110,18 +113,14 @@ namespace CS2RuntimeAssetAuditor.Profiling
                 var afterState = _controller.State;
 
                 if (beforeSession == null && afterSession != null && afterState == CaptureState.DeepCapture)
-                {
-                    afterSession.MarkStarted(Mod.EnsureDiagnosticSession(World).SessionId, DateTimeOffset.UtcNow);
-                    Mod.WorkCoordinator.Request(DiagnosticWorkKind.RuntimeDeepCapture);
-                    RefreshSystemCatalogForCapture(afterSession);
-                    StartManagedTimingForCapture(afterSession);
-                }
+                    BeginCaptureWork(afterSession);
 
+                // Managed timing covers only the deep phase. The heavy-work slot stays held through the
+                // post-buffer: its samples belong to this capture, so queued asset scans wait until it completes.
                 if (afterSession != null
                     && beforeState == CaptureState.DeepCapture
                     && afterState != CaptureState.DeepCapture)
                 {
-                    Mod.WorkCoordinator.Complete(DiagnosticWorkKind.RuntimeDeepCapture);
                     FinishManagedTimingForCapture(afterSession);
                 }
 
@@ -145,6 +144,9 @@ namespace CS2RuntimeAssetAuditor.Profiling
         {
             if (Mod.Settings != null && !Mod.Settings.EnableMonitoring)
                 return;
+            ObserveSessionChange();
+            if (!Mod.Sessions.IsActive)
+                return;
 
             ApplyRuntimeSettings();
             var captureConfiguration = RuntimeCaptureConfigurationProvider.Capture();
@@ -152,12 +154,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
             var before = _controller?.CurrentSession;
             _controller?.RequestManualCapture(now, _global?.GetRecentHistory(GetPrebufferSeconds()));
             if (before == null && _controller?.CurrentSession != null && _controller.State == CaptureState.DeepCapture)
-            {
-                _controller.CurrentSession.MarkStarted(Mod.EnsureDiagnosticSession(World).SessionId, DateTimeOffset.UtcNow);
-                Mod.WorkCoordinator.Request(DiagnosticWorkKind.RuntimeDeepCapture);
-                RefreshSystemCatalogForCapture(_controller.CurrentSession);
-                StartManagedTimingForCapture(_controller.CurrentSession);
-            }
+                BeginCaptureWork(_controller.CurrentSession);
             _controller?.CurrentSession?.SetConfiguration(captureConfiguration);
             _controller?.CurrentSession?.SetRuntimeSnapshots(
                 _domains?.Pathfinding?.Latest,
@@ -177,6 +174,36 @@ namespace CS2RuntimeAssetAuditor.Profiling
             _deepRecorders = null;
             _systemCatalog = null;
             base.OnDestroy();
+        }
+
+        private void BeginCaptureWork(CaptureSession capture)
+        {
+            capture.MarkStarted(Mod.SessionContext?.SessionId, DateTimeOffset.UtcNow);
+            Mod.WorkCoordinator.Request(DiagnosticWorkKind.RuntimeDeepCapture);
+            RefreshSystemCatalogForCapture(capture);
+            StartManagedTimingForCapture(capture);
+        }
+
+        // A capture from an earlier city must not be listed, diagnosed or linked as evidence for the city that
+        // is loaded now, so a session change finalizes the active capture and forgets the completed ones.
+        private void ObserveSessionChange()
+        {
+            var generation = Mod.Sessions.Generation;
+            if (generation == _observedSessionGeneration)
+                return;
+            var firstObservation = _observedSessionGeneration < 0;
+            _observedSessionGeneration = generation;
+            if (firstObservation || _controller == null)
+                return;
+
+            FinishManagedTimingForCapture(_controller.CurrentSession);
+            _controller.InterruptActiveCapture(
+                "The loaded city changed; the active capture was finalized early.",
+                CaptureInterruptionReason.SessionChanged);
+            _managedTimingLifecycle?.Abort();
+            _managedTimingByCapture.Clear();
+            _controller.ClearCompletedSessions();
+            Mod.WorkCoordinator.Complete(DiagnosticWorkKind.RuntimeDeepCapture);
         }
 
         private double GetPrebufferSeconds()

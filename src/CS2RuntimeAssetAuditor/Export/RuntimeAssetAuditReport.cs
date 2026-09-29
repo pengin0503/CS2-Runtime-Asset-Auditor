@@ -12,7 +12,7 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "schemaVersion", Order = 1)] public int SchemaVersion { get; set; } = 1;
         [DataMember(Name = "generatedAtUtc", Order = 2)] public string GeneratedAtUtc { get; set; }
         [DataMember(Name = "product", Order = 3)] public string Product { get; set; } = "CS2 Runtime Asset Auditor";
-        [DataMember(Name = "session", Order = 4)] public ReportSession Session { get; set; }
+        [DataMember(Name = "session", Order = 4, EmitDefaultValue = true)] public ReportSession Session { get; set; }
         [DataMember(Name = "runtime", Order = 5, EmitDefaultValue = true)] public PerformanceReport Runtime { get; set; }
         [DataMember(Name = "advisor", Order = 6, EmitDefaultValue = true)] public ReportAdvisor Advisor { get; set; }
         [DataMember(Name = "assets", Order = 7, EmitDefaultValue = true)] public AuditReport Assets { get; set; }

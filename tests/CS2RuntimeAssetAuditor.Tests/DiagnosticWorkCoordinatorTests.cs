@@ -40,4 +40,17 @@ public class DiagnosticWorkCoordinatorTests
         coordinator.Complete(DiagnosticWorkKind.AssetHeavyScan);
         Assert.That(coordinator.IsActive(DiagnosticWorkKind.AssetHeavyScan), Is.False);
     }
+
+    [Test]
+    public void Completing_asset_work_withdraws_an_abandoned_queued_request()
+    {
+        var coordinator = new DiagnosticWorkCoordinator();
+        coordinator.Request(DiagnosticWorkKind.RuntimeDeepCapture);
+        coordinator.Request(DiagnosticWorkKind.AssetHeavyScan);
+        Assert.That(coordinator.HasQueuedAssetWork, Is.True);
+
+        coordinator.Complete(DiagnosticWorkKind.AssetHeavyScan);
+
+        Assert.That(coordinator.HasQueuedAssetWork, Is.False);
+    }
 }

@@ -263,7 +263,7 @@ namespace CS2RuntimeAssetAuditor.UI
                     if (link != null) links.Add(link);
                 }
             }
-            return RuntimeAssetAuditReportBuilder.Build(runtime, assets, Mod.EnsureDiagnosticSession(World), DateTimeOffset.UtcNow, links);
+            return RuntimeAssetAuditReportBuilder.Build(runtime, assets, Mod.SessionContext, DateTimeOffset.UtcNow, links);
         }
 
         private void RefreshSnapshot()

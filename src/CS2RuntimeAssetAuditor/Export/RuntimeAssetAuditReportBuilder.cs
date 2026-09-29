@@ -12,14 +12,14 @@ namespace CS2RuntimeAssetAuditor.Export
             DiagnosticSessionContext session, DateTimeOffset generatedAtUtc,
             IEnumerable<DiagnosticEvidenceLink> evidenceLinks = null)
         {
-            if (session == null) throw new ArgumentNullException(nameof(session));
+            // Without a loaded city there is no session identity, so nothing can be linked as same-session evidence.
             var runtimeCopy = runtime?.SanitizedCopy();
             var advisor = runtimeCopy?.Advisor;
             if (runtimeCopy != null) runtimeCopy.Advisor = null;
             return new RuntimeAssetAuditReport
             {
                 GeneratedAtUtc = generatedAtUtc.ToUniversalTime().ToString("O"),
-                Session = new ReportSession
+                Session = session == null ? null : new ReportSession
                 {
                     SessionId = session.SessionId,
                     StartedAtUtc = session.StartedAtUtc.ToString("O"),
@@ -30,7 +30,7 @@ namespace CS2RuntimeAssetAuditor.Export
                 Advisor = advisor,
                 Assets = assets,
                 EvidenceLinks = (evidenceLinks ?? Enumerable.Empty<DiagnosticEvidenceLink>())
-                    .Where(link => link != null && link.SessionId == session.SessionId)
+                    .Where(link => link != null && session != null && link.SessionId == session.SessionId)
                     .Select(link => new ReportEvidenceLink { CaptureId = link.CaptureId,
                         AssetSnapshotId = link.AssetSnapshotId, RelativeTiming = link.RelativeTiming.ToString() }).ToList(),
                 Capabilities = new ReportCapabilities

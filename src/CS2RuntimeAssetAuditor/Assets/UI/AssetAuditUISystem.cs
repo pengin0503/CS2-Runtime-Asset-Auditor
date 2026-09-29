@@ -41,7 +41,6 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
         protected override void OnCreate()
         {
             base.OnCreate();
-            Mod.EnsureDiagnosticSession(World);
             var stored = Mod.Settings;
             if (stored != null)
                 _uiSettings = NormalizeSettings(FromStoredSettings(stored));
@@ -230,7 +229,7 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                     var profiler = World.GetExistingSystemManaged<global::CS2RuntimeAssetAuditor.UI.ProfilerUISystem>();
                     var unified = profiler != null
                         ? profiler.BuildCurrentUnifiedReport(report)
-                        : RuntimeAssetAuditReportBuilder.Build(null, report, Mod.EnsureDiagnosticSession(World), DateTimeOffset.UtcNow);
+                        : RuntimeAssetAuditReportBuilder.Build(null, report, Mod.SessionContext, DateTimeOffset.UtcNow);
                     var result = new ReportExporter().Export(unified);
                     _exportBinding.Update(result.Success ? "ok:" + Path.GetFileName(result.Path) : "error:" + result.Error);
                 }
@@ -257,11 +256,13 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
 
         private static void StampAssetReport(AuditReport report, AssetAuditSystem system)
         {
-            if (system.PublishedAnalysis == null || system.PublishedAssetSnapshotId == null) return;
-            report.SessionId = system.PublishedAssetSnapshotSessionId;
-            report.AssetSnapshotId = system.PublishedAssetSnapshotId;
-            report.StartedAtUtc = system.PublishedAssetSnapshotStartedAtUtc?.ToString("O");
-            report.CompletedAtUtc = system.PublishedAssetSnapshotCompletedAtUtc?.ToString("O");
+            var identity = system.PublishedIdentity;
+            if (system.PublishedAnalysis == null || identity == null) return;
+            report.SessionId = identity.SessionId;
+            report.AssetSnapshotId = identity.SnapshotId;
+            report.StartedAtUtc = identity.StartedAtUtc.ToString("O");
+            report.CompletedAtUtc = identity.CompletedAtUtc.ToString("O");
+            report.EnrichedAtUtc = identity.EnrichedAtUtc?.ToString("O");
         }
 
         private IEnumerable<PrefabKey>? ResolveExportKeys(AssetAuditSystem auditSystem, UiExportRequest request, ExportScope scope)

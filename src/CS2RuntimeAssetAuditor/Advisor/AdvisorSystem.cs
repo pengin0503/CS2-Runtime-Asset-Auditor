@@ -14,6 +14,7 @@ namespace CS2RuntimeAssetAuditor.Advisor
         private readonly SettingChangeSession _changeSession = new SettingChangeSession();
         private AdvisorEvidenceSnapshot _baselineEvidence;
         private DateTime _baselineSelectedAt;
+        private long _observedSessionGeneration = -1;
 
         // The gateway has no UI write binding until the change-session policy is installed.
         internal IGameSettingGateway Gateway => _gateway ?? (_gateway = new GameSettingGateway());
@@ -35,7 +36,22 @@ namespace CS2RuntimeAssetAuditor.Advisor
             _coordinator = new AdvisorCoordinator(() => new GameSettingCatalogBuilder().GetCatalog());
         }
 
-        protected override void OnUpdate() { }
+        protected override void OnUpdate() => ObserveSessionChange();
+
+        // Diagnoses and the baseline point at captures of the previous city, which are discarded on a session
+        // change. Setting changes are global game options, so the change session (and its Undo) is kept.
+        private void ObserveSessionChange()
+        {
+            var generation = Mod.Sessions.Generation;
+            if (generation == _observedSessionGeneration)
+                return;
+            var firstObservation = _observedSessionGeneration < 0;
+            _observedSessionGeneration = generation;
+            if (firstObservation)
+                return;
+            _coordinator?.Reset();
+            _baselineEvidence = null;
+        }
 
         public bool DiagnoseCompletedCapture(string id)
         {

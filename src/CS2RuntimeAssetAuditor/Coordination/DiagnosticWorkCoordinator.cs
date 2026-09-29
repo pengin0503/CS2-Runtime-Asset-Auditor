@@ -52,7 +52,9 @@ namespace CS2RuntimeAssetAuditor.Coordination
                     _runtimeActive = false;
                 else
                 {
+                    // Completing asset work also withdraws a queued request whose owner gave it up.
                     _assetActive = false;
+                    _assetQueued = false;
                     _assetInterruptionRequested = false;
                 }
             }

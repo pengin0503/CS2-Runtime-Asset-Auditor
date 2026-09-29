@@ -20,6 +20,9 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor
 
         public AdvisorState CurrentState => _state;
 
+        /// <summary>Forgets the diagnosis and baseline; they refer to captures of a city that is no longer loaded.</summary>
+        public void Reset() => _state = Build(null, string.Empty, string.Empty);
+
         public bool DiagnoseCompletedCapture(IReadOnlyList<CaptureSession> completed, string captureId)
         {
             if (string.IsNullOrWhiteSpace(captureId)) return false;

@@ -14,6 +14,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
         private const double ProfilerMemoryHardStopBytes = 512d * 1024d * 1024d;
         private const double ProfilerMemoryTrendWarningBytes = 256d * 1024d * 1024d;
         private const string ProfilerUsedMemoryRecorderId = "Memory\u001fProfiler Used Memory";
+        private const double MaxSafetyCooldownSeconds = 600d;
 
         private readonly RecorderManager _recorders;
         private readonly DeepCaptureStateMachine _stateMachine;
@@ -32,6 +33,8 @@ namespace CS2RuntimeAssetAuditor.Profiling
         private int _degradationActions;
         private int _profilerMemoryDegradeLevel;
         private double _batchStartedAt;
+        private double _lastObservedSeconds;
+        private int _consecutiveSafetyStops;
         private CaptureState _lastState;
         private MarkerBatchPlan _plan;
 
@@ -53,6 +56,9 @@ namespace CS2RuntimeAssetAuditor.Profiling
         public IReadOnlyList<CaptureSession> CompletedSessions => _completed;
         public int CurrentBatchSize => _maxConcurrent;
         public int SamplingStride => _sampleStride;
+        public int ConsecutiveSafetyStops => _consecutiveSafetyStops;
+
+        public void ClearCompletedSessions() => _completed.Clear();
 
         public void Initialize()
         {
@@ -73,6 +79,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
 
         public void RequestManualCapture(double nowSeconds, IEnumerable<GlobalMetricsSnapshot> prebuffer = null)
         {
+            _lastObservedSeconds = nowSeconds;
             var before = _stateMachine.State;
             _stateMachine.RequestManualCapture(nowSeconds);
             if (before != CaptureState.DeepCapture && _stateMachine.State == CaptureState.DeepCapture)
@@ -91,6 +98,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
             bool automaticTriggerAllowed,
             IEnumerable<GlobalMetricsSnapshot> prebuffer = null)
         {
+            _lastObservedSeconds = nowSeconds;
             var before = _stateMachine.State;
             _stateMachine.Observe(
                 nowSeconds,
@@ -119,15 +127,46 @@ namespace CS2RuntimeAssetAuditor.Profiling
 
             if (before == CaptureState.DeepCapture && after != CaptureState.DeepCapture) _recorders.DeactivateAll();
             if (after == CaptureState.PostBuffer && CurrentSession != null && global != null) CurrentSession.AddGlobalSample(global);
-            if (CurrentSession != null && after != CaptureState.DeepCapture && after != CaptureState.PostBuffer) FinalizeCapture();
+            if (CurrentSession != null && after != CaptureState.DeepCapture && after != CaptureState.PostBuffer)
+            {
+                // A capture that ran its full course proves the current conditions are safe to measure again.
+                _consecutiveSafetyStops = 0;
+                FinalizeCapture();
+            }
             _lastState = after;
         }
 
-        public void InterruptActiveCapture(string warning)
+        public void InterruptActiveCapture(string warning) => InterruptActiveCapture(warning, CaptureInterruptionReason.Requested);
+
+        public void InterruptActiveCapture(string warning, CaptureInterruptionReason reason)
         {
             _recorders.DeactivateAll();
-            if (CurrentSession != null) { CurrentSession.AddWarning(warning); FinalizeCapture(); }
-            _stateMachine.ResetToMonitoring();
+            double? cooldown = null;
+            if (reason == CaptureInterruptionReason.SafetyLimit)
+            {
+                _consecutiveSafetyStops++;
+                // Back off exponentially: the conditions that tripped the limit usually persist.
+                var multiplier = Math.Pow(2d, Math.Min(10, _consecutiveSafetyStops - 1));
+                cooldown = Math.Min(MaxSafetyCooldownSeconds, Math.Max(_stateMachine.CooldownSeconds, 1d) * multiplier);
+            }
+            else if (reason == CaptureInterruptionReason.SessionChanged)
+            {
+                _consecutiveSafetyStops = 0;
+            }
+
+            if (CurrentSession != null)
+            {
+                CurrentSession.AddWarning(warning);
+                if (cooldown.HasValue)
+                    CurrentSession.AddWarning(
+                        $"Automatic capture is paused for {cooldown.Value:0} s after safety stop #{_consecutiveSafetyStops}; repeated stops extend the pause.");
+                FinalizeCapture();
+            }
+
+            if (cooldown.HasValue)
+                _stateMachine.EnterCooldown(_lastObservedSeconds, cooldown.Value);
+            else
+                _stateMachine.ResetToMonitoring();
             ResetMarkerCoverageTracking();
             _currentBatchIndex = -1;
             _sampleCounter = 0;
@@ -149,7 +188,8 @@ namespace CS2RuntimeAssetAuditor.Profiling
             {
                 InterruptActiveCapture(
                     $"Measured capture-controller overhead remained above {_overheadCeiling:P0} after repeated load reductions; the capture was finalized early. "
-                    + "This overhead metric does not include managed SystemBase timing instrumentation cost.");
+                    + "This overhead metric does not include managed SystemBase timing instrumentation cost.",
+                    CaptureInterruptionReason.SafetyLimit);
                 return;
             }
 
@@ -164,6 +204,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
 
         private void BeginCapture(double nowSeconds, GlobalMetricsSnapshot triggerSample, IEnumerable<GlobalMetricsSnapshot> prebuffer)
         {
+            _lastObservedSeconds = nowSeconds;
             string discoveryWarning = null;
             try { _recorders.DiscoverAvailableMarkers(); }
             catch (Exception ex) { discoveryWarning = $"Profiler marker refresh failed at capture start; using the remaining catalog where available: {ex.Message}"; }
@@ -204,7 +245,8 @@ namespace CS2RuntimeAssetAuditor.Profiling
             if (delta.Value >= ProfilerMemoryHardStopBytes)
             {
                 InterruptActiveCapture(
-                    $"Profiler memory grew by {deltaMiB:0.#} MiB during this capture, exceeding the 512 MiB safety limit; the capture was finalized early.");
+                    $"Profiler memory grew by {deltaMiB:0.#} MiB during this capture, exceeding the 512 MiB safety limit; the capture was finalized early.",
+                    CaptureInterruptionReason.SafetyLimit);
                 return;
             }
 

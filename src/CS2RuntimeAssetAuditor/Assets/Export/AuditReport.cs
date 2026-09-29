@@ -36,6 +36,8 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
         [DataMember(Name = "assetSnapshotId", Order = 20, EmitDefaultValue = true)] public string? AssetSnapshotId { get; set; }
         [DataMember(Name = "startedAtUtc", Order = 21, EmitDefaultValue = true)] public string? StartedAtUtc { get; set; }
         [DataMember(Name = "completedAtUtc", Order = 22, EmitDefaultValue = true)] public string? CompletedAtUtc { get; set; }
+        // Set when Deep Inspection enriched the snapshot after the audit; the audit interval above is unchanged.
+        [DataMember(Name = "enrichedAtUtc", Order = 23, EmitDefaultValue = false)] public string? EnrichedAtUtc { get; set; }
     }
 
     [DataContract]

@@ -50,7 +50,9 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
         private double _assetAuditFrameBudgetMs = 1.0;
         private long _completedCatalogCapturesBeforeCapture;
         private long _nextAnalysisGeneration;
+        private long _observedSessionGeneration = -1;
         private ScanOptions _requestedOptions = ScanOptions.Default;
+        private PublishedAssetSnapshotIdentity? _publishedIdentity;
 
         public CapabilityReport? Capabilities { get; private set; }
         public long WorldGeneration { get; private set; }
@@ -67,25 +69,30 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
         public string DiagnosticWorkStatus { get; private set; } = "Idle";
         public CensusSnapshot? PublishedCensus => _publishedState.Census;
         public AssetAnalysisSnapshot? PublishedAnalysis => _publishedState.Analysis;
-        public string? PublishedAssetSnapshotId { get; private set; }
-        public string? PublishedAssetSnapshotSessionId { get; private set; }
-        public DateTimeOffset? PublishedAssetSnapshotStartedAtUtc { get; private set; }
-        public DateTimeOffset? PublishedAssetSnapshotCompletedAtUtc { get; private set; }
+        public PublishedAssetSnapshotIdentity? PublishedIdentity => _publishedIdentity;
+        public string? PublishedAssetSnapshotId => _publishedIdentity?.SnapshotId;
+        public string? PublishedAssetSnapshotSessionId => _publishedIdentity?.SessionId;
+        public DateTimeOffset? PublishedAssetSnapshotStartedAtUtc => _publishedIdentity?.StartedAtUtc;
+        public DateTimeOffset? PublishedAssetSnapshotCompletedAtUtc => _publishedIdentity?.CompletedAtUtc;
+        public DateTimeOffset? PublishedAssetSnapshotEnrichedAtUtc => _publishedIdentity?.EnrichedAtUtc;
         public RenderGraphSnapshot? PublishedRuntimeRenderGraph => _publishedRuntimeRenderGraph;
         public string? LastDiagnosticCode { get; private set; }
         public int UnmatchedPrefabReferenceCount => _censusAccess?.UnmatchedPrefabReferenceCount ?? 0;
         // While a scan runs, elapsed time is live; once it ends the snapshot is frozen at the frame the scan ended.
         public ScanTelemetrySnapshot? TelemetrySnapshot => _finalTelemetry ?? _scanTelemetry?.Snapshot(DateTimeOffset.UtcNow);
 
+        // Scans describe the loaded city; without an active city session there is nothing to audit.
+        private static bool CitySessionActive => Mod.Sessions.IsActive;
+
         public void RequestCatalogScan()
         {
-            if (!IsScanActive && !_catalogCaptureActive && !_assetAuditRequested && !_deepInspectionRequested)
+            if (CitySessionActive && !IsScanActive && !_catalogCaptureActive && !_assetAuditRequested && !_deepInspectionRequested)
                 _catalogScanRequested = true;
         }
 
         public void RequestCensusScan(ScanOptions? scanOptions = null)
         {
-            if (IsScanActive || _censusScanRequested || _censusCleanupRequested || _assetAuditRequested || _assetAuditWaitingForCatalog || _deepInspectionRequested)
+            if (!CitySessionActive || IsScanActive || _censusScanRequested || _censusCleanupRequested || _assetAuditRequested || _assetAuditWaitingForCatalog || _deepInspectionRequested)
                 return;
             _requestedOptions = scanOptions ?? ScanOptions.Default;
             _censusScanRequested = true;
@@ -93,7 +100,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
 
         public void RequestAssetAudit(double frameBudgetMilliseconds = 1.0, bool refreshCatalogAtScanStart = true, bool enableHeuristicFindings = true)
         {
-            if (IsScanActive || _assetAuditRequested || _assetAuditWaitingForCatalog || _censusScanRequested || _censusCleanupRequested || _catalogCaptureActive || _deepInspectionRequested)
+            if (!CitySessionActive || IsScanActive || _assetAuditRequested || _assetAuditWaitingForCatalog || _censusScanRequested || _censusCleanupRequested || _catalogCaptureActive || _deepInspectionRequested)
                 return;
             _assetAuditFrameBudgetMs = NormalizeFrameBudget(frameBudgetMilliseconds);
             _assetAuditRefreshCatalog = refreshCatalogAtScanStart;
@@ -103,7 +110,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
 
         public bool RequestDeepInspection(RenderAssetKey key)
         {
-            if (!key.IsValid || IsScanActive || _catalogCaptureActive || _catalogScanRequested || _censusScanRequested || _censusCleanupRequested || _assetAuditRequested || _assetAuditWaitingForCatalog || _deepInspectionRequested)
+            if (!CitySessionActive || !key.IsValid || IsScanActive || _catalogCaptureActive || _catalogScanRequested || _censusScanRequested || _censusCleanupRequested || _assetAuditRequested || _assetAuditWaitingForCatalog || _deepInspectionRequested)
                 return false;
             var analysis = PublishedAnalysis;
             var graph = _publishedRuntimeRenderGraph;
@@ -131,7 +138,6 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
         protected override void OnCreate()
         {
             base.OnCreate();
-            Mod.EnsureDiagnosticSession(World);
             WorldGeneration = Interlocked.Increment(ref _nextWorldGeneration);
             _publishedState.ResetForWorld(WorldGeneration);
             Capabilities = CapabilityProbe.Probe(World);
@@ -141,6 +147,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
 
         protected override void OnUpdate()
         {
+            ObserveSessionChange();
             if (Mod.WorkCoordinator.ConsumeAssetInterruptionRequest())
                 InterruptForRuntimeCapture();
             try
@@ -157,6 +164,43 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
                     if (DiagnosticWorkStatus == "Running") DiagnosticWorkStatus = "Idle";
                 }
             }
+        }
+
+        // The game keeps this World across city loads. Entities, the census and render evidence belong to the
+        // city that produced them, so a session change cancels in-flight work and discards published state.
+        // Advancing WorldGeneration also makes any scan still unwinding fail its publish checks.
+        private void ObserveSessionChange()
+        {
+            var generation = Mod.Sessions.Generation;
+            if (generation == _observedSessionGeneration)
+                return;
+            var firstObservation = _observedSessionGeneration < 0;
+            _observedSessionGeneration = generation;
+            if (firstObservation)
+                return;
+
+            _catalogScanRequested = false;
+            _censusScanRequested = false;
+            _assetAuditRequested = false;
+            _deepInspectionRequested = false;
+            _assetAuditWaitingForCatalog = false;
+            if (CurrentScan?.State == ScanState.Running)
+                CurrentScan.RequestCancellation();
+            if (_catalogCaptureActive && CurrentScan == null)
+                _catalogCaptureActive = false;
+            // Resetting the catalog cancels its working and staged captures; a census scan that is still
+            // unwinding keeps its own references and finishes cleanup through the normal cancellation path.
+            _catalog?.ResetForWorld();
+
+            WorldGeneration = Interlocked.Increment(ref _nextWorldGeneration);
+            _publishedState.ResetForWorld(WorldGeneration);
+            _publishedIdentity = null;
+            _publishedRuntimeRenderGraph = null;
+            _analysisCollector = null;
+            _requestedDeepInspectionKey = default;
+            _activeDeepInspectionKey = default;
+            LastDiagnosticCode = null;
+            DiagnosticWorkStatus = "Idle";
         }
 
         private bool TryBeginHeavyWork()
@@ -269,6 +313,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
             if (CurrentScan?.State == ScanState.CancellationRequested)
                 CurrentScan.MarkCancelled();
             _publishedState.ResetForWorld(WorldGeneration + 1);
+            _publishedIdentity = null;
             base.OnDestroy();
         }
 
@@ -538,7 +583,9 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
                     FailDeepInspection("APA-DEEP-003", "deep_inspection_publish_world_mismatch");
                     return;
                 }
-                StampPublishedAnalysis(session, enriched);
+                // Enrichment keeps the audit's identity and interval; only the enrichment time is new.
+                if (_publishedIdentity != null)
+                    _publishedIdentity = _publishedIdentity.WithEnrichment(observation.CapturedAt);
                 session.Complete();
                 LastDiagnosticCode = observation.Availability == Core.Observations.Availability.Failed ? observation.DiagnosticCode : null;
                 _activeDeepInspectionKey = default;
@@ -572,7 +619,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
                 return;
             }
 
-            StampPublishedAnalysis(session, snapshot);
+            StampPublishedAnalysis(session, snapshot, DateTimeOffset.UtcNow);
 
             _publishedRuntimeRenderGraph = collector.RenderGraph;
             session.Complete();
@@ -580,13 +627,14 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
             _analysisCollector = null;
         }
 
-        private void StampPublishedAnalysis(ScanSession session, AssetAnalysisSnapshot snapshot)
+        // The interval spans the whole audit: from the request start (including any catalog refresh) to the
+        // frame the analysis is published. snapshot.CapturedAt is the analysis start and must not be used here.
+        private void StampPublishedAnalysis(ScanSession session, AssetAnalysisSnapshot snapshot, DateTimeOffset publishedAt)
         {
-            var context = Mod.EnsureDiagnosticSession(World);
-            PublishedAssetSnapshotSessionId = context.SessionId;
-            PublishedAssetSnapshotId = context.SessionId + "/analysis/" + snapshot.AnalysisGeneration;
-            PublishedAssetSnapshotStartedAtUtc = session.StartedAt.ToUniversalTime();
-            PublishedAssetSnapshotCompletedAtUtc = snapshot.CapturedAt.ToUniversalTime();
+            var context = Mod.SessionContext;
+            _publishedIdentity = context == null
+                ? null
+                : PublishedAssetSnapshotIdentity.ForAudit(context.SessionId, snapshot.AnalysisGeneration, session.StartedAt, publishedAt);
         }
 
         private void AdvanceCensusScan()

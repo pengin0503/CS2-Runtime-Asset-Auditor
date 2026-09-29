@@ -6,13 +6,13 @@ using CS2RuntimeAssetAuditor.Assets.UI;
 using CS2RuntimeAssetAuditor.Advisor;
 using CS2RuntimeAssetAuditor.Coordination;
 using CS2RuntimeAssetAuditor.Export;
+using CS2RuntimeAssetAuditor.Lifecycle;
 using CS2RuntimeAssetAuditor.Localization;
 using CS2RuntimeAssetAuditor.Profiling;
 using CS2RuntimeAssetAuditor.UI;
 using Game;
 using Game.Modding;
 using Game.SceneFlow;
-using Unity.Entities;
 
 namespace CS2RuntimeAssetAuditor
 {
@@ -21,24 +21,13 @@ namespace CS2RuntimeAssetAuditor
         public const string Id = "CS2RuntimeAssetAuditor";
         public static readonly ILog Log = LogManager.GetLogger($"{nameof(CS2RuntimeAssetAuditor)}.{nameof(Mod)}").SetShowsErrorsInUI(false);
         public static Setting Settings { get; private set; }
-        private static World _sessionWorld;
-        private static DiagnosticSessionContext _sessionContext;
-        private static DiagnosticWorkCoordinator _workCoordinator = new DiagnosticWorkCoordinator();
+        private static readonly DiagnosticSessionRegistry _sessions = new DiagnosticSessionRegistry();
+        private static readonly DiagnosticWorkCoordinator _workCoordinator = new DiagnosticWorkCoordinator();
 
-        public static DiagnosticSessionContext SessionContext => _sessionContext;
+        // A city session exists only between a gameplay load completing and the next load starting.
+        public static DiagnosticSessionRegistry Sessions => _sessions;
+        public static DiagnosticSessionContext SessionContext => _sessions.Current;
         public static DiagnosticWorkCoordinator WorkCoordinator => _workCoordinator;
-
-        public static DiagnosticSessionContext EnsureDiagnosticSession(World world)
-        {
-            if (!ReferenceEquals(_sessionWorld, world))
-            {
-                _sessionWorld = world;
-                _sessionContext = DiagnosticSessionContext.Create(
-                    UnityEngine.Application.version, BuildIdentityProvider.Current, System.DateTimeOffset.UtcNow);
-                _workCoordinator = new DiagnosticWorkCoordinator();
-            }
-            return _sessionContext;
-        }
 
         public void OnLoad(UpdateSystem updateSystem)
         {
@@ -59,6 +48,7 @@ namespace CS2RuntimeAssetAuditor
             AssetDatabase.global.LoadSettings(Id, Settings, new Setting(this));
             Settings.RegisterInOptionsUI();
 
+            updateSystem.UpdateAt<DiagnosticSessionSystem>(SystemUpdatePhase.MainLoop);
             updateSystem.UpdateAt<AssetAuditSystem>(SystemUpdatePhase.MainLoop);
             updateSystem.UpdateAt<GlobalMetricsCollector>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAt<DomainMetricsSystem>(SystemUpdatePhase.UIUpdate);
@@ -76,9 +66,9 @@ namespace CS2RuntimeAssetAuditor
             ProfilerReportBuilder.CaptureConfigurationProvider = null;
             Settings?.UnregisterInOptionsUI();
             Settings = null;
-            _sessionWorld = null;
-            _sessionContext = null;
-            _workCoordinator = new DiagnosticWorkCoordinator();
+            _sessions.Close();
+            _workCoordinator.Complete(DiagnosticWorkKind.RuntimeDeepCapture);
+            _workCoordinator.Complete(DiagnosticWorkKind.AssetHeavyScan);
         }
     }
 }

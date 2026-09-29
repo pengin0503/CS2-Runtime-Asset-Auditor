@@ -13,6 +13,7 @@ namespace CS2RuntimeAssetAuditor.Core
 
         private double? _lowEfficiencySince;
         private double _stateEnteredAt;
+        private double? _extendedCooldownSeconds;
 
         public DeepCaptureStateMachine(
             double efficiencyThreshold,
@@ -33,6 +34,8 @@ namespace CS2RuntimeAssetAuditor.Core
 
         public CaptureState State { get; private set; }
         public CaptureTrigger LastTrigger { get; private set; }
+        public double CooldownSeconds => _cooldownSeconds;
+        public double CurrentCooldownSeconds => _extendedCooldownSeconds ?? _cooldownSeconds;
 
         public static DeepCaptureStateMachine CreateDefault()
         {
@@ -121,10 +124,24 @@ namespace CS2RuntimeAssetAuditor.Core
             State = CaptureState.Monitoring;
             _stateEnteredAt = 0d;
             _lowEfficiencySince = null;
+            _extendedCooldownSeconds = null;
+        }
+
+        /// <summary>
+        /// Enters Cooldown now for the given duration. Used after a safety stop so that the same heavy
+        /// conditions cannot immediately re-trigger another automatic capture.
+        /// </summary>
+        public void EnterCooldown(double nowSeconds, double cooldownSeconds)
+        {
+            State = CaptureState.Cooldown;
+            _stateEnteredAt = nowSeconds;
+            _lowEfficiencySince = null;
+            _extendedCooldownSeconds = Math.Max(0d, cooldownSeconds);
         }
 
         private void StartCapture(double nowSeconds, CaptureTrigger trigger)
         {
+            _extendedCooldownSeconds = null;
             State = CaptureState.DeepCapture;
             _stateEnteredAt = nowSeconds;
             _lowEfficiencySince = null;
@@ -150,9 +167,10 @@ namespace CS2RuntimeAssetAuditor.Core
                     State = CaptureState.Cooldown;
                     advanced = true;
                 }
-                else if (State == CaptureState.Cooldown && nowSeconds - _stateEnteredAt >= _cooldownSeconds)
+                else if (State == CaptureState.Cooldown && nowSeconds - _stateEnteredAt >= CurrentCooldownSeconds)
                 {
-                    _stateEnteredAt += _cooldownSeconds;
+                    _stateEnteredAt += CurrentCooldownSeconds;
+                    _extendedCooldownSeconds = null;
                     State = CaptureState.Monitoring;
                     _lowEfficiencySince = null;
                     advanced = true;
