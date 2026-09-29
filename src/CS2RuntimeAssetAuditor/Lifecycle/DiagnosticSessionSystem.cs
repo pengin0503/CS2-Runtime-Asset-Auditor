@@ -22,7 +22,7 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
             if (mode == GameMode.Game)
             {
                 Mod.LoadingTrace.Begin(DateTimeOffset.UtcNow, purpose.ToString());
-                World.GetOrCreateSystemManaged<LoadingMetricsSystem>().Begin();
+                Mod.LoadingMetrics?.Begin();
             }
             else
             {
@@ -43,7 +43,7 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
             base.OnGameLoadingComplete(purpose, mode);
             if (mode == GameMode.Game)
             {
-                World.GetOrCreateSystemManaged<LoadingMetricsSystem>().CaptureNow();
+                Mod.LoadingMetrics?.CaptureNow();
                 Mod.LoadingTrace.Complete(DateTimeOffset.UtcNow, cityOperable: true);
             }
             if (mode == GameMode.Game)

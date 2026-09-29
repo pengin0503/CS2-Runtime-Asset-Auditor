@@ -53,7 +53,7 @@ namespace CS2RuntimeAssetAuditor.Export
                     "Registered asset count is an AssetDatabase catalog count, not a count of files read during this load.",
                     "Asset database observed is the first successful sample, not the start or end of database processing.",
                     "Loaded byte count and cache rebuild/failure events are unavailable without I/O or cache instrumentation.",
-                    "A blocked game MainLoop may leave gaps between the initial and final memory samples.",
+                    "Blocked Unity frames may leave gaps between loading memory samples.",
                     "Game loading complete is the game callback, not proof that every simulation or UI job is finished."
                 }
             };

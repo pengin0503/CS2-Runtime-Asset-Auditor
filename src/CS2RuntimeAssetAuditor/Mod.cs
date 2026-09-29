@@ -24,6 +24,7 @@ namespace CS2RuntimeAssetAuditor
         public static Setting Settings { get; private set; }
         private static readonly LoadingTraceRecorder _loadingTrace = new LoadingTraceRecorder();
         public static LoadingTraceRecorder LoadingTrace => _loadingTrace;
+        public static LoadingMetricsBehaviour LoadingMetrics { get; private set; }
         private static readonly DiagnosticSessionRegistry _sessions = new DiagnosticSessionRegistry();
         private static readonly DiagnosticWorkCoordinator _workCoordinator = new DiagnosticWorkCoordinator();
 
@@ -65,9 +66,9 @@ namespace CS2RuntimeAssetAuditor
 
             AssetDatabase.global.LoadSettings(Id, Settings, new Setting(this));
             Settings.RegisterInOptionsUI();
+            LoadingMetrics = LoadingMetricsBehaviour.Install();
 
             updateSystem.UpdateAt<DiagnosticSessionSystem>(SystemUpdatePhase.MainLoop);
-            updateSystem.UpdateAt<LoadingMetricsSystem>(SystemUpdatePhase.MainLoop);
             updateSystem.UpdateAt<AssetAuditSystem>(SystemUpdatePhase.MainLoop);
             updateSystem.UpdateAt<GlobalMetricsCollector>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAt<DomainMetricsSystem>(SystemUpdatePhase.UIUpdate);
@@ -81,6 +82,12 @@ namespace CS2RuntimeAssetAuditor
         public void OnDispose()
         {
             Log.Info(nameof(OnDispose));
+            if (LoadingMetrics != null)
+            {
+                LoadingMetrics.enabled = false;
+                UnityEngine.Object.Destroy(LoadingMetrics.gameObject);
+            }
+            LoadingMetrics = null;
             ProfilerReportBuilder.RuntimeMetadataProvider = null;
             ProfilerReportBuilder.CaptureConfigurationProvider = null;
             Settings?.UnregisterInOptionsUI();

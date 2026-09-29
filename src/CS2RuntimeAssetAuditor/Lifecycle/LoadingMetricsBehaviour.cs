@@ -1,20 +1,30 @@
 using System;
 using System.Diagnostics;
 using Colossal.IO.AssetDatabase;
-using Game;
+using UnityEngine;
 using UnityEngine.Profiling;
 
 namespace CS2RuntimeAssetAuditor.Lifecycle
 {
-    /// <summary>Fixed-cadence loading observations; no recorder discovery, asset scan or per-file hooks.</summary>
-    public sealed partial class LoadingMetricsSystem : GameSystemBase
+    /// <summary>
+    /// Uses Unity's frame loop while the game World is suspended for loading.
+    /// Inactive loads cost one boolean check per frame; observations run at most every two seconds.
+    /// </summary>
+    public sealed class LoadingMetricsBehaviour : MonoBehaviour
     {
         private readonly Stopwatch _clock = new Stopwatch();
         private Process _process;
 
-        protected override void OnCreate()
+        public static LoadingMetricsBehaviour Install()
         {
-            base.OnCreate();
+            var host = new GameObject("CS2RuntimeAssetAuditor.LoadingMetrics");
+            host.hideFlags = HideFlags.HideInHierarchy;
+            DontDestroyOnLoad(host);
+            return host.AddComponent<LoadingMetricsBehaviour>();
+        }
+
+        private void Awake()
+        {
             try { _process = Process.GetCurrentProcess(); }
             catch (Exception) { _process = null; }
         }
@@ -26,8 +36,9 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
             CaptureNow();
         }
 
-        protected override void OnUpdate()
+        private void Update()
         {
+            if (!Mod.LoadingTrace.IsLoading) return;
             if (Mod.LoadingTrace.ShouldSample(_clock.Elapsed.TotalSeconds))
                 CaptureNow();
         }
@@ -59,12 +70,11 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
             Mod.LoadingTrace.Observe(DateTimeOffset.UtcNow, unity, ram, graphicsDriver, assetCount, cacheReady);
         }
 
-        protected override void OnDestroy()
+        private void OnDestroy()
         {
             _clock.Stop();
             _process?.Dispose();
             _process = null;
-            base.OnDestroy();
         }
     }
 }
