@@ -15,7 +15,8 @@ namespace CS2RuntimeAssetAuditor.Tests
             var result = Classify(Available("frame.p95.ms", 28), Available("gpu.frame.ms", 25),
                 Available("simulation.efficiency", 0.98));
             Assert.That(result.Select(x => x.Category), Is.EqualTo(new[] { BottleneckCategory.RenderingGpu }));
-            Assert.That(result[0].Confidence, Is.EqualTo(AdvisorConfidence.High));
+            // GPU time alone cannot rule out a main-thread-bound frame (it counts time the GPU waits for the CPU).
+            Assert.That(result[0].Confidence, Is.EqualTo(AdvisorConfidence.Medium));
         }
 
         [Test]

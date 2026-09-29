@@ -1,5 +1,6 @@
 using System;
 using Game;
+using CS2RuntimeAssetAuditor.Lifecycle;
 
 namespace CS2RuntimeAssetAuditor.Assets.UI
 {
@@ -8,6 +9,13 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
     public sealed partial class AssetAuditSettingsSyncSystem : GameSystemBase
     {
         protected override void OnUpdate()
+        {
+            var start = ModUpdateCost.Start();
+            try { RunUpdate(); }
+            finally { ModUpdateCost.Stop(nameof(AssetAuditSettingsSyncSystem), start); }
+        }
+
+        private void RunUpdate()
         {
             if (!World.IsCreated)
                 return;

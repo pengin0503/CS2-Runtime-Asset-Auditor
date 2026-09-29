@@ -12,6 +12,7 @@ using CS2RuntimeAssetAuditor.Assets.Core.Rendering;
 using CS2RuntimeAssetAuditor.Assets.Export;
 using CS2RuntimeAssetAuditor.Assets.GameIntegration;
 using CS2RuntimeAssetAuditor.Export;
+using CS2RuntimeAssetAuditor.Lifecycle;
 using System.IO;
 using System.Text;
 using Colossal.PSI.Environment;
@@ -65,8 +66,14 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
             RefreshAssetPage(GetAuditSystem(), force: true);
             PublishSnapshot();
         }
-
         protected override void OnUpdate()
+        {
+            var start = ModUpdateCost.Start();
+            try { RunUpdate(); }
+            finally { ModUpdateCost.Stop(nameof(AssetAuditUISystem), start); }
+        }
+
+        private void RunUpdate()
         {
             base.OnUpdate();
             var auditSystem = GetAuditSystem();
@@ -249,6 +256,7 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
             {
                 if (!UiSnapshotBuilder.TryDeserialize<UiExportRequest>(requestJson, out var request))
                     throw new ArgumentException("The export request payload was invalid.");
+                var start = System.Diagnostics.Stopwatch.GetTimestamp();
                 var scope = ParseEnum(request.Scope, ExportScope.Full);
                 var includedKeys = ResolveExportKeys(auditSystem, request, scope);
                 var report = _reportBuilder.BuildCurrent(
@@ -269,11 +277,23 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                     var directory = Path.Combine(EnvPath.kUserDataPath, "ModsData", Mod.Id);
                     Directory.CreateDirectory(directory);
                     var stem = $"CS2RuntimeAssetAuditor-assets-{DateTime.Now:yyyy-MM-dd_HHmmss_fff}";
+                    var built = System.Diagnostics.Stopwatch.GetTimestamp();
                     var csv = _csvExporter.Export(report);
+                    var formatted = System.Diagnostics.Stopwatch.GetTimestamp();
                     var path = ReportFileWriter.WriteUnique(directory, stem, stream =>
                     {
                         using (var writer = new StreamWriter(stream, new UTF8Encoding(false))) writer.Write(csv);
                     }, ".csv");
+                    var written = System.Diagnostics.Stopwatch.GetTimestamp();
+                    // The export runs on the main thread, so these times are the length of the freeze it causes.
+                    Mod.Log.Info(string.Format(
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        "Asset CSV export timing: file={0} buildMs={1:0.0} formatMs={2:0.0} writeMs={3:0.0} characters={4}",
+                        Path.GetFileName(path),
+                        ElapsedMilliseconds(start, built),
+                        ElapsedMilliseconds(built, formatted),
+                        ElapsedMilliseconds(formatted, written),
+                        csv.Length));
                     _exportBinding.Update(ExportResultFormat.Succeeded(Path.GetFileName(path)));
                 }
                 else
@@ -282,7 +302,7 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                     var unified = profiler != null
                         ? profiler.BuildCurrentUnifiedReport(report)
                         : RuntimeAssetAuditReportBuilder.Build(null, report, Mod.SessionContext, DateTimeOffset.UtcNow);
-                    var result = new ReportExporter().Export(unified);
+                    var result = new ReportExporter().Export(unified, ElapsedMilliseconds(start, System.Diagnostics.Stopwatch.GetTimestamp()));
                     _exportBinding.Update(result.Success
                         ? ExportResultFormat.Succeeded(Path.GetFileName(result.Path))
                         : ExportResultFormat.Failed("APA-EXP-001", result.Error));
@@ -295,6 +315,8 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                 _exportBinding.Update(ExportResultFormat.Failed("APA-EXP-001", ReportPrivacy.Sanitize(ex.Message)));
             }
         }
+
+        private static double ElapsedMilliseconds(long from, long to) => (to - from) * 1000d / System.Diagnostics.Stopwatch.Frequency;
 
         public AuditReport? BuildCurrentReport()
         {

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CS2RuntimeAssetAuditor.Core.Frames;
 
 namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
 {
@@ -44,37 +45,12 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
         public int? GcCollectionCount { get; }
     }
 
-    /// <summary>One diagnostic-log interval (normally one second). Absent values are written as empty cells.</summary>
+    /// <summary>One diagnostic-log row (normally one second). Absent values are written as empty cells.</summary>
     public sealed class DiagnosticLogRow
     {
         public DateTimeOffset UtcTime { get; set; }
         public double ElapsedSeconds { get; set; }
-        public double IntervalSeconds { get; set; }
-        public int Frames { get; set; }
-
-        public DiagnosticSampleSummary FrameMs { get; set; }
-        public int FrameTimingSamples { get; set; }
-        public DiagnosticSampleSummary CpuMainThreadMs { get; set; }
-        public DiagnosticSampleSummary CpuRenderThreadMs { get; set; }
-        public DiagnosticSampleSummary GpuMs { get; set; }
-        public DiagnosticSampleSummary PresentWaitMs { get; set; }
-
-        public double? SelectedSpeed { get; set; }
-        public double? ActualSpeedMean { get; set; }
-        public double? EfficiencyMean { get; set; }
-        public int PausedFrames { get; set; }
-
-        public int? SimulationSteps { get; set; }
-        public double? SimulationStepsPerSecond { get; set; }
-        public int? SimulationMaxStepsPerFrame { get; set; }
-        public int SimulationFramesAtRenderCap { get; set; }
-        public int SimulationFramesWithoutStep { get; set; }
-        public DiagnosticSampleSummary SimulationStepMs { get; set; }
-        public string? PerformancePreference { get; set; }
-
-        public long? PathfindLeadFramesMin { get; set; }
-        public int PathfindLowLeadFrames { get; set; }
-        public int? PathfindPendingRequestsMax { get; set; }
+        public RuntimeInterval Interval { get; set; } = new RuntimeInterval();
 
         public int? GcCollections { get; set; }
         public double? ManagedHeapMiB { get; set; }
@@ -82,6 +58,14 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
         public string? CaptureState { get; set; }
         public string? CaptureTrigger { get; set; }
         public string? CaptureId { get; set; }
+
+        /// <summary>
+        /// Update time of the mod's own systems per frame. The slowest system is the one that took longest in
+        /// the frame where the mod spent the most time.
+        /// </summary>
+        public SampleSummary ModUpdateMs { get; set; }
+        public string? ModUpdateSlowestSystem { get; set; }
+        public double? ModUpdateSlowestSystemMs { get; set; }
 
         /// <summary>Last value each recorder column reported in the interval, aligned with the header.</summary>
         public IReadOnlyList<double?> RecorderValues { get; set; } = Array.Empty<double?>();

@@ -2,8 +2,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using CS2RuntimeAssetAuditor.Core;
+using CS2RuntimeAssetAuditor.Core.Frames;
+using CS2RuntimeAssetAuditor.Lifecycle;
 using CS2RuntimeAssetAuditor.Profiling;
 using Game;
+using Game.Pathfind;
 using Game.Simulation;
 
 namespace CS2RuntimeAssetAuditor.Collectors
@@ -20,6 +23,8 @@ namespace CS2RuntimeAssetAuditor.Collectors
         private GlobalSnapshotHistory _history;
         private IReadOnlyDictionary<string, string> _recorderUnits = new Dictionary<string, string>();
         private double _nextSampleAt;
+        private RuntimeFrameSampleReader _frameReader;
+        private RuntimeIntervalAccumulator _frameInterval = new RuntimeIntervalAccumulator();
 
         public string Name => "Global";
         public GlobalMetricsSnapshot Latest { get; private set; }
@@ -28,11 +33,13 @@ namespace CS2RuntimeAssetAuditor.Collectors
         public double SamplingPeriodSeconds => Mod.Settings?.ResolvedSamplingPeriodSeconds ?? DefaultSamplingPeriodSeconds;
         public double CurrentTimestampSeconds => _clock.Elapsed.TotalSeconds;
         internal SimulationSystem SimulationRuntimeSystem => _simulationSystem;
+        internal RuntimeFrameSampleReader FrameSamples => _frameReader;
 
         protected override void OnCreate()
         {
             base.OnCreate();
             _simulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
+            _frameReader = new RuntimeFrameSampleReader(_simulationSystem, World.GetOrCreateSystemManaged<PathfindResultSystem>());
             _recorderManager = new RecorderManager(new UnityRecorderBackend());
             _overhead = new ProfilerOverheadTracker();
             _history = new GlobalSnapshotHistory(HistoryCapacity);
@@ -42,6 +49,13 @@ namespace CS2RuntimeAssetAuditor.Collectors
         }
 
         protected override void OnUpdate()
+        {
+            var start = ModUpdateCost.Start();
+            try { RunUpdate(); }
+            finally { ModUpdateCost.Stop(nameof(GlobalMetricsCollector), start); }
+        }
+
+        private void RunUpdate()
         {
             var monitoringEnabled = Mod.Settings == null || Mod.Settings.EnableMonitoring;
             var transition = _monitoringGate.Observe(monitoringEnabled);
@@ -53,7 +67,13 @@ namespace CS2RuntimeAssetAuditor.Collectors
                 return;
 
             if (transition == MonitoringTransition.Enabled)
+            {
                 RestoreNormalRecorders();
+                // Frames seen before monitoring was turned off must not be folded into the next sample.
+                _frameInterval = new RuntimeIntervalAccumulator();
+            }
+
+            _frameInterval.AddFrame(_frameReader.Read());
 
             var now = CurrentTimestampSeconds;
             if (now < _nextSampleAt)
@@ -74,7 +94,8 @@ namespace CS2RuntimeAssetAuditor.Collectors
                 _simulationSystem.selectedSpeed,
                 _simulationSystem.smoothSpeed,
                 readings,
-                _recorderUnits);
+                _recorderUnits,
+                _frameInterval.Complete());
             _history?.Add(Latest);
         }
 

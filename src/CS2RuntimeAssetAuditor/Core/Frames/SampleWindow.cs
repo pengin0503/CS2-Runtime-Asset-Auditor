@@ -1,10 +1,10 @@
 using System;
 
-namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
+namespace CS2RuntimeAssetAuditor.Core.Frames
 {
-    public readonly struct DiagnosticSampleSummary
+    public readonly struct SampleSummary
     {
-        public DiagnosticSampleSummary(int count, double median, double p95, double max)
+        public SampleSummary(int count, double median, double p95, double max)
         {
             Count = count;
             Median = median;
@@ -20,11 +20,11 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
     }
 
     /// <summary>
-    /// Collects one diagnostic-log interval of samples (frame times, step times) without allocating
+    /// Collects one interval of samples (frame times, step times) without allocating
     /// per frame. Percentiles use the same definitions as <see cref="MetricStatistics"/>: the median averages
     /// the two middle values and P95 is the nearest rank.
     /// </summary>
-    public sealed class DiagnosticSampleWindow
+    public sealed class SampleWindow
     {
         private readonly double[] _values;
         private readonly double[] _sorted;
@@ -37,7 +37,7 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
         /// Keep zero samples, for values where zero is a real measurement (a frame that did not wait for present)
         /// rather than "not measured".
         /// </param>
-        public DiagnosticSampleWindow(int capacity, bool includeZero = false)
+        public SampleWindow(int capacity, bool includeZero = false)
         {
             if (capacity <= 0)
                 throw new ArgumentOutOfRangeException(nameof(capacity));
@@ -71,7 +71,7 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
                 _values[_stored++] = value;
         }
 
-        public DiagnosticSampleSummary Summarize()
+        public SampleSummary Summarize()
         {
             if (_stored == 0)
                 return default;
@@ -84,7 +84,7 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
                 : _sorted[middle];
             var rank = (int)Math.Ceiling(0.95d * _stored);
             rank = Math.Max(1, Math.Min(rank, _stored));
-            return new DiagnosticSampleSummary(_count, median, _sorted[rank - 1], _max);
+            return new SampleSummary(_count, median, _sorted[rank - 1], _max);
         }
 
         public void Reset()

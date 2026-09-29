@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using CS2RuntimeAssetAuditor.Core.Frames;
 
 namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
 {
@@ -50,7 +51,12 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
             "managedHeapMiB",
             "captureState",
             "captureTrigger",
-            "captureId"
+            "captureId",
+            "frameRateEfficiencyCeiling",
+            "modUpdateMsMedian",
+            "modUpdateMsMax",
+            "modUpdateSlowestSystem",
+            "modUpdateSlowestSystemMs"
         };
 
         public static readonly IReadOnlyList<string> MarkerInventoryColumns = new[]
@@ -81,44 +87,50 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
             if (row == null)
                 throw new ArgumentNullException(nameof(row));
 
+            var interval = row.Interval ?? new RuntimeInterval();
             var fields = new List<string>(FixedColumns.Count + row.RecorderValues.Count)
             {
                 row.UtcTime.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture),
                 Number(row.ElapsedSeconds),
-                Number(row.IntervalSeconds),
-                Integer(row.Frames),
-                Median(row.FrameMs),
-                P95(row.FrameMs),
-                Max(row.FrameMs),
-                Integer(row.FrameTimingSamples),
-                Median(row.CpuMainThreadMs),
-                P95(row.CpuMainThreadMs),
-                Median(row.CpuRenderThreadMs),
-                P95(row.CpuRenderThreadMs),
-                Median(row.GpuMs),
-                P95(row.GpuMs),
-                Median(row.PresentWaitMs),
-                P95(row.PresentWaitMs),
-                Number(row.SelectedSpeed),
-                Number(row.ActualSpeedMean),
-                Number(row.EfficiencyMean),
-                Integer(row.PausedFrames),
-                Integer(row.SimulationSteps),
-                Number(row.SimulationStepsPerSecond),
-                Integer(row.SimulationMaxStepsPerFrame),
-                Integer(row.SimulationFramesAtRenderCap),
-                Integer(row.SimulationFramesWithoutStep),
-                Median(row.SimulationStepMs),
-                Max(row.SimulationStepMs),
-                row.PerformancePreference ?? string.Empty,
-                row.PathfindLeadFramesMin.HasValue ? row.PathfindLeadFramesMin.Value.ToString(CultureInfo.InvariantCulture) : string.Empty,
-                Integer(row.PathfindLowLeadFrames),
-                Integer(row.PathfindPendingRequestsMax),
+                Number(interval.IntervalSeconds),
+                Integer(interval.Frames),
+                Median(interval.FrameMs),
+                P95(interval.FrameMs),
+                Max(interval.FrameMs),
+                Integer(interval.FrameTimingSamples),
+                Median(interval.CpuMainThreadMs),
+                P95(interval.CpuMainThreadMs),
+                Median(interval.CpuRenderThreadMs),
+                P95(interval.CpuRenderThreadMs),
+                Median(interval.GpuMs),
+                P95(interval.GpuMs),
+                Median(interval.PresentWaitMs),
+                P95(interval.PresentWaitMs),
+                Number(interval.SelectedSpeed),
+                Number(interval.ActualSpeedMean),
+                Number(interval.EfficiencyMean),
+                Integer(interval.PausedFrames),
+                Integer(interval.SimulationSteps),
+                Number(interval.SimulationStepsPerSecond),
+                Integer(interval.SimulationMaxStepsPerFrame),
+                Integer(interval.SimulationFramesAtRenderCap),
+                Integer(interval.SimulationFramesWithoutStep),
+                Median(interval.SimulationStepMs),
+                Max(interval.SimulationStepMs),
+                interval.PerformancePreference ?? string.Empty,
+                interval.PathfindLeadFramesMin.HasValue ? interval.PathfindLeadFramesMin.Value.ToString(CultureInfo.InvariantCulture) : string.Empty,
+                Integer(interval.PathfindLowLeadFrames),
+                Integer(interval.PathfindPendingRequestsMax),
                 Integer(row.GcCollections),
                 Number(row.ManagedHeapMiB),
                 row.CaptureState ?? string.Empty,
                 row.CaptureTrigger ?? string.Empty,
-                row.CaptureId ?? string.Empty
+                row.CaptureId ?? string.Empty,
+                Number(interval.FrameRateEfficiencyCeiling),
+                Median(row.ModUpdateMs),
+                Max(row.ModUpdateMs),
+                row.ModUpdateSlowestSystem ?? string.Empty,
+                Number(row.ModUpdateSlowestSystemMs)
             };
             foreach (var value in row.RecorderValues)
                 fields.Add(Number(value));
@@ -164,9 +176,9 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
             return builder.ToString();
         }
 
-        private static string Median(DiagnosticSampleSummary summary) => summary.HasValue ? Number(summary.Median) : string.Empty;
-        private static string P95(DiagnosticSampleSummary summary) => summary.HasValue ? Number(summary.P95) : string.Empty;
-        private static string Max(DiagnosticSampleSummary summary) => summary.HasValue ? Number(summary.Max) : string.Empty;
+        private static string Median(SampleSummary summary) => summary.HasValue ? Number(summary.Median) : string.Empty;
+        private static string P95(SampleSummary summary) => summary.HasValue ? Number(summary.P95) : string.Empty;
+        private static string Max(SampleSummary summary) => summary.HasValue ? Number(summary.Max) : string.Empty;
 
         private static string Integer(int value) => value.ToString(CultureInfo.InvariantCulture);
         private static string Integer(int? value) => value.HasValue ? Integer(value.Value) : string.Empty;

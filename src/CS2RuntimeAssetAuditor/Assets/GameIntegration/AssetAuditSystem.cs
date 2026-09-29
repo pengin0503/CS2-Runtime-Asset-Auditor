@@ -14,6 +14,7 @@ using CS2RuntimeAssetAuditor.Assets.GameIntegration.Capabilities;
 using CS2RuntimeAssetAuditor.Assets.GameIntegration.Census;
 using CS2RuntimeAssetAuditor.Assets.GameIntegration.Prefabs;
 using CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering;
+using CS2RuntimeAssetAuditor.Lifecycle;
 using Game;
 using Game.Prefabs;
 using Unity.Entities;
@@ -157,8 +158,14 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
             _catalog = new PrefabCatalogAccess(World);
             _censusAccess = new CensusAccess(World);
         }
-
         protected override void OnUpdate()
+        {
+            var start = ModUpdateCost.Start();
+            try { RunUpdate(); }
+            finally { ModUpdateCost.Stop(nameof(AssetAuditSystem), start); }
+        }
+
+        private void RunUpdate()
         {
             ObserveSessionChange();
             if (Mod.WorkCoordinator.ConsumeAssetInterruptionRequest())

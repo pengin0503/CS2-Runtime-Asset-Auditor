@@ -1,13 +1,13 @@
-namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
+namespace CS2RuntimeAssetAuditor.Core.Frames
 {
     /// <summary>
     /// Values read from the game once per rendered frame. Times are in the units the game APIs report:
     /// seconds for Unity's delta time and <c>SimulationSystem.frameDuration</c>, milliseconds for
     /// <c>FrameTimingManager</c>.
     /// </summary>
-    public readonly struct DiagnosticFrameInput
+    public readonly struct RuntimeFrameSample
     {
-        public DiagnosticFrameInput(
+        public RuntimeFrameSample(
             double unscaledDeltaSeconds,
             bool hasFrameTiming,
             double cpuMainThreadMs,

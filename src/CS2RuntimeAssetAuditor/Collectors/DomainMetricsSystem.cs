@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using CS2RuntimeAssetAuditor.Core;
+using CS2RuntimeAssetAuditor.Lifecycle;
 using Game;
 using Game.Citizens;
 using Game.Common;
@@ -59,6 +60,13 @@ namespace CS2RuntimeAssetAuditor.Collectors
         }
 
         protected override void OnUpdate()
+        {
+            var start = ModUpdateCost.Start();
+            try { RunUpdate(); }
+            finally { ModUpdateCost.Stop(nameof(DomainMetricsSystem), start); }
+        }
+
+        private void RunUpdate()
         {
             if (Mod.Settings != null && !Mod.Settings.EnableMonitoring)
                 return;

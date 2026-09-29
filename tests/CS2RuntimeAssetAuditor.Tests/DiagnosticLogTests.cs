@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using CS2RuntimeAssetAuditor.Core;
 using CS2RuntimeAssetAuditor.Core.DiagnosticLog;
+using CS2RuntimeAssetAuditor.Core.Frames;
 using CS2RuntimeAssetAuditor.Export;
 using NUnit.Framework;
 
@@ -16,7 +17,7 @@ public class DiagnosticLogTests
     [Test]
     public void Sample_window_matches_metric_statistics_and_ignores_unmeasured_values()
     {
-        var window = new DiagnosticSampleWindow(16);
+        var window = new SampleWindow(16);
         var values = new[] { 16.7, 50d, 17.1, 33.3, 16.9, 16.6, 120d };
         foreach (var value in values)
             window.Add(value);
@@ -40,7 +41,7 @@ public class DiagnosticLogTests
     [Test]
     public void Sample_window_keeps_zero_only_when_zero_is_a_measurement()
     {
-        var presentWait = new DiagnosticSampleWindow(8, includeZero: true);
+        var presentWait = new SampleWindow(8, includeZero: true);
         presentWait.Add(0d);
         presentWait.Add(0d);
         presentWait.Add(4d);
@@ -52,7 +53,7 @@ public class DiagnosticLogTests
     [Test]
     public void Saturated_window_keeps_exact_count_and_max()
     {
-        var window = new DiagnosticSampleWindow(2);
+        var window = new SampleWindow(2);
         window.Add(1d);
         window.Add(2d);
         window.Add(90d);
@@ -78,14 +79,14 @@ public class DiagnosticLogTests
     [TestCase(0.1, 1)]
     public void Render_frame_step_cap_follows_the_game_formula(double selectedSpeed, int expected)
     {
-        Assert.That(DiagnosticLogAccumulator.RenderFrameStepCap(selectedSpeed), Is.EqualTo(expected));
+        Assert.That(SimulationStepLimits.RenderFrameStepCap(selectedSpeed), Is.EqualTo(expected));
     }
 
     [Test]
     public void Low_frame_rate_at_normal_speed_shows_frames_at_the_render_cap()
     {
         // 20 fps at 1x: the game allows 2 steps per rendered frame, so 40 steps/s instead of 60.
-        var accumulator = new DiagnosticLogAccumulator(null);
+        var accumulator = new RuntimeIntervalAccumulator();
         uint frameIndex = 1000;
         for (var i = 0; i < 20; i++)
         {
@@ -93,7 +94,7 @@ public class DiagnosticLogTests
             accumulator.AddFrame(Frame(0.05, selectedSpeed: 1, actualSpeed: 0.667, frameIndex: frameIndex, stepSeconds: 0.004));
         }
 
-        var row = accumulator.Complete(Now, 1d, default);
+        var row = accumulator.Complete();
 
         Assert.Multiple(() =>
         {
@@ -108,13 +109,16 @@ public class DiagnosticLogTests
             Assert.That(row.SimulationStepMs.Median, Is.EqualTo(4d).Within(1e-9));
             Assert.That(row.EfficiencyMean, Is.EqualTo(0.667).Within(1e-9));
             Assert.That(row.PausedFrames, Is.EqualTo(0));
+            Assert.That(row.SimulationStepCountedFrames, Is.EqualTo(19));
+            Assert.That(row.FramesPerSecond, Is.EqualTo(20d).Within(1e-9));
+            Assert.That(row.FrameRateEfficiencyCeiling, Is.EqualTo(2d / 3d).Within(1e-9), "At 20 fps and 1x only 40 of 60 steps fit.");
         });
     }
 
     [Test]
     public void Frame_index_jumps_and_pauses_are_not_counted_as_steps()
     {
-        var accumulator = new DiagnosticLogAccumulator(null);
+        var accumulator = new RuntimeIntervalAccumulator();
         accumulator.AddFrame(Frame(0.016, selectedSpeed: 1, frameIndex: 100));
         accumulator.AddFrame(Frame(0.016, selectedSpeed: 1, frameIndex: 101));
         accumulator.AddFrame(Frame(0.016, selectedSpeed: 1, frameIndex: 5000)); // Load replaced frameIndex.
@@ -122,7 +126,7 @@ public class DiagnosticLogTests
         accumulator.AddFrame(Frame(0.016, selectedSpeed: 0, frameIndex: 10));   // Paused.
         accumulator.AddFrame(Frame(0.016, selectedSpeed: 1, frameIndex: 10));   // Running but no step.
 
-        var row = accumulator.Complete(Now, 1d, default);
+        var row = accumulator.Complete();
 
         Assert.Multiple(() =>
         {
@@ -136,12 +140,12 @@ public class DiagnosticLogTests
     [Test]
     public void Pathfinding_lead_and_pending_requests_are_reported_per_interval()
     {
-        var accumulator = new DiagnosticLogAccumulator(null);
+        var accumulator = new RuntimeIntervalAccumulator();
         accumulator.AddFrame(Frame(0.016, selectedSpeed: 1, frameIndex: 100, pathfindPending: uint.MaxValue, pendingRequests: 0));
         accumulator.AddFrame(Frame(0.016, selectedSpeed: 1, frameIndex: 101, pathfindPending: 200, pendingRequests: 30));
         accumulator.AddFrame(Frame(0.016, selectedSpeed: 1, frameIndex: 102, pathfindPending: 130, pendingRequests: 12));
 
-        var row = accumulator.Complete(Now, 1d, default);
+        var row = accumulator.Complete();
 
         Assert.Multiple(() =>
         {
@@ -150,7 +154,7 @@ public class DiagnosticLogTests
             Assert.That(row.PathfindPendingRequestsMax, Is.EqualTo(30));
         });
 
-        var empty = accumulator.Complete(Now, 2d, default);
+        var empty = accumulator.Complete();
         Assert.That(empty.PathfindLeadFramesMin, Is.Null, "Each row starts a new interval.");
     }
 
@@ -199,6 +203,9 @@ public class DiagnosticLogTests
         var accumulator = new DiagnosticLogAccumulator(columns);
         accumulator.AddFrame(Frame(0.0165, selectedSpeed: 1, actualSpeed: 0.95, frameIndex: 1, hasTiming: true));
         accumulator.AddFrame(Frame(0.0171, selectedSpeed: 1, actualSpeed: 0.95, frameIndex: 2, hasTiming: true));
+        accumulator.AddModFrameCost(new ModFrameCost(1, 0.75, "GlobalMetricsCollector", 0.5));
+        accumulator.AddModFrameCost(new ModFrameCost(1, 0.75, "GlobalMetricsCollector", 0.5));
+        accumulator.AddModFrameCost(new ModFrameCost(2, 1.5, "CaptureRuntimeSystem", 1.25));
         var row = accumulator.Complete(Now, 1.25, new DiagnosticIntervalContext("DeepCapture", "Manual", "abc", null, null));
 
         var previous = CultureInfo.CurrentCulture;
@@ -223,6 +230,11 @@ public class DiagnosticLogTests
                 Assert.That(values["pathfindLeadFramesMin"], Is.Empty, "Absent values are empty, never 0.");
                 Assert.That(values["gcCollections"], Is.Empty);
                 Assert.That(values["recorder:Main Thread [TimeNanoseconds]"], Is.Empty);
+                Assert.That(values["frameRateEfficiencyCeiling"], Is.EqualTo("1"), "About 59 fps at 1x is not limited by the frame rate.");
+                Assert.That(values["modUpdateMsMedian"], Is.EqualTo("1.125"), "The repeated frame is counted once.");
+                Assert.That(values["modUpdateMsMax"], Is.EqualTo("1.5"));
+                Assert.That(values["modUpdateSlowestSystem"], Is.EqualTo("CaptureRuntimeSystem"));
+                Assert.That(values["modUpdateSlowestSystemMs"], Is.EqualTo("1.25"));
             });
         }
         finally
@@ -336,7 +348,7 @@ public class DiagnosticLogTests
         Assert.That(Regex.IsMatch(system, @"Mod\.Log\.Info\([^;]*\bpath\b"), Is.False, "The full path contains the user's profile folder.");
     }
 
-    private static DiagnosticFrameInput Frame(
+    private static RuntimeFrameSample Frame(
         double deltaSeconds,
         double selectedSpeed,
         uint frameIndex,

@@ -12,7 +12,6 @@ using CS2RuntimeAssetAuditor.Profiling;
 using Game;
 using Game.Pathfind;
 using Game.Simulation;
-using UnityEngine;
 
 namespace CS2RuntimeAssetAuditor.Lifecycle
 {
@@ -27,10 +26,8 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
         private const double RowIntervalSeconds = 1d;
         private const string FilePrefix = "CS2RuntimeAssetAuditor-diagnostic-";
 
-        private readonly FrameTiming[] _frameTimings = new FrameTiming[1];
         private readonly Stopwatch _clock = new Stopwatch();
-        private SimulationSystem _simulation;
-        private PathfindResultSystem _pathfindResults;
+        private RuntimeFrameSampleReader _frames;
         private GlobalMetricsCollector _global;
         private CaptureRuntimeSystem _capture;
 
@@ -42,19 +39,25 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
         private int _rows;
         private double _nextRowAt;
         private GlobalMetricsSnapshot? _lastSnapshot;
-        private int _lastPreferenceValue = int.MinValue;
-        private string? _lastPreferenceName;
 
         protected override void OnCreate()
         {
             base.OnCreate();
-            _simulation = World.GetOrCreateSystemManaged<SimulationSystem>();
-            _pathfindResults = World.GetOrCreateSystemManaged<PathfindResultSystem>();
             _global = World.GetOrCreateSystemManaged<GlobalMetricsCollector>();
+            // One reader per frame for both systems, so FrameTimingManager is captured once a frame.
+            _frames = _global.FrameSamples ?? new RuntimeFrameSampleReader(
+                World.GetOrCreateSystemManaged<SimulationSystem>(),
+                World.GetOrCreateSystemManaged<PathfindResultSystem>());
             _capture = World.GetOrCreateSystemManaged<CaptureRuntimeSystem>();
         }
-
         protected override void OnUpdate()
+        {
+            var start = ModUpdateCost.Start();
+            try { RunUpdate(); }
+            finally { ModUpdateCost.Stop(nameof(DiagnosticLogSystem), start); }
+        }
+
+        private void RunUpdate()
         {
             if (Mod.Settings?.EnableDiagnosticLog != true)
             {
@@ -124,7 +127,7 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
                     "Diagnostic log started: file={0} session={1} frameTimingFeature={2} recorderColumns={3} markers={4}",
                     _fileName,
                     Mod.SessionContext?.SessionId ?? "unknown",
-                    FrameTimingManager.IsFeatureEnabled(),
+                    RuntimeFrameSampleReader.FrameTimingFeatureEnabled,
                     columns.Count,
                     markerCount.HasValue ? markerCount.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "unavailable"));
                 return true;
@@ -144,36 +147,8 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
             if (accumulator == null)
                 return;
 
-            var hasTiming = false;
-            FrameTiming timing = default;
-            FrameTimingManager.CaptureFrameTimings();
-            if (FrameTimingManager.GetLatestTimings(1u, _frameTimings) != 0)
-            {
-                timing = _frameTimings[0];
-                hasTiming = timing.cpuMainThreadFrameTime > 0d || timing.cpuRenderThreadFrameTime > 0d || timing.gpuFrameTime > 0d;
-            }
-
-            var preference = _simulation.performancePreference;
-            if ((int)preference != _lastPreferenceValue)
-            {
-                _lastPreferenceValue = (int)preference;
-                _lastPreferenceName = preference.ToString();
-            }
-
-            accumulator.AddFrame(new DiagnosticFrameInput(
-                UnityEngine.Time.unscaledDeltaTime,
-                hasTiming,
-                timing.cpuMainThreadFrameTime,
-                timing.cpuRenderThreadFrameTime,
-                timing.gpuFrameTime,
-                timing.cpuMainThreadPresentWaitTime,
-                _simulation.selectedSpeed,
-                _simulation.smoothSpeed,
-                _simulation.frameIndex,
-                _simulation.frameDuration,
-                _lastPreferenceName,
-                _pathfindResults.pendingSimulationFrame,
-                _pathfindResults.pendingRequestCount));
+            accumulator.AddFrame(_frames.Read());
+            accumulator.AddModFrameCost(ModUpdateCost.LastCompletedFrame);
 
             var latest = _global?.Latest;
             if (latest != null && !ReferenceEquals(latest, _lastSnapshot))

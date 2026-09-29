@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.Reflection;
 using CS2RuntimeAssetAuditor.Collectors;
 using CS2RuntimeAssetAuditor.Coordination;
 using CS2RuntimeAssetAuditor.Core;
 using CS2RuntimeAssetAuditor.Export;
+using CS2RuntimeAssetAuditor.Lifecycle;
 using Game;
 
 namespace CS2RuntimeAssetAuditor.Profiling
@@ -72,8 +75,14 @@ namespace CS2RuntimeAssetAuditor.Profiling
 
             _controller.CaptureCompleted += HandleCaptureCompleted;
         }
-
         protected override void OnUpdate()
+        {
+            var start = ModUpdateCost.Start();
+            try { RunUpdate(); }
+            finally { ModUpdateCost.Stop(nameof(CaptureRuntimeSystem), start); }
+        }
+
+        private void RunUpdate()
         {
             ApplyRuntimeSettings();
             ObserveSessionChange();
@@ -287,9 +296,12 @@ namespace CS2RuntimeAssetAuditor.Profiling
             if (capture == null)
                 return;
 
+            var start = Stopwatch.GetTimestamp();
             capture.MarkCompleted(DateTimeOffset.UtcNow);
 
             Mod.WorkCoordinator.Complete(DiagnosticWorkKind.RuntimeDeepCapture);
+            var coordinatorDone = Stopwatch.GetTimestamp();
+            var managedDone = coordinatorDone;
 
             try
             {
@@ -300,6 +312,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
                         managedTiming = new SystemTimingSnapshot();
                 }
                 _managedTimingByCapture.Remove(capture);
+                managedDone = Stopwatch.GetTimestamp();
 
                 CaptureSystemTimingFinalizer.Apply(
                     capture,
@@ -315,12 +328,27 @@ namespace CS2RuntimeAssetAuditor.Profiling
                     "System timing projection failed for this capture; per-system timing is unavailable.");
                 Mod.Log.Error(ex, "System timing projection failed for a completed capture");
             }
+            var timingDone = Stopwatch.GetTimestamp();
 
             CaptureCompletionDiagnosticsDispatcher.Dispatch(
                 capture,
                 message => Mod.Log.Info(message),
                 TryFlushModLog);
+            var logDone = Stopwatch.GetTimestamp();
+
+            // Where the completion frame's time went, so a hitch at capture completion can be traced to a step.
+            Mod.Log.Info(string.Format(
+                CultureInfo.InvariantCulture,
+                "Capture completion timing: id={0} workCoordinatorMs={1:0.0} managedTimingMs={2:0.0} systemTimingMs={3:0.0} completionLogMs={4:0.0} totalMs={5:0.0}",
+                capture.Id,
+                Milliseconds(start, coordinatorDone),
+                Milliseconds(coordinatorDone, managedDone),
+                Milliseconds(managedDone, timingDone),
+                Milliseconds(timingDone, logDone),
+                Milliseconds(start, logDone)));
         }
+
+        private static double Milliseconds(long from, long to) => (to - from) * 1000d / Stopwatch.Frequency;
 
         private static void TryFlushModLog()
         {

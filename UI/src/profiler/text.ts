@@ -137,11 +137,32 @@ const ADVISOR_TEXTS_JA: Record<string, string> = {
   "One or both captures lack this measurement.": "一方または両方のキャプチャにこの計測値がありません。",
   "Measurement definition or capability changed.": "計測の定義または取得可否が変わりました。",
   "A beneficial direction has not been established for this metric.": "この指標では改善の方向が定まっていません。",
-  "Non-finite measurement.": "有限でない計測値です。"
+  "Non-finite measurement.": "有限でない計測値です。",
+  "Frame time is high and the main thread waits for the GPU to present each frame, so rendering on the GPU limits the frame rate.": "フレーム時間が長く、メインスレッドが毎フレームGPUの表示完了を待っているため、GPUの描画がフレームレートを制限しています。",
+  "Frame time is high and the main thread is busy for almost the whole frame without waiting for the GPU, so CPU work on the main thread (including waiting for worker jobs) limits the frame rate. GPU time is not used here because it also counts time the GPU waits for the CPU.": "フレーム時間が長く、メインスレッドがGPUを待たずにほぼフレーム全体で処理を続けているため、メインスレッドのCPU処理（ワーカージョブの完了待ちを含む）がフレームレートを制限しています。GPU時間はCPUを待つ時間も含むため、この判定には使っていません。",
+  "The simulation runs as fast as the frame rate allows: below 30 fps the game cannot run enough simulation steps per rendered frame (at most two per frame for each 1x of speed). Lowering frame time, not simulation load, raises the speed.": "シミュレーションはフレームレートが許す上限で動いています。30 fps を下回ると、1描画フレームで実行できるシミュレーションのステップ数（速度1倍につき最大2）が足りなくなります。速度を上げるにはシミュレーション負荷ではなくフレーム時間を下げる必要があります。",
+  "The simulation often waited for pathfinding results: the game slows the simulation when fewer than 48 frames of pathfinding lead remain.": "シミュレーションが経路探索の結果を頻繁に待っていました。ゲームは経路探索の先行分が48フレームを下回るとシミュレーションを減速させます。"
+};
+
+// Sentences the backend appends to another rationale; each part is translated on its own.
+const ADVISOR_SUFFIXES_JA: Record<string, string> = {
+  " The Performance Preference option also limits simulation steps to the time left in each frame, so part of the slowdown may come from that setting.": "また Performance Preference 設定によりシミュレーションのステップが各フレームの残り時間に制限されるため、低下の一部はこの設定による可能性があります。"
 };
 
 /** Advisor rationale and comparison sentences are generated in English; unknown sentences stay as sent. */
 export function advisorTextLabel(text: string, locale: Locale): string {
   if (!text) return "";
-  return locale === "ja" ? ADVISOR_TEXTS_JA[text] ?? text : text;
+  if (locale !== "ja") return text;
+  const exact = ADVISOR_TEXTS_JA[text];
+  if (exact) return exact;
+  for (const [suffix, translated] of Object.entries(ADVISOR_SUFFIXES_JA)) {
+    if (!text.endsWith(suffix)) continue;
+    const head = text.slice(0, -suffix.length);
+    return (ADVISOR_TEXTS_JA[head] ?? head) + translated;
+  }
+  return text;
 }
+
+/** Canonical English sentences with a Japanese translation, for parity checks against the backend. */
+export const advisorTranslatedTexts = (): readonly string[] =>
+  [...Object.keys(ADVISOR_TEXTS_JA), ...Object.keys(ADVISOR_SUFFIXES_JA).map(suffix => suffix.trimStart())];

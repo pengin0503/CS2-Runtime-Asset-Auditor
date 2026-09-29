@@ -174,7 +174,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Census
 
         private NativeArray<PrefabRef> Capture(ComponentType[] all, ComponentType[]? any, ComponentType[] none)
         {
-            var query = _world.EntityManager.CreateEntityQuery(new[] { new EntityQueryDesc { All = all, Any = any, None = none } });
+            var query = _world.EntityManager.CreateEntityQuery(new[] { EntityQueryDescriptors.Create(all, any, none) });
             try
             {
                 return query.ToComponentDataArray<PrefabRef>(Allocator.Persistent);

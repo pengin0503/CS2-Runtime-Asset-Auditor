@@ -5,6 +5,7 @@ using CS2RuntimeAssetAuditor.Advisor.Settings;
 using CS2RuntimeAssetAuditor.Core;
 using CS2RuntimeAssetAuditor.Core.Advisor;
 using CS2RuntimeAssetAuditor.Core.Advisor.Experiment;
+using CS2RuntimeAssetAuditor.Lifecycle;
 using CS2RuntimeAssetAuditor.Profiling;
 using Game;
 
@@ -51,6 +52,13 @@ namespace CS2RuntimeAssetAuditor.Advisor
         }
 
         protected override void OnUpdate()
+        {
+            var start = ModUpdateCost.Start();
+            try { RunUpdate(); }
+            finally { ModUpdateCost.Stop(nameof(AdvisorSystem), start); }
+        }
+
+        private void RunUpdate()
         {
             ObserveSessionChange();
             var current = CurrentExperiment;

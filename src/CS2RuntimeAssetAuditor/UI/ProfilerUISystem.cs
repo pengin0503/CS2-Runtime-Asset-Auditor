@@ -11,6 +11,7 @@ using CS2RuntimeAssetAuditor.Core.Advisor.Experiment;
 using CS2RuntimeAssetAuditor.Collectors;
 using CS2RuntimeAssetAuditor.Core;
 using CS2RuntimeAssetAuditor.Export;
+using CS2RuntimeAssetAuditor.Lifecycle;
 using CS2RuntimeAssetAuditor.Profiling;
 using CS2RuntimeAssetAuditor.Assets.Export;
 using CS2RuntimeAssetAuditor.Assets.UI;
@@ -110,6 +111,13 @@ namespace CS2RuntimeAssetAuditor.UI
         }
 
         protected override void OnUpdate()
+        {
+            var start = ModUpdateCost.Start();
+            try { RunUpdate(); }
+            finally { ModUpdateCost.Stop(nameof(ProfilerUISystem), start); }
+        }
+
+        private void RunUpdate()
         {
             base.OnUpdate();
 
@@ -320,7 +328,9 @@ namespace CS2RuntimeAssetAuditor.UI
         {
             try
             {
-                var result = _exporter.Export(BuildCurrentUnifiedReport());
+                var start = Stopwatch.GetTimestamp();
+                var report = BuildCurrentUnifiedReport();
+                var result = _exporter.Export(report, (Stopwatch.GetTimestamp() - start) * 1000d / Stopwatch.Frequency);
                 _exportResultBinding.Update(result.Success
                     ? ExportResultFormat.Succeeded(Path.GetFileName(result.Path))
                     : ExportResultFormat.Failed(null, result.Error));

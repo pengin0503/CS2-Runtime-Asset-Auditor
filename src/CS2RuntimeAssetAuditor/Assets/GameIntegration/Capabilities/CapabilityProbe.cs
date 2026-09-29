@@ -59,7 +59,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Capabilities
 
         private static void ProbeQuery(World world, ComponentType[] all, ComponentType[]? any, ComponentType[] none)
         {
-            var descriptor = new EntityQueryDesc { All = all, Any = any, None = none };
+            var descriptor = EntityQueryDescriptors.Create(all, any, none);
             var query = world.EntityManager.CreateEntityQuery(new[] { descriptor });
             query.Dispose();
         }

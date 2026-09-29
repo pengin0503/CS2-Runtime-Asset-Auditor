@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace CS2RuntimeAssetAuditor.Core.Advisor
 {
-    public enum BottleneckCategory { RenderingGpu, SimulationCpu, MemoryGc, Pathfinding, Unknown }
+    public enum BottleneckCategory { RenderingGpu, SimulationCpu, MemoryGc, Pathfinding, Unknown, MainThreadCpu, FrameRateLimit }
     public enum BottleneckSeverity { Low, Medium, High }
     public enum AdvisorConfidence { InsufficientEvidence, Low, Medium, High }
 
