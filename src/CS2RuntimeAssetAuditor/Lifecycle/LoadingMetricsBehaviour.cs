@@ -48,7 +48,7 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
             if (!Mod.LoadingTrace.IsLoading) return;
             long? unity = null, ram = null, graphicsDriver = null;
             int? assetCount = null;
-            bool? cacheReady = null;
+            bool? anyDatabaseCached = null;
             try { unity = Profiler.GetTotalAllocatedMemoryLong(); } catch (Exception) { }
             try
             {
@@ -63,11 +63,11 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
                 if (database != null)
                 {
                     assetCount = database.count;
-                    cacheReady = database.isCached;
+                    anyDatabaseCached = database.isCached;
                 }
             }
             catch (Exception) { }
-            Mod.LoadingTrace.Observe(DateTimeOffset.UtcNow, unity, ram, graphicsDriver, assetCount, cacheReady);
+            Mod.LoadingTrace.Observe(DateTimeOffset.UtcNow, unity, ram, graphicsDriver, assetCount, anyDatabaseCached);
         }
 
         private void OnDestroy()

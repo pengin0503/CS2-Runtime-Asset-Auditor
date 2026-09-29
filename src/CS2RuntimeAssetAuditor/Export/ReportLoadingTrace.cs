@@ -19,8 +19,8 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "memoryEnd", Order = 8, EmitDefaultValue = false)] public ReportLoadingMemory MemoryEnd { get; set; }
         [DataMember(Name = "registeredAssetCount", Order = 9, EmitDefaultValue = false)] public int? RegisteredAssetCount { get; set; }
         [DataMember(Name = "loadedBytes", Order = 10, EmitDefaultValue = false)] public long? LoadedBytes { get; set; }
-        [DataMember(Name = "cacheReadyAtEnd", Order = 11, EmitDefaultValue = false)] public bool? CacheReadyAtEnd { get; set; }
-        [DataMember(Name = "cacheBecameReady", Order = 12)] public bool CacheBecameReady { get; set; }
+        [DataMember(Name = "anyDatabaseCachedAtEnd", Order = 11, EmitDefaultValue = false)] public bool? AnyDatabaseCachedAtEnd { get; set; }
+        [DataMember(Name = "anyDatabaseBecameCached", Order = 12)] public bool AnyDatabaseBecameCached { get; set; }
         [DataMember(Name = "cacheRebuilt", Order = 13, EmitDefaultValue = false)] public bool? CacheRebuilt { get; set; }
         [DataMember(Name = "cacheFailed", Order = 14, EmitDefaultValue = false)] public bool? CacheFailed { get; set; }
         [DataMember(Name = "limitations", Order = 15)] public List<string> Limitations { get; set; }
@@ -44,14 +44,15 @@ namespace CS2RuntimeAssetAuditor.Export
                 },
                 MemoryEnd = snapshot.End == null ? null : ToReportSample(snapshot.End),
                 RegisteredAssetCount = snapshot.End?.RegisteredAssetCount,
-                CacheReadyAtEnd = snapshot.End?.CacheReady,
-                CacheBecameReady = snapshot.CacheBecameReady,
+                AnyDatabaseCachedAtEnd = snapshot.End?.AnyDatabaseCached,
+                AnyDatabaseBecameCached = snapshot.AnyDatabaseBecameCached,
                 Limitations = new List<string>
                 {
                     "Unity allocated memory is not total physical RAM; process working set is a separate RAM indicator.",
                     "Graphics driver allocation is not physical VRAM usage; VRAM usage is unavailable.",
                     "Registered asset count is an AssetDatabase catalog count, not a count of files read during this load.",
                     "Asset database observed is the first successful sample, not the start or end of database processing.",
+                    "The aggregate cache flag is true when at least one registered database is cached; it is not an all-ready state.",
                     "Loaded byte count and cache rebuild/failure events are unavailable without I/O or cache instrumentation.",
                     "Blocked Unity frames may leave gaps between loading memory samples.",
                     "Game loading complete is the game callback, not proof that every simulation or UI job is finished."
@@ -66,7 +67,7 @@ namespace CS2RuntimeAssetAuditor.Export
             ProcessWorkingSetBytes = sample.ProcessWorkingSetBytes,
             GraphicsDriverAllocatedBytes = sample.GraphicsDriverAllocatedBytes,
             RegisteredAssetCount = sample.RegisteredAssetCount,
-            CacheReady = sample.CacheReady
+            AnyDatabaseCached = sample.AnyDatabaseCached
         };
         private static string Stamp(DateTimeOffset value) => value == default(DateTimeOffset) ? null : value.ToUniversalTime().ToString("O");
     }
@@ -87,6 +88,6 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "graphicsDriverAllocatedBytes", Order = 4, EmitDefaultValue = false)] public long? GraphicsDriverAllocatedBytes { get; set; }
         [DataMember(Name = "vramUsedBytes", Order = 5, EmitDefaultValue = false)] public long? VramUsedBytes { get; set; }
         [DataMember(Name = "registeredAssetCount", Order = 6, EmitDefaultValue = false)] public int? RegisteredAssetCount { get; set; }
-        [DataMember(Name = "cacheReady", Order = 7, EmitDefaultValue = false)] public bool? CacheReady { get; set; }
+        [DataMember(Name = "anyDatabaseCached", Order = 7, EmitDefaultValue = false)] public bool? AnyDatabaseCached { get; set; }
     }
 }

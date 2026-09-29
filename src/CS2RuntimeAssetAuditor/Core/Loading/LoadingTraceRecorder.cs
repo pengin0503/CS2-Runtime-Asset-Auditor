@@ -21,7 +21,7 @@ namespace CS2RuntimeAssetAuditor.Core.Loading
         private long? _peakGraphicsDriverBytes;
         private LoadingMemorySample _lastSample;
         private bool? _lastCacheState;
-        private bool _cacheBecameReady;
+        private bool _anyDatabaseBecameCached;
         private bool _assetDatabaseObserved;
         private string _purpose;
 
@@ -46,7 +46,7 @@ namespace CS2RuntimeAssetAuditor.Core.Loading
             _peakUnityBytes = _peakRamBytes = _peakGraphicsDriverBytes = null;
             _lastSample = null;
             _lastCacheState = null;
-            _cacheBecameReady = false;
+            _anyDatabaseBecameCached = false;
             _assetDatabaseObserved = false;
             Mark("loadStarted", atUtc);
         }
@@ -74,7 +74,7 @@ namespace CS2RuntimeAssetAuditor.Core.Loading
         }
 
         public void Observe(DateTimeOffset atUtc, long? unityBytes, long? ramBytes,
-            long? graphicsDriverBytes, int? registeredAssetCount, bool? cacheReady)
+            long? graphicsDriverBytes, int? registeredAssetCount, bool? anyDatabaseCached)
         {
             if (!IsLoading) return;
             if (!_assetDatabaseObserved && registeredAssetCount.HasValue)
@@ -82,12 +82,12 @@ namespace CS2RuntimeAssetAuditor.Core.Loading
                 Mark("assetDatabaseObserved", atUtc);
                 _assetDatabaseObserved = true;
             }
-            if (_lastCacheState == false && cacheReady == true)
-                _cacheBecameReady = true;
-            if (cacheReady.HasValue) _lastCacheState = cacheReady;
+            if (_lastCacheState == false && anyDatabaseCached == true)
+                _anyDatabaseBecameCached = true;
+            if (anyDatabaseCached.HasValue) _lastCacheState = anyDatabaseCached;
 
             var sample = new LoadingMemorySample(atUtc.ToUniversalTime(), Positive(unityBytes),
-                Positive(ramBytes), Positive(graphicsDriverBytes), registeredAssetCount, cacheReady);
+                Positive(ramBytes), Positive(graphicsDriverBytes), registeredAssetCount, anyDatabaseCached);
             _lastSample = sample;
             _peakUnityBytes = Max(_peakUnityBytes, sample.UnityAllocatedBytes);
             _peakRamBytes = Max(_peakRamBytes, sample.ProcessWorkingSetBytes);
@@ -117,7 +117,7 @@ namespace CS2RuntimeAssetAuditor.Core.Loading
             if (!_startedAtUtc.HasValue) return null;
             return new LoadingTraceSnapshot(_modStartedAtUtc, _startedAtUtc.Value, _completedAtUtc,
                 _purpose, _milestones.ToArray(), _samples.ToArray(), _lastSample,
-                _peakUnityBytes, _peakRamBytes, _peakGraphicsDriverBytes, _cacheBecameReady);
+                _peakUnityBytes, _peakRamBytes, _peakGraphicsDriverBytes, _anyDatabaseBecameCached);
         }
 
         private static long? Positive(long? value) => value >= 0 ? value : null;
@@ -134,21 +134,21 @@ namespace CS2RuntimeAssetAuditor.Core.Loading
     public sealed class LoadingMemorySample
     {
         public LoadingMemorySample(DateTimeOffset atUtc, long? unityBytes, long? ramBytes,
-            long? graphicsDriverBytes, int? registeredAssetCount, bool? cacheReady)
+            long? graphicsDriverBytes, int? registeredAssetCount, bool? anyDatabaseCached)
         {
             AtUtc = atUtc;
             UnityAllocatedBytes = unityBytes;
             ProcessWorkingSetBytes = ramBytes;
             GraphicsDriverAllocatedBytes = graphicsDriverBytes;
             RegisteredAssetCount = registeredAssetCount;
-            CacheReady = cacheReady;
+            AnyDatabaseCached = anyDatabaseCached;
         }
         public DateTimeOffset AtUtc { get; }
         public long? UnityAllocatedBytes { get; }
         public long? ProcessWorkingSetBytes { get; }
         public long? GraphicsDriverAllocatedBytes { get; }
         public int? RegisteredAssetCount { get; }
-        public bool? CacheReady { get; }
+        public bool? AnyDatabaseCached { get; }
     }
 
     public sealed class LoadingTraceSnapshot
@@ -156,7 +156,7 @@ namespace CS2RuntimeAssetAuditor.Core.Loading
         public LoadingTraceSnapshot(DateTimeOffset modStartedAtUtc, DateTimeOffset startedAtUtc,
             DateTimeOffset? completedAtUtc, string purpose, LoadingMilestone[] milestones,
             LoadingMemorySample[] samples, LoadingMemorySample end, long? peakUnityBytes,
-            long? peakRamBytes, long? peakGraphicsDriverBytes, bool cacheBecameReady)
+            long? peakRamBytes, long? peakGraphicsDriverBytes, bool anyDatabaseBecameCached)
         {
             ModStartedAtUtc = modStartedAtUtc;
             StartedAtUtc = startedAtUtc;
@@ -168,7 +168,7 @@ namespace CS2RuntimeAssetAuditor.Core.Loading
             PeakUnityAllocatedBytes = peakUnityBytes;
             PeakProcessWorkingSetBytes = peakRamBytes;
             PeakGraphicsDriverAllocatedBytes = peakGraphicsDriverBytes;
-            CacheBecameReady = cacheBecameReady;
+            AnyDatabaseBecameCached = anyDatabaseBecameCached;
         }
         public DateTimeOffset ModStartedAtUtc { get; }
         public DateTimeOffset StartedAtUtc { get; }
@@ -180,6 +180,6 @@ namespace CS2RuntimeAssetAuditor.Core.Loading
         public long? PeakUnityAllocatedBytes { get; }
         public long? PeakProcessWorkingSetBytes { get; }
         public long? PeakGraphicsDriverAllocatedBytes { get; }
-        public bool CacheBecameReady { get; }
+        public bool AnyDatabaseBecameCached { get; }
     }
 }
