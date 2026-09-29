@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { bindValue, trigger, useValue } from "cs2/api";
 
 export interface UiMetricRow {
@@ -209,6 +210,31 @@ export interface UiSnapshot {
   advisor?: AdvisorUiState;
 }
 
+/**
+ * The capture detail the game sends separately from the live snapshot: it changes only when a capture changes,
+ * so the live values can refresh twice a second without resending about a thousand system rows.
+ */
+export interface UiCaptureDetail {
+  systems: SystemUiRow[];
+  mods: ModUiRow[];
+  timeline: TimelinePoint[];
+  captures: CaptureSummaryUi[];
+}
+
+/** The live snapshot binding: the full snapshot without the capture detail. */
+export type UiLiveSnapshot = Omit<UiSnapshot, keyof UiCaptureDetail> & Partial<UiCaptureDetail>;
+
+/** Joins the two bindings into one snapshot. The detail keeps its references while it is unchanged. */
+export function mergeProfilerSnapshot(live: UiLiveSnapshot, detail: UiCaptureDetail | null): UiSnapshot {
+  return {
+    ...live,
+    systems: detail?.systems ?? live.systems ?? [],
+    mods: detail?.mods ?? live.mods ?? [],
+    timeline: detail?.timeline ?? live.timeline ?? [],
+    captures: detail?.captures ?? live.captures ?? []
+  };
+}
+
 /** Persisted panel geometry in screen pixels; `custom` is false until the user moves or resizes the panel. */
 export interface PanelLayout {
   custom: boolean;
@@ -267,7 +293,9 @@ export const EMPTY_SNAPSHOT: UiSnapshot = {
 
 const GROUP = "CS2RuntimeAssetAuditor";
 
-const snapshotBinding = bindValue<UiSnapshot>(GROUP, "snapshot", EMPTY_SNAPSHOT);
+const snapshotBinding = bindValue<UiLiveSnapshot>(GROUP, "snapshot", EMPTY_SNAPSHOT);
+// Null until the game has sent it, so a live snapshot that still carries the detail is shown as it is.
+const captureDetailBinding = bindValue<UiCaptureDetail | null>(GROUP, "captureDetail", null);
 const hudSnapshotBinding = bindValue<UiHudSnapshot>(GROUP, "hudSnapshot", EMPTY_HUD_SNAPSHOT);
 const panelVisibleBinding = bindValue<boolean>(GROUP, "panelVisible", false);
 const uiScalePercentBinding = bindValue<number>(GROUP, "uiScalePercent", 100);
@@ -275,7 +303,11 @@ const selectedCaptureBinding = bindValue<string>(GROUP, "selectedCaptureId", "")
 const exportResultBinding = bindValue<string>(GROUP, "exportResult", "");
 const panelLayoutBinding = bindValue<PanelLayout>(GROUP, "panelLayout", DEFAULT_PANEL_LAYOUT);
 
-export const useProfilerSnapshot = () => useValue(snapshotBinding);
+export const useProfilerSnapshot = (): UiSnapshot => {
+  const live = useValue(snapshotBinding);
+  const detail = useValue(captureDetailBinding);
+  return useMemo(() => mergeProfilerSnapshot(live, detail), [live, detail]);
+};
 export const useProfilerHudSnapshot = () => useValue(hudSnapshotBinding);
 export const usePanelVisible = () => useValue(panelVisibleBinding);
 export const useUiScalePercent = () => useValue(uiScalePercentBinding);

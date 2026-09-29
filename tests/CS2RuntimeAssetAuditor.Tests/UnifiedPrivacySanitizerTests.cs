@@ -1,4 +1,7 @@
 using System;
+using System.IO;
+using System.Runtime.Serialization.Json;
+using System.Text;
 using CS2RuntimeAssetAuditor.Coordination;
 using CS2RuntimeAssetAuditor.Export;
 using CS2RuntimeAssetAuditor.Assets.Export;
@@ -11,10 +14,25 @@ public class UnifiedPrivacySanitizerTests
     [Test]
     public void Redacts_values_without_renaming_schema_fields()
     {
-        var json = @"{""runtime"":""runtime"",""nested"":{""assets"":""assets""}}";
-        var sanitized = RuntimeAssetAuditReportSerializer.SanitizeJsonStrings(json,
-            value => value == "runtime" || value == "assets" ? "[redacted]" : value);
-        Assert.That(sanitized, Is.EqualTo(@"{""runtime"":""[redacted]"",""nested"":{""assets"":""[redacted]""}}"));
+        var output = new MemoryStream();
+        using (var json = JsonReaderWriterFactory.CreateJsonWriter(output, Encoding.UTF8, ownsStream: false))
+        {
+            var writer = new SanitizingJsonWriter(json, value => value == "runtime" || value == "assets" ? "[redacted]" : value);
+            writer.WriteStartElement("root");
+            writer.WriteAttributeString("type", "object");
+            writer.WriteStartElement("runtime");
+            writer.WriteValue("runtime");
+            writer.WriteEndElement();
+            writer.WriteStartElement("nested");
+            writer.WriteAttributeString("type", "object");
+            writer.WriteStartElement("assets");
+            writer.WriteValue("assets");
+            writer.WriteEndElement();
+            writer.WriteEndElement();
+            writer.WriteEndElement();
+            writer.Flush();
+        }
+        Assert.That(Encoding.UTF8.GetString(output.ToArray()), Is.EqualTo(@"{""runtime"":""[redacted]"",""nested"":{""assets"":""[redacted]""}}"));
     }
 
     [Test]

@@ -58,23 +58,6 @@ public class ExportPerformanceTests
         Assert.That(stopwatch.Elapsed, Is.LessThan(TimeSpan.FromSeconds(2)));
     }
 
-    [TestCase("\"plain\"", "plain")]
-    [TestCase("\"C:\\\\Users\\\\x\"", "C:\\Users\\x")]
-    [TestCase("\"a\\/b\"", "a/b")]
-    [TestCase("\"line\\nbreak \\u00e9\"", "line\nbreak \u00e9")]
-    [TestCase("\"quote \\\" end\"", "quote \" end")]
-    public void Json_string_literals_are_decoded_exactly(string literal, string expected)
-    {
-        Assert.That(RuntimeAssetAuditReportSerializer.Unescape(literal), Is.EqualTo(expected));
-    }
-
-    [Test]
-    public void Unchanged_json_strings_are_left_byte_identical()
-    {
-        const string json = "{\"a\":\"x\\/y\",\"b\":\"keep\"}";
-        Assert.That(RuntimeAssetAuditReportSerializer.SanitizeJsonStrings(json, value => value), Is.EqualTo(json));
-    }
-
     [Test]
     public void Hidden_panel_never_publishes_and_deferred_changes_publish_once_shown()
     {

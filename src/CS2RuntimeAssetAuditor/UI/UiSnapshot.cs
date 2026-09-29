@@ -162,6 +162,54 @@ namespace CS2RuntimeAssetAuditor.UI
         public AdvisorState Advisor { get; set; } = new AdvisorState(null, null, null, "Select a completed capture for Advisor diagnosis.");
     }
 
+    /// <summary>The part of the panel snapshot that changes only when a capture changes.</summary>
+    public sealed class UiCaptureDetail
+    {
+        public IReadOnlyList<SystemUiRow> Systems { get; set; } = Array.Empty<SystemUiRow>();
+        public IReadOnlyList<ModUiRow> Mods { get; set; } = Array.Empty<ModUiRow>();
+        public IReadOnlyList<TimelinePoint> Timeline { get; set; } = Array.Empty<TimelinePoint>();
+        public IReadOnlyList<CaptureSummaryUi> Captures { get; set; } = Array.Empty<CaptureSummaryUi>();
+    }
+
+    /// <summary>
+    /// What <see cref="UiCaptureDetail"/> was built from, compared by reference and revision; equal keys mean the
+    /// detail would be built the same.
+    /// </summary>
+    public sealed class UiCaptureDetailKey : IEquatable<UiCaptureDetailKey>
+    {
+        private readonly CaptureSession _detail;
+        private readonly long _detailRevision;
+        private readonly SystemTimingSnapshot _liveSystems;
+        private readonly (CaptureSession Capture, long Revision)[] _completed;
+
+        public UiCaptureDetailKey(CaptureSession detail, long detailRevision, SystemTimingSnapshot liveSystems, (CaptureSession Capture, long Revision)[] completed)
+        {
+            _detail = detail;
+            _detailRevision = detailRevision;
+            _liveSystems = liveSystems;
+            _completed = completed ?? Array.Empty<(CaptureSession, long)>();
+        }
+
+        public bool Equals(UiCaptureDetailKey other)
+        {
+            if (other is null) return false;
+            if (!ReferenceEquals(_detail, other._detail) || _detailRevision != other._detailRevision
+                || !ReferenceEquals(_liveSystems, other._liveSystems) || _completed.Length != other._completed.Length)
+                return false;
+            for (var index = 0; index < _completed.Length; index++)
+            {
+                if (!ReferenceEquals(_completed[index].Capture, other._completed[index].Capture)
+                    || _completed[index].Revision != other._completed[index].Revision)
+                    return false;
+            }
+            return true;
+        }
+
+        public override bool Equals(object obj) => Equals(obj as UiCaptureDetailKey);
+
+        public override int GetHashCode() => _completed.Length ^ _detailRevision.GetHashCode();
+    }
+
     public sealed class UiSnapshotInput
     {
         public UiSnapshotInput() { }

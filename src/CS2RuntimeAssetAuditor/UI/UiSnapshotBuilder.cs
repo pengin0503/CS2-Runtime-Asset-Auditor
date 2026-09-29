@@ -11,19 +11,61 @@ namespace CS2RuntimeAssetAuditor.UI
         private const double CorrelationWindowSeconds = 5d;
         private const int MaxCorrelatedChanges = 8;
 
-        public static UiSnapshot Build(UiSnapshotInput input) => BuildCore(input, forExport: false);
-        public static UiSnapshot BuildForExport(UiSnapshotInput input) => BuildCore(input, forExport: true);
+        public static UiSnapshot Build(UiSnapshotInput input) => BuildCore(input, forExport: false, detail: null);
+        public static UiSnapshot BuildForExport(UiSnapshotInput input) => BuildCore(input, forExport: true, detail: null);
 
-        private static UiSnapshot BuildCore(UiSnapshotInput input, bool forExport)
+        /// <summary>
+        /// Builds the snapshot around capture detail built earlier by <see cref="BuildDetail"/>. The panel refreshes
+        /// twice a second but the detail (a completed capture's thousand-row system table, its timeline and the
+        /// capture list) changes only when a capture does, so it is reused while its <see cref="DetailKey"/> holds.
+        /// </summary>
+        public static UiSnapshot Build(UiSnapshotInput input, UiCaptureDetail detail) =>
+            BuildCore(input, forExport: false, detail: detail ?? throw new ArgumentNullException(nameof(detail)));
+
+        public static UiCaptureDetail BuildDetail(UiSnapshotInput input)
         {
             input = input ?? new UiSnapshotInput();
-            var completedSessions = (input.Captures ?? Array.Empty<CaptureSession>()).Where(capture => capture != null).ToArray();
+            var completedSessions = CompletedSessions(input);
+            var detailCapture = SelectDetailCapture(input, completedSessions);
+            var systems = BuildSystems(detailCapture != null ? detailCapture.SystemTiming : input.Systems);
+            return new UiCaptureDetail
+            {
+                Systems = systems,
+                Mods = BuildMods(systems),
+                Timeline = BuildTimeline(detailCapture),
+                Captures = completedSessions.Select(BuildCapture).ToArray()
+            };
+        }
+
+        /// <summary>
+        /// Identifies everything <see cref="BuildDetail"/> reads: the detail capture and every completed capture,
+        /// each with its revision, and the live system timing used when no capture is selected.
+        /// </summary>
+        public static UiCaptureDetailKey DetailKey(UiSnapshotInput input)
+        {
+            input = input ?? new UiSnapshotInput();
+            var completedSessions = CompletedSessions(input);
+            var detailCapture = SelectDetailCapture(input, completedSessions);
+            return new UiCaptureDetailKey(
+                detailCapture,
+                detailCapture?.Revision ?? 0,
+                detailCapture == null ? input.Systems : null,
+                completedSessions.Select(capture => (capture, capture.Revision)).ToArray());
+        }
+
+        private static CaptureSession[] CompletedSessions(UiSnapshotInput input) =>
+            (input.Captures ?? Array.Empty<CaptureSession>()).Where(capture => capture != null).ToArray();
+
+        private static UiSnapshot BuildCore(UiSnapshotInput input, bool forExport, UiCaptureDetail? detail)
+        {
+            input = input ?? new UiSnapshotInput();
+            var completedSessions = CompletedSessions(input);
             var detailCapture = SelectDetailCapture(input, completedSessions);
             var detailIsCurrent = detailCapture != null && ReferenceEquals(detailCapture, input.CurrentCapture);
             var historicalExport = forExport && detailCapture != null && !detailIsCurrent;
             var detailTiming = detailCapture != null ? detailCapture.SystemTiming : input.Systems;
-            var systems = BuildSystems(detailTiming);
-            var captures = completedSessions.Select(BuildCapture).ToArray();
+            var systems = detail?.Systems ?? BuildSystems(detailTiming);
+            var captures = detail?.Captures ?? completedSessions.Select(BuildCapture).ToArray();
             var diagnostics = (input.Diagnostics ?? Array.Empty<string>()).Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
             var global = historicalExport ? GetLatestGlobalSample(detailCapture) : input.Global;
             var pathfinding = historicalExport ? detailCapture?.PathfindingSnapshot : input.Pathfinding;
@@ -38,13 +80,13 @@ namespace CS2RuntimeAssetAuditor.UI
                 Capture = new CaptureUiState
                 {
                     State = input.CaptureState.ToString(), IsDeepCapture = input.CaptureState == CaptureState.DeepCapture,
-                    CompletedCount = captures.Length, DetailCaptureId = detailCapture?.Id ?? string.Empty,
+                    CompletedCount = captures.Count, DetailCaptureId = detailCapture?.Id ?? string.Empty,
                     DetailScope = ResolveDetailScope(detailCapture, detailIsCurrent, historicalExport),
                     DetailConfiguration = detailCapture?.Configuration
                 },
-                Systems = systems, Mods = BuildMods(systems),
+                Systems = systems, Mods = detail?.Mods ?? BuildMods(systems),
                 Pathfinding = new PathfindingUiMetrics { Metrics = BuildMetrics(pathfinding) }, DomainMetrics = BuildMetrics(domains),
-                Timeline = BuildTimeline(detailCapture), Captures = captures,
+                Timeline = detail?.Timeline ?? BuildTimeline(detailCapture), Captures = captures,
                 Diagnostics = new DiagnosticsUi
                 {
                     ProfilerOverheadShare = overheadShare, UnattributedJobsMilliseconds = detailTiming?.UnattributedJobsMilliseconds,

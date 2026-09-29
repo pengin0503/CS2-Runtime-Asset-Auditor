@@ -166,7 +166,7 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
                 PrefabId = _sanitizer.SanitizeText(record.Key.PrefabId),
                 PrefabType = _sanitizer.SanitizeText(record.Key.PrefabType),
                 DisplayName = _sanitizer.SanitizeText(record.DisplayName),
-                Traits = record.Traits.ToString(),
+                Traits = EnumText.Of(record.Traits),
                 IsBuiltin = evidence.IsBuiltin,
                 IsSubscribedMod = evidence.IsSubscribedMod,
                 IsPackaged = evidence.IsPackaged,
@@ -184,7 +184,7 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
             {
                 PrefabId = _sanitizer.SanitizeText(entry.Key.PrefabId),
                 PrefabType = _sanitizer.SanitizeText(entry.Key.PrefabType),
-                Presence = entry.Presence.ToString(),
+                Presence = EnumText.Of(entry.Presence),
                 Counters = new ReportCensusCounters
                 {
                     TopLevelObjects = MapObservation(counters.TopLevelObjects),
@@ -199,7 +199,7 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
         {
             PrefabId = _sanitizer.SanitizeText(entry.Key.PrefabId),
             PrefabType = _sanitizer.SanitizeText(entry.Key.PrefabType),
-            RenderCoverage = entry.RenderCoverage.ToString(),
+            RenderCoverage = EnumText.Of(entry.RenderCoverage),
             Lod0Vertices = MapObservation(entry.Lod0Vertices),
             Lod1RetentionPercent = MapObservation(entry.Lod1RetentionPercent),
             MaterialCount = MapObservation(entry.MaterialCount),
@@ -207,7 +207,7 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
             EstimatedTexturePayload = MapObservation(entry.EstimatedTexturePayload),
             RenderRelations = entry.Relations.Select(relation => new ReportRenderRelation
             {
-                Kind = relation.RelationKind.ToString(),
+                Kind = EnumText.Of(relation.RelationKind),
                 RenderAssetId = _sanitizer.SanitizeText(relation.RenderAssetKey.RenderAssetId),
                 RenderAssetType = _sanitizer.SanitizeText(relation.RenderAssetKey.RenderAssetType),
                 LodLevel = relation.LodLevel
@@ -334,8 +334,8 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
 
         private ReportDoubleObservation MapObservation(Observation<double> observation) => new ReportDoubleObservation
         {
-            Availability = observation.Availability.ToString(),
-            Origin = observation.Origin.ToString(),
+            Availability = EnumText.Of(observation.Availability),
+            Origin = EnumText.Of(observation.Origin),
             CapturedAt = FormatTime(observation.CapturedAt),
             Value = observation.HasValue ? observation.Value : (double?)null,
             DiagnosticCode = observation.DiagnosticCode == null ? null : _sanitizer.SanitizeText(observation.DiagnosticCode)
@@ -343,8 +343,8 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
 
         private ReportStringObservation MapObservation(Observation<string> observation) => new ReportStringObservation
         {
-            Availability = observation.Availability.ToString(),
-            Origin = observation.Origin.ToString(),
+            Availability = EnumText.Of(observation.Availability),
+            Origin = EnumText.Of(observation.Origin),
             CapturedAt = FormatTime(observation.CapturedAt),
             Value = observation.HasValue ? _sanitizer.SanitizeText(observation.Value) : null,
             DiagnosticCode = observation.DiagnosticCode == null ? null : _sanitizer.SanitizeText(observation.DiagnosticCode)
@@ -352,8 +352,8 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
 
         private ReportBooleanObservation MapObservation(Observation<bool> observation) => new ReportBooleanObservation
         {
-            Availability = observation.Availability.ToString(),
-            Origin = observation.Origin.ToString(),
+            Availability = EnumText.Of(observation.Availability),
+            Origin = EnumText.Of(observation.Origin),
             CapturedAt = FormatTime(observation.CapturedAt),
             Value = observation.HasValue ? observation.Value : (bool?)null,
             DiagnosticCode = observation.DiagnosticCode == null ? null : _sanitizer.SanitizeText(observation.DiagnosticCode)
@@ -361,8 +361,8 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
 
         private ReportObservation MapLongObservation(Availability availability, ObservationOrigin origin, DateTimeOffset capturedAt, long? value, string? diagnosticCode) => new ReportObservation
         {
-            Availability = availability.ToString(),
-            Origin = origin.ToString(),
+            Availability = EnumText.Of(availability),
+            Origin = EnumText.Of(origin),
             CapturedAt = FormatTime(capturedAt),
             Value = value,
             DiagnosticCode = diagnosticCode == null ? null : _sanitizer.SanitizeText(diagnosticCode)
@@ -378,7 +378,41 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
         };
 
         private string[]? SanitizeIdentifiers(IReadOnlyList<string>? identifiers) => identifiers?.Select(_sanitizer.SanitizeText).ToArray();
-        private static string FormatTime(DateTimeOffset value) => value.ToUniversalTime().ToString("O");
+        // A census or an analysis stamps its observations with one capture time, so the same text is reused
+        // instead of being formatted (and allocated) again for each of the report's observations.
+        private DateTimeOffset _lastFormattedTime;
+        private string? _lastFormattedTimeText;
+
+        private string FormatTime(DateTimeOffset value)
+        {
+            // Equal instants format to the same UTC text whatever their offsets.
+            if (_lastFormattedTimeText != null && value.Equals(_lastFormattedTime))
+                return _lastFormattedTimeText;
+            _lastFormattedTime = value;
+            _lastFormattedTimeText = value.ToUniversalTime().ToString("O");
+            return _lastFormattedTimeText;
+        }
+
+        // Enum.ToString is slow on the game's Mono runtime and allocates each time; a report calls it several
+        // times per census entry. The cached text is the same string ToString returns.
+        private static class EnumText
+        {
+            private static readonly object Gate = new object();
+            private static readonly Dictionary<Enum, string> Cache = new Dictionary<Enum, string>();
+
+            public static string Of<T>(T value) where T : struct, Enum
+            {
+                var boxed = (Enum)(object)value;
+                lock (Gate)
+                {
+                    if (Cache.TryGetValue(boxed, out var text))
+                        return text;
+                    text = value.ToString();
+                    Cache[boxed] = text;
+                    return text;
+                }
+            }
+        }
 
         private sealed class OwnedFinding
         {

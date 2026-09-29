@@ -1,83 +1,49 @@
 using System;
-using System.Globalization;
 using System.IO;
 using System.Runtime.Serialization.Json;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace CS2RuntimeAssetAuditor.Export
 {
     public static class RuntimeAssetAuditReportSerializer
     {
-        private static readonly Regex JsonString = new Regex("\"(?:\\\\.|[^\"\\\\])*\"", RegexOptions.Compiled, TimeSpan.FromSeconds(2));
         private static readonly DataContractJsonSerializer ReportSerializer = new DataContractJsonSerializer(typeof(RuntimeAssetAuditReport));
-        private static readonly DataContractJsonSerializer StringSerializer = new DataContractJsonSerializer(typeof(string));
+        // Makes the serializer's calls without its per-value reflection; null only if a report type gained a shape
+        // it does not support, and then the serializer writes the report.
+        private static readonly DataContractJsonWriter? FastWriter = DataContractJsonWriter.TryCreate(typeof(RuntimeAssetAuditReport));
+
+        /// <summary>True when reports are written by <see cref="DataContractJsonWriter"/> rather than the serializer.</summary>
+        internal static bool UsesFastWriter => FastWriter != null;
+
+        /// <summary>
+        /// Writes the report as UTF-8 JSON to <paramref name="output"/>, redacting every string value with
+        /// <see cref="ReportPrivacy.Sanitize"/> while it is written. Nothing is buffered beyond the JSON writer, so
+        /// a large report never exists as one string in memory.
+        /// </summary>
+        public static void Serialize(RuntimeAssetAuditReport report, Stream output)
+        {
+            if (report == null) throw new ArgumentNullException(nameof(report));
+            if (output == null) throw new ArgumentNullException(nameof(output));
+            // The same writer DataContractJsonSerializer.WriteObject(Stream) creates, so the output is unchanged.
+            using (var json = JsonReaderWriterFactory.CreateJsonWriter(output, Encoding.UTF8, ownsStream: false))
+            {
+                var sanitizing = new SanitizingJsonWriter(json, ReportPrivacy.Sanitize);
+                if (FastWriter != null)
+                    FastWriter.WriteObject(sanitizing, report);
+                else
+                    ReportSerializer.WriteObject(sanitizing, report);
+                sanitizing.Flush();
+            }
+        }
 
         public static string Serialize(RuntimeAssetAuditReport report)
         {
             if (report == null) throw new ArgumentNullException(nameof(report));
             using (var stream = new MemoryStream())
             {
-                ReportSerializer.WriteObject(stream, report);
-                return SanitizeJsonStrings(Encoding.UTF8.GetString(stream.ToArray()), ReportPrivacy.Sanitize);
+                Serialize(report, stream);
+                return Encoding.UTF8.GetString(stream.GetBuffer(), 0, (int)stream.Length);
             }
-        }
-
-        internal static string SanitizeJsonStrings(string json, Func<string, string> sanitize)
-        {
-            // Sanitize decoded values, including escaped Windows paths, then encode them again. A report holds
-            // thousands of strings, so only values the sanitizer actually changes are re-encoded.
-            return JsonString.Replace(json, match =>
-            {
-                // A JSON string followed by a colon is a property name, not report data.
-                var next = match.Index + match.Length;
-                while (next < json.Length && char.IsWhiteSpace(json[next])) next++;
-                if (next < json.Length && json[next] == ':') return match.Value;
-
-                var value = Unescape(match.Value);
-                var clean = sanitize(value);
-                if (string.Equals(clean, value, StringComparison.Ordinal))
-                    return match.Value;
-                using (var output = new MemoryStream())
-                {
-                    StringSerializer.WriteObject(output, clean);
-                    return Encoding.UTF8.GetString(output.ToArray());
-                }
-            });
-        }
-
-        // Decodes a quoted JSON string literal produced by DataContractJsonSerializer.
-        internal static string Unescape(string quoted)
-        {
-            var body = quoted.Substring(1, quoted.Length - 2);
-            if (body.IndexOf('\\') < 0)
-                return body;
-            var builder = new StringBuilder(body.Length);
-            for (var index = 0; index < body.Length; index++)
-            {
-                var character = body[index];
-                if (character != '\\' || index + 1 >= body.Length)
-                {
-                    builder.Append(character);
-                    continue;
-                }
-                var escape = body[++index];
-                switch (escape)
-                {
-                    case 'b': builder.Append('\b'); break;
-                    case 'f': builder.Append('\f'); break;
-                    case 'n': builder.Append('\n'); break;
-                    case 'r': builder.Append('\r'); break;
-                    case 't': builder.Append('\t'); break;
-                    case 'u' when index + 4 < body.Length
-                        && int.TryParse(body.Substring(index + 1, 4), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var code):
-                        builder.Append((char)code);
-                        index += 4;
-                        break;
-                    default: builder.Append(escape); break;
-                }
-            }
-            return builder.ToString();
         }
     }
 }

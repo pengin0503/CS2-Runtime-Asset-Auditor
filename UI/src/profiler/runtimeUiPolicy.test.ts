@@ -10,12 +10,19 @@ const source = fs.readFileSync(
 it("updates only the lightweight HUD on periodic refresh while the panel is closed", () => {
   expect(source).toContain('new RawValueBinding(Group, "hudSnapshot", WriteHudSnapshot)');
   expect(source).toMatch(
-    /_hudSnapshotBinding\.Update\(\);\s*if \(!_panelVisible\)\s*return;\s*RefreshSnapshot\(\);\s*_snapshotBinding\.Update\(\);/s
+    /_hudSnapshotBinding\.Update\(\);\s*if \(!_panelVisible\)\s*return;\s*PublishSnapshot\(\);/s
   );
 });
 
 it("rebuilds the full snapshot immediately when the panel opens", () => {
   expect(source).toMatch(
-    /private void SetPanelVisible\(bool visible\)[\s\S]*?_panelVisibleBinding\.Update\(_panelVisible\);[\s\S]*?if \(_panelVisible\)\s*\{\s*RefreshSnapshot\(\);\s*_snapshotBinding\.Update\(\);\s*\}/
+    /private void SetPanelVisible\(bool visible\)[\s\S]*?_panelVisibleBinding\.Update\(_panelVisible\);[\s\S]*?if \(_panelVisible\)\s*PublishSnapshot\(\);/
+  );
+});
+
+it("sends the capture detail binding only when the detail was rebuilt", () => {
+  expect(source).toContain('new RawValueBinding(Group, "captureDetail", WriteCaptureDetail)');
+  expect(source).toMatch(
+    /private void PublishSnapshot\(\)\s*\{\s*if \(RefreshSnapshot\(\)\)\s*_captureDetailBinding\.Update\(\);\s*_snapshotBinding\.Update\(\);\s*\}/
   );
 });

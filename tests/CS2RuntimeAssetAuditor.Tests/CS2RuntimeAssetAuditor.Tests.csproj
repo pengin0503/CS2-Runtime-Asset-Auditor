@@ -41,6 +41,8 @@
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/RuntimeAssetAuditReport.cs" Link="Export/RuntimeAssetAuditReport.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/RuntimeAssetAuditReportBuilder.cs" Link="Export/RuntimeAssetAuditReportBuilder.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/RuntimeAssetAuditReportSerializer.cs" Link="Export/RuntimeAssetAuditReportSerializer.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/SanitizingJsonWriter.cs" Link="Export/SanitizingJsonWriter.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/DataContractJsonWriter.cs" Link="Export/DataContractJsonWriter.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/PerformanceReport.cs" Link="Export/PerformanceReport.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/PerformanceReportSerializer.cs" Link="Export/PerformanceReportSerializer.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/ProfilerReportBuilder.cs" Link="Export/ProfilerReportBuilder.cs" />

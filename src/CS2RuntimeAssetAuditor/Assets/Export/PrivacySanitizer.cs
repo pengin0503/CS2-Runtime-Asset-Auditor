@@ -26,11 +26,15 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
 
         private readonly Regex? _userName;
         private readonly Regex? _machineName;
+        private readonly string? _userNameText;
+        private readonly string? _machineNameText;
 
         public PrivacySanitizer(string? userName = null, string? machineName = null)
         {
-            _userName = BuildIdentifierPattern(string.IsNullOrWhiteSpace(userName) ? SafeEnvironment(() => Environment.UserName) : userName);
-            _machineName = BuildIdentifierPattern(string.IsNullOrWhiteSpace(machineName) ? SafeEnvironment(() => Environment.MachineName) : machineName);
+            _userNameText = RedactableIdentifier(string.IsNullOrWhiteSpace(userName) ? SafeEnvironment(() => Environment.UserName) : userName);
+            _machineNameText = RedactableIdentifier(string.IsNullOrWhiteSpace(machineName) ? SafeEnvironment(() => Environment.MachineName) : machineName);
+            _userName = BuildIdentifierPattern(_userNameText);
+            _machineName = BuildIdentifierPattern(_machineNameText);
         }
 
         /// <summary>Sanitizer for the current account and machine; the identifier patterns are built once.</summary>
@@ -40,7 +44,12 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
         {
             if (string.IsNullOrEmpty(value))
                 return value ?? string.Empty;
+            return MayNeedRedaction(value!) ? ApplyPatterns(value!) : value!;
+        }
 
+        /// <summary>Runs every redaction pattern, without the check that lets most values skip them.</summary>
+        internal string ApplyPatterns(string value)
+        {
             var sanitized = UncPath.Replace(value, RedactedPath);
             sanitized = WindowsPath.Replace(sanitized, RedactedPath);
             sanitized = UnixPath.Replace(sanitized, RedactedPath);
@@ -51,13 +60,48 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
             return sanitized;
         }
 
-        private static Regex? BuildIdentifierPattern(string? identifier)
+        /// <summary>
+        /// A cheap test that is false only when no pattern can match, so most report strings (prefab names,
+        /// numbers as text, identifiers) skip the five regular expressions. Every path pattern needs a slash or a
+        /// backslash. An ASCII-only value can contain an ASCII identifier only as a case-insensitive substring;
+        /// values or identifiers with other characters always take the full path, because case-insensitive
+        /// matching can pair a non-ASCII character with an ASCII one (the Kelvin sign and "k").
+        /// </summary>
+        private bool MayNeedRedaction(string value)
+        {
+            foreach (var character in value)
+            {
+                if (character == '/' || character == '\\' || character > '\u007f')
+                    return true;
+            }
+            return MayContain(value, _userNameText) || MayContain(value, _machineNameText);
+        }
+
+        private static bool MayContain(string asciiValue, string? identifier)
+        {
+            if (identifier == null)
+                return false;
+            foreach (var character in identifier)
+            {
+                if (character > '\u007f')
+                    return true;
+            }
+            return asciiValue.IndexOf(identifier, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        // The identifier a pattern is built for, or null when the name is missing or too short to redact.
+        private static string? RedactableIdentifier(string? identifier)
         {
             if (string.IsNullOrWhiteSpace(identifier))
                 return null;
             var trimmed = identifier!.Trim();
             // Very short names ("a", "pc") would redact ordinary words and destroy useful context.
-            if (trimmed.Length < MinimumIdentifierLength)
+            return trimmed.Length < MinimumIdentifierLength ? null : trimmed;
+        }
+
+        private static Regex? BuildIdentifierPattern(string? trimmed)
+        {
+            if (trimmed == null)
                 return null;
 
             // Whole-word match only. A dot joined to a letter or digit continues a dotted identifier

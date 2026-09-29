@@ -108,6 +108,7 @@ namespace CS2RuntimeAssetAuditor
         public void OnLoad(UpdateSystem updateSystem)
         {
             _loadingTrace.MarkModStarted(System.DateTimeOffset.UtcNow);
+            var onLoadStart = System.Diagnostics.Stopwatch.GetTimestamp();
             var version = typeof(Mod).Assembly.GetName().Version?.ToString() ?? "unknown";
             Info($"{nameof(OnLoad)} version={version} build={BuildIdentityProvider.Current} {LoggerState}");
 
@@ -140,6 +141,12 @@ namespace CS2RuntimeAssetAuditor
             updateSystem.UpdateAt<ProfilerUISystem>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAt<AssetAuditUISystem>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAt<AssetAuditSettingsSyncSystem>(SystemUpdatePhase.UIUpdate);
+
+            // The systems above are created (OnCreate) inside UpdateAt, so this is the mod's whole share of startup.
+            Info(string.Format(
+                System.Globalization.CultureInfo.InvariantCulture,
+                "OnLoad timing: ms={0:0.0}",
+                (System.Diagnostics.Stopwatch.GetTimestamp() - onLoadStart) * 1000d / System.Diagnostics.Stopwatch.Frequency));
         }
 
         public void OnDispose()

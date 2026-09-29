@@ -34,7 +34,10 @@ namespace CS2RuntimeAssetAuditor.UI
         private AdvisorSystem _advisor;
         private ReportExporter _exporter;
         private UiSnapshot _snapshot = new UiSnapshot();
+        private UiCaptureDetail _detail = new UiCaptureDetail();
+        private UiCaptureDetailKey _detailKey;
         private RawValueBinding _snapshotBinding;
+        private RawValueBinding _captureDetailBinding;
         private RawValueBinding _hudSnapshotBinding;
         private ValueBinding<bool> _panelVisibleBinding;
         private ValueBinding<int> _uiScalePercentBinding;
@@ -63,6 +66,7 @@ namespace CS2RuntimeAssetAuditor.UI
             _exporter = new ReportExporter();
 
             AddBinding(_snapshotBinding = new RawValueBinding(Group, "snapshot", WriteSnapshot));
+            AddBinding(_captureDetailBinding = new RawValueBinding(Group, "captureDetail", WriteCaptureDetail));
             AddBinding(_hudSnapshotBinding = new RawValueBinding(Group, "hudSnapshot", WriteHudSnapshot));
             AddBinding(_panelVisibleBinding = new ValueBinding<bool>(Group, "panelVisible", false));
             AddBinding(_uiScalePercentBinding = new ValueBinding<int>(Group, "uiScalePercent", GetUiScalePercent()));
@@ -138,8 +142,7 @@ namespace CS2RuntimeAssetAuditor.UI
             if (!_panelVisible)
                 return;
 
-            RefreshSnapshot();
-            _snapshotBinding.Update();
+            PublishSnapshot();
         }
 
         private void TogglePanel() => SetPanelVisible(!_panelVisible);
@@ -178,10 +181,7 @@ namespace CS2RuntimeAssetAuditor.UI
             _hudSnapshotBinding.Update();
 
             if (_panelVisible)
-            {
-                RefreshSnapshot();
-                _snapshotBinding.Update();
-            }
+                PublishSnapshot();
         }
 
         private void SetPanelLayout(int left, int top, int width, int height)
@@ -228,88 +228,85 @@ namespace CS2RuntimeAssetAuditor.UI
             _hudSnapshotBinding.Update();
 
             if (_panelVisible)
-            {
-                RefreshSnapshot();
-                _snapshotBinding.Update();
-            }
+                PublishSnapshot();
         }
 
         private void DiagnoseAdvisor(string id)
         {
             _advisor?.DiagnoseCompletedCapture(id);
-            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+            if (_panelVisible) PublishSnapshot();
         }
 
         private void RediagnoseAdvisor(string id)
         {
             _advisor?.Rediagnose(id);
-            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+            if (_panelVisible) PublishSnapshot();
         }
 
         private void SelectAdvisorBaseline(string id)
         {
             _advisor?.SelectBaseline(id);
-            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+            if (_panelVisible) PublishSnapshot();
         }
 
         private void AdvisorApply(string id, string proposed, bool confirmed)
         {
             _advisor?.ApplySetting(id, proposed, confirmed);
-            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+            if (_panelVisible) PublishSnapshot();
         }
 
         private void AdvisorUndo(string id, bool confirmed)
         {
             _advisor?.UndoSetting(id, confirmed);
-            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+            if (_panelVisible) PublishSnapshot();
         }
 
         private void AdvisorUndoSession(bool confirmed)
         {
             _advisor?.UndoSession(confirmed);
-            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+            if (_panelVisible) PublishSnapshot();
         }
 
         private void AdvisorResolveConflict(string id, bool restoreOriginal)
         {
             _advisor?.ResolveConflict(id, restoreOriginal);
-            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+            if (_panelVisible) PublishSnapshot();
         }
 
         private void AdvisorStartExperiment(string captureId, string settingId, string proposedValue)
         {
             _advisor?.StartExperiment(captureId, settingId, proposedValue);
-            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+            if (_panelVisible) PublishSnapshot();
         }
 
         private void AdvisorApplyExperiment(bool confirmed)
         {
             _advisor?.ApplyExperimentChange(confirmed);
-            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+            if (_panelVisible) PublishSnapshot();
         }
 
         private void AdvisorStartExperimentFollowUp()
         {
             _advisor?.StartExperimentFollowUpCapture();
-            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+            if (_panelVisible) PublishSnapshot();
         }
 
         private void AdvisorCancelExperiment()
         {
             _advisor?.CancelExperiment();
-            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+            if (_panelVisible) PublishSnapshot();
         }
 
         private void AdvisorKeepExperiment()
         {
             _advisor?.KeepExperimentChange();
-            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+            if (_panelVisible) PublishSnapshot();
         }
 
         private void AdvisorUndoExperiment(bool confirmed)
         {
             _advisor?.UndoExperimentChange(confirmed);
-            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+            if (_panelVisible) PublishSnapshot();
         }
 
         private void SelectCapture(string id)
@@ -318,10 +315,7 @@ namespace CS2RuntimeAssetAuditor.UI
             _selectedCaptureBinding.Update(_selectedCaptureId);
 
             if (_panelVisible)
-            {
-                RefreshSnapshot();
-                _snapshotBinding.Update();
-            }
+                PublishSnapshot();
         }
 
         private void ExportReport()
@@ -367,9 +361,30 @@ namespace CS2RuntimeAssetAuditor.UI
                 ReportLoadingTrace.FromSnapshot(Mod.LoadingTrace.Snapshot()));
         }
 
-        private void RefreshSnapshot()
+        // Rebuilds the live values; the capture detail is rebuilt only when a capture it shows has changed.
+        // Returns whether the detail changed.
+        private bool RefreshSnapshot()
         {
-            _snapshot = UiSnapshotBuilder.Build(CreateSnapshotInput());
+            var input = CreateSnapshotInput();
+            var key = UiSnapshotBuilder.DetailKey(input);
+            var detailChanged = _detailKey == null || !_detailKey.Equals(key);
+            if (detailChanged)
+            {
+                _detail = UiSnapshotBuilder.BuildDetail(input);
+                _detailKey = key;
+            }
+            _snapshot = UiSnapshotBuilder.Build(input, _detail);
+            return detailChanged;
+        }
+
+        // The panel's two bindings: the small live snapshot is sent on every refresh, the capture detail (about a
+        // thousand system rows and the timeline) only when it changed, so an open panel no longer serializes and
+        // re-renders the whole table twice a second.
+        private void PublishSnapshot()
+        {
+            if (RefreshSnapshot())
+                _captureDetailBinding.Update();
+            _snapshotBinding.Update();
         }
 
         private static int GetUiScalePercent()
@@ -476,23 +491,30 @@ namespace CS2RuntimeAssetAuditor.UI
             WriteGlobal(writer, snapshot.Global);
             writer.PropertyName("capture");
             WriteCaptureState(writer, snapshot.Capture);
-            writer.PropertyName("systems");
-            WriteSystems(writer, snapshot.Systems);
-            writer.PropertyName("mods");
-            WriteMods(writer, snapshot.Mods);
             writer.PropertyName("pathfinding");
             WriteMetricsObject(writer, snapshot.Pathfinding?.Metrics);
             writer.PropertyName("domainMetrics");
             WriteMetricsArray(writer, snapshot.DomainMetrics);
-            writer.PropertyName("timeline");
-            WriteTimeline(writer, snapshot.Timeline);
-            writer.PropertyName("captures");
-            WriteCaptures(writer, snapshot.Captures);
             writer.PropertyName("diagnostics");
             WriteDiagnostics(writer, snapshot.Diagnostics);
             writer.PropertyName("advisor");
             WriteAdvisor(writer, snapshot.Advisor);
 
+            writer.TypeEnd();
+        }
+
+        private void WriteCaptureDetail(IJsonWriter writer)
+        {
+            var detail = _detail ?? new UiCaptureDetail();
+            writer.TypeBegin("CS2RuntimeAssetAuditor.UiCaptureDetail");
+            writer.PropertyName("systems");
+            WriteSystems(writer, detail.Systems);
+            writer.PropertyName("mods");
+            WriteMods(writer, detail.Mods);
+            writer.PropertyName("timeline");
+            WriteTimeline(writer, detail.Timeline);
+            writer.PropertyName("captures");
+            WriteCaptures(writer, detail.Captures);
             writer.TypeEnd();
         }
 

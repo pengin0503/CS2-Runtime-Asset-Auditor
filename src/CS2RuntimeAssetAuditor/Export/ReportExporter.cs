@@ -2,7 +2,6 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Text;
 using Colossal.PSI.Environment;
 
 namespace CS2RuntimeAssetAuditor.Export
@@ -37,24 +36,25 @@ namespace CS2RuntimeAssetAuditor.Export
                 var timestamp = DateTime.Now;
                 var stem = $"CS2RuntimeAssetAuditor-report-{timestamp:yyyy-MM-dd_HHmmss_fff}";
                 var start = Stopwatch.GetTimestamp();
-                var json = RuntimeAssetAuditReportSerializer.Serialize(report);
-                var serialized = Stopwatch.GetTimestamp();
-                var encoding = new UTF8Encoding(false);
+                long bytes = 0;
+                // The report is serialized straight into the file; it never exists as one JSON string in memory.
                 var path = ReportFileWriter.WriteUnique(directory, stem, stream =>
                 {
-                    using (var writer = new StreamWriter(stream, encoding))
-                        writer.Write(json);
+                    using (var buffered = new BufferedStream(stream, 1 << 16))
+                    {
+                        RuntimeAssetAuditReportSerializer.Serialize(report, buffered);
+                        buffered.Flush();
+                        bytes = stream.Length;
+                    }
                 });
                 var written = Stopwatch.GetTimestamp();
-                // The export runs on the main thread, so these times are the length of the freeze it causes.
                 Mod.Info(string.Format(
                     CultureInfo.InvariantCulture,
-                    "Report export timing: file={0} buildMs={1} serializeMs={2:0.0} writeMs={3:0.0} characters={4}",
+                    "Report export timing: file={0} buildMs={1} serializeAndWriteMs={2:0.0} bytes={3}",
                     Path.GetFileName(path),
                     buildMilliseconds.HasValue ? buildMilliseconds.Value.ToString("0.0", CultureInfo.InvariantCulture) : "unknown",
-                    (serialized - start) * 1000d / Stopwatch.Frequency,
-                    (written - serialized) * 1000d / Stopwatch.Frequency,
-                    json.Length));
+                    (written - start) * 1000d / Stopwatch.Frequency,
+                    bytes));
                 return ReportExportResult.Succeeded(path);
             }
             catch (Exception ex)

@@ -58,16 +58,19 @@ namespace CS2RuntimeAssetAuditor.Profiling
                 _stateMachine,
                 maxConcurrent: 150,
                 overheadCeiling: 0.08);
+            var markerDiscoveryStart = Stopwatch.GetTimestamp();
             _controller.Initialize();
+            Mod.Info(string.Format(
+                CultureInfo.InvariantCulture,
+                "Profiler marker discovery timing: markers={0} ms={1:0.0}",
+                DiscoveredMarkerCount,
+                Milliseconds(markerDiscoveryStart, Stopwatch.GetTimestamp())));
             ApplyRuntimeSettings();
 
+            // The system catalog is read only by a capture, and every capture refreshes it when it starts, so it is
+            // not discovered here: that enumerated every type of every loaded assembly during game startup (before
+            // most systems exist, so its marker names were mostly unresolved) and was replaced before any use.
             _systemCatalog = new SystemCatalogCache(() => new ProfilerCatalog(world: World).Discover());
-            if (!_systemCatalog.TryRefresh(out var catalogError))
-            {
-                Mod.Info(
-                    "Initial system catalog discovery failed; per-system timing will use the last known good catalog: "
-                    + (catalogError ?? "unknown reason"));
-            }
 
             _managedTimingLifecycle = new ManagedSystemTimingCaptureLifecycle(
                 new ManagedSystemTimingInstrumentationAdapter(),
@@ -267,7 +270,19 @@ namespace CS2RuntimeAssetAuditor.Profiling
 
         private void RefreshSystemCatalogForCapture(CaptureSession capture)
         {
-            if (_systemCatalog == null || _systemCatalog.TryRefresh(out var error))
+            if (_systemCatalog == null)
+                return;
+
+            var start = Stopwatch.GetTimestamp();
+            var refreshed = _systemCatalog.TryRefresh(out var error);
+            Mod.Info(string.Format(
+                CultureInfo.InvariantCulture,
+                "System catalog refresh timing: capture={0} systems={1} complete={2} ms={3:0.0}",
+                capture?.Id ?? "none",
+                _systemCatalog.Snapshot.Count,
+                refreshed ? "true" : "false",
+                Milliseconds(start, Stopwatch.GetTimestamp())));
+            if (refreshed)
                 return;
 
             var warning =

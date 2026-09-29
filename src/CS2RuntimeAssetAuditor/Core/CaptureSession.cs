@@ -49,6 +49,13 @@ namespace CS2RuntimeAssetAuditor.Core
         }
 
         public string Id { get; }
+
+        /// <summary>
+        /// Advances on every change to the capture, so a view built from it (the panel's systems, timeline and
+        /// capture list) is rebuilt only when the capture actually changed.
+        /// </summary>
+        public long Revision { get; private set; }
+
         public string SessionId { get; private set; }
         public DateTimeOffset? StartedAtUtc { get; private set; }
         public DateTimeOffset? CompletedAtUtc { get; private set; }
@@ -57,11 +64,13 @@ namespace CS2RuntimeAssetAuditor.Core
             if (StartedAtUtc.HasValue || string.IsNullOrWhiteSpace(sessionId)) return;
             SessionId = sessionId;
             StartedAtUtc = startedAtUtc.ToUniversalTime();
+            Revision++;
         }
         public void MarkCompleted(DateTimeOffset completedAtUtc)
         {
-            if (StartedAtUtc.HasValue && completedAtUtc >= StartedAtUtc.Value)
-                CompletedAtUtc = completedAtUtc.ToUniversalTime();
+            if (!StartedAtUtc.HasValue || completedAtUtc < StartedAtUtc.Value) return;
+            CompletedAtUtc = completedAtUtc.ToUniversalTime();
+            Revision++;
         }
         public CaptureTrigger Trigger { get; }
         /// <summary>Why the capture was finalized before its normal end; null when it ran its full course.</summary>
@@ -69,7 +78,9 @@ namespace CS2RuntimeAssetAuditor.Core
         public bool WasInterrupted => InterruptionReason.HasValue;
         public void MarkInterrupted(CaptureInterruptionReason reason)
         {
-            if (!InterruptionReason.HasValue) InterruptionReason = reason;
+            if (InterruptionReason.HasValue) return;
+            InterruptionReason = reason;
+            Revision++;
         }
         public MarkerCoverageInfo MarkerCoverage { get; private set; }
         public SystemTimingSnapshot SystemTiming { get; private set; }
@@ -101,17 +112,24 @@ namespace CS2RuntimeAssetAuditor.Core
             return false;
         }
 
-        public void SetMarkerCoverage(int discovered, int captured, bool isBatched) =>
+        public void SetMarkerCoverage(int discovered, int captured, bool isBatched)
+        {
             MarkerCoverage = new MarkerCoverageInfo(discovered, captured, isBatched);
+            Revision++;
+        }
 
-        public void SetMarkerCoverage(int discovered, int attempted, int activated, int sampled, bool isBatched) =>
+        public void SetMarkerCoverage(int discovered, int attempted, int activated, int sampled, bool isBatched)
+        {
             MarkerCoverage = new MarkerCoverageInfo(discovered, attempted, activated, sampled, isBatched);
+            Revision++;
+        }
 
         public void SetConfiguration(CaptureConfigurationSnapshot configuration)
         {
             if (_configuration != null || configuration == null)
                 return;
             _configuration = configuration.Clone();
+            Revision++;
         }
 
         public void SetTriggerSnapshot(GlobalMetricsSnapshot sample)
@@ -120,6 +138,7 @@ namespace CS2RuntimeAssetAuditor.Core
             TriggerSelectedSpeed = sample.SelectedSpeed;
             TriggerActualSpeed = sample.ActualSpeed;
             TriggerEfficiency = sample.Efficiency;
+            Revision++;
         }
 
         public void ObserveProfilerMemory(double bytes)
@@ -129,28 +148,38 @@ namespace CS2RuntimeAssetAuditor.Core
             {
                 ProfilerMemoryBaselineBytes = bytes;
                 ProfilerMemoryPeakBytes = bytes;
+                Revision++;
                 return;
             }
-            ProfilerMemoryPeakBytes = Math.Max(ProfilerMemoryPeakBytes ?? bytes, bytes);
+            if (ProfilerMemoryPeakBytes.HasValue && bytes <= ProfilerMemoryPeakBytes.Value) return;
+            ProfilerMemoryPeakBytes = bytes;
+            Revision++;
         }
 
-        public void SetSystemTiming(SystemTimingSnapshot snapshot) => SystemTiming = snapshot;
+        public void SetSystemTiming(SystemTimingSnapshot snapshot)
+        {
+            SystemTiming = snapshot;
+            Revision++;
+        }
 
         public void SetRuntimeSnapshots(NamedMetricSnapshot pathfinding, NamedMetricSnapshot domains)
         {
-            if (pathfinding != null) PathfindingSnapshot = pathfinding;
-            if (domains != null) DomainMetricsSnapshot = domains;
+            if (pathfinding != null && !ReferenceEquals(pathfinding, PathfindingSnapshot)) { PathfindingSnapshot = pathfinding; Revision++; }
+            if (domains != null && !ReferenceEquals(domains, DomainMetricsSnapshot)) { DomainMetricsSnapshot = domains; Revision++; }
         }
 
         public void ObserveProfilerOverheadShare(double share)
         {
-            if (double.IsNaN(share) || double.IsInfinity(share) || share < 0d) return;
-            MaxProfilerOverheadShare = Math.Max(MaxProfilerOverheadShare, share);
+            if (double.IsNaN(share) || double.IsInfinity(share) || share <= MaxProfilerOverheadShare) return;
+            MaxProfilerOverheadShare = share;
+            Revision++;
         }
 
         public void AddWarning(string warning)
         {
-            if (!string.IsNullOrWhiteSpace(warning)) _warnings.Add(warning.Trim());
+            if (string.IsNullOrWhiteSpace(warning)) return;
+            _warnings.Add(warning.Trim());
+            Revision++;
         }
 
         public void AddManagedTimingFallbackUnavailableWarning(string reason)
@@ -168,6 +197,7 @@ namespace CS2RuntimeAssetAuditor.Core
             _globalSamples.Add(sample);
             var maxGlobalSamples = Math.Max(32, _maxSamplesPerSeries * 2);
             if (_globalSamples.Count > maxGlobalSamples) _globalSamples.RemoveRange(0, _globalSamples.Count - maxGlobalSamples);
+            Revision++;
         }
 
         public void AddMarkerSample(string markerId, MetricSample sample)
@@ -179,6 +209,7 @@ namespace CS2RuntimeAssetAuditor.Core
                 _markerSamples[markerId] = series;
             }
             series.Add(sample);
+            Revision++;
         }
     }
 }
