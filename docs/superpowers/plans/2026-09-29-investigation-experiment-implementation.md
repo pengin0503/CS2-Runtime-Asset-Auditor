@@ -174,11 +174,11 @@ public CaptureSession RequestManualCapture();
 
 Return the exact `CaptureSession` newly created by this request; return `null` when the request does not start a new capture.
 
-- [ ] **Step 1: Add failing contract test**
+- [x] **Step 1: Add failing contract test**
 
 Verify the signature and that the implementation correlates by the before/after `CurrentSession` transition, not by reading `CompletedSessions.Last()` or another “latest capture” heuristic.
 
-- [ ] **Step 2: Run RED when adapter dependencies are available**
+- [x] **Step 2: Run RED when adapter dependencies are available**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.AdapterTests/CS2RuntimeAssetAuditor.AdapterTests.csproj -c Release --filter InvestigationCaptureContractTests
@@ -186,11 +186,11 @@ dotnet test tests/CS2RuntimeAssetAuditor.AdapterTests/CS2RuntimeAssetAuditor.Ada
 
 If CS2 assemblies are unavailable, record the exact dependency failure and continue without weakening the contract.
 
-- [ ] **Step 3: Implement return contract**
+- [x] **Step 3: Implement return contract**
 
 Preserve existing monitoring/session checks and configuration. Capture `before = _controller?.CurrentSession`, issue the existing request, perform current `BeginCaptureWork`/configuration work, and return the new current session only if this request actually created it. Return `null` for disabled monitoring, inactive city session, already-active/cooldown/rejected request, or any no-new-session result. Existing callers may ignore the return value.
 
-- [ ] **Step 4: Verify runtime regressions**
+- [x] **Step 4: Verify runtime regressions**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release
@@ -198,7 +198,7 @@ dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.cspr
 
 and adapter test when available. Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/CS2RuntimeAssetAuditor/Profiling/CaptureRuntimeSystem.cs tests/CS2RuntimeAssetAuditor.AdapterTests

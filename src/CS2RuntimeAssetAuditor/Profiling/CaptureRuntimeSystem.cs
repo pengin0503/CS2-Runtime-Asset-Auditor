@@ -140,25 +140,29 @@ namespace CS2RuntimeAssetAuditor.Profiling
             _lastObservedTimestamp = latest.TimestampSeconds;
         }
 
-        public void RequestManualCapture()
+        public CaptureSession RequestManualCapture()
         {
             if (Mod.Settings != null && !Mod.Settings.EnableMonitoring)
-                return;
+                return null;
             ObserveSessionChange();
             if (!Mod.Sessions.IsActive)
-                return;
+                return null;
 
             ApplyRuntimeSettings();
             var captureConfiguration = RuntimeCaptureConfigurationProvider.Capture();
             var now = _global?.CurrentTimestampSeconds ?? Math.Max(0d, _lastObservedTimestamp);
             var before = _controller?.CurrentSession;
             _controller?.RequestManualCapture(now, _global?.GetRecentHistory(GetPrebufferSeconds()));
-            if (before == null && _controller?.CurrentSession != null && _controller.State == CaptureState.DeepCapture)
-                BeginCaptureWork(_controller.CurrentSession);
+            var created = _controller?.CurrentSession;
+            var started = before == null && created != null &&
+                !ReferenceEquals(before, created) && _controller.State == CaptureState.DeepCapture;
+            if (started)
+                BeginCaptureWork(created);
             _controller?.CurrentSession?.SetConfiguration(captureConfiguration);
             _controller?.CurrentSession?.SetRuntimeSnapshots(
                 _domains?.Pathfinding?.Latest,
                 _domains?.Entities?.Latest);
+            return started ? created : null;
         }
 
         protected override void OnDestroy()
