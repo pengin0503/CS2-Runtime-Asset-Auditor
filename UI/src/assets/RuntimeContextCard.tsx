@@ -1,6 +1,8 @@
 import React from "react";
 import type { CaptureSummaryUi } from "../profiler/bindings";
 import type { UiSummary } from "./types";
+import { useText } from "../i18n/locale";
+import type { MessageKey } from "../i18n/messages";
 
 export function temporalLink(capture: CaptureSummaryUi, assetSessionId: string | null | undefined, summary: UiSummary): "Before" | "Overlapping" | "After" | null {
   if (!capture.sessionId || capture.sessionId !== assetSessionId || !capture.startedAtUtc || !capture.completedAtUtc
@@ -16,12 +18,13 @@ export function RuntimeContextCard({ capture, sessionId, summary, onRunAudit }: 
   summary: UiSummary;
   onRunAudit: () => void;
 }) {
+  const { t } = useText();
   const timing = temporalLink(capture, sessionId, summary);
-  return <section className="apa__metric-card" aria-label="Runtime capture investigation context">
-    <h3>Runtime capture: {capture.id}</h3>
-    {timing ? <p>Asset snapshot {summary.latestAssetSnapshotId} · {timing} this capture</p>
-      : <><p>No time-linked Asset snapshot exists for this city session.</p>
-        <button type="button" className="apa__button" onClick={onRunAudit}>Run Asset Audit</button></>}
-    <p>Asset geometry, textures, and exposure are investigation evidence, not measured per-asset frame/GPU cost.</p>
+  return <section className="apa__metric-card" aria-label={t("context.aria")}>
+    <h3>{t("context.title", { id: capture.id })}</h3>
+    {timing ? <p>{t("context.linked", { snapshot: summary.latestAssetSnapshotId ?? "", timing: t(`context.timing.${timing}` as MessageKey) })}</p>
+      : <><p>{t("context.none")}</p>
+        <button type="button" className="apa__button" onClick={onRunAudit}>{t("context.runAudit")}</button></>}
+    <p>{t("context.disclaimer")}</p>
   </section>;
 }

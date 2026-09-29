@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { createAssetQuery, nativeBindings, normalizeUiSettings, updateAssetQueryState, useAuditorSnapshot, useExportedReport } from "./bindings";
+import { createAssetQuery, nativeBindings, normalizeUiSettings, updateAssetQueryState, useAuditorFindings, useAuditorSnapshot, useExportedReport } from "./bindings";
 import { ExportControls } from "./components/ExportControls";
 import { ScanStatus } from "./components/ScanStatus";
 import { AssetsTab } from "./tabs/AssetsTab";
@@ -13,15 +13,20 @@ import type { CaptureSummaryUi } from "../profiler/bindings";
 import { RuntimeContextCard } from "./RuntimeContextCard";
 import { DEFAULT_ASSET_QUERY_STATE } from "./types";
 import type { AssetSectionName } from "../shell/navigation";
+import { exportResultLabel } from "../profiler/text";
+import { useText } from "../i18n/locale";
 import styles from "./assetAuditor.module.scss";
 
 export function AssetSection({ view, active, capture, onOpenRuntimeCaptures }: { view: AssetSectionName | "overview"; active: boolean; capture?: CaptureSummaryUi | null; onOpenRuntimeCaptures?: () => void }) {
+  const { locale, t } = useText();
   const snapshot = useAuditorSnapshot();
+  const published = useAuditorFindings();
   const exportedReport = useExportedReport();
   const [query, setQuery] = useState<AssetQueryState>(DEFAULT_ASSET_QUERY_STATE);
   const [selectedAsset, setSelectedAsset] = useState<ExportAssetKey | null>(null);
   const settings = normalizeUiSettings(snapshot.settings);
-  const allFindings = snapshot.findings ?? [];
+  // Findings arrive on their own binding once an analysis is published; older snapshots may still embed them.
+  const allFindings = published.analysisGeneration > 0 ? published.findings : snapshot.findings ?? [];
   const findings = settings.showNoticeFindings ? allFindings : allFindings.filter(item => item.status !== "Notice");
 
   useEffect(() => {
@@ -37,7 +42,7 @@ export function AssetSection({ view, active, capture, onOpenRuntimeCaptures }: {
   const updateQuery = (patch: Partial<AssetQueryState>) => setQuery(current => updateAssetQueryState(current, patch));
 
   return (
-    <section className={styles.assetSection} aria-label="アセット診断">
+    <section className={styles.assetSection} aria-label={t("assets.sectionAria")}>
       <ScanStatus scan={snapshot.scanStatus} onCancel={nativeBindings.cancelCensus} />
       {capture && <RuntimeContextCard capture={capture} sessionId={snapshot.sessionId} summary={snapshot.summary}
         onRunAudit={() => nativeBindings.requestAssetAudit(settings)} />}
@@ -49,7 +54,9 @@ export function AssetSection({ view, active, capture, onOpenRuntimeCaptures }: {
       {view === "compare" && <CompareTab assets={snapshot.assetPage.items.slice(0, 4)} findings={findings} />}
       {view === "settings" && <SettingsTab settings={settings} onChange={nativeBindings.updateSettings} />}
       <ExportControls selectedAsset={selectedAsset} onExport={nativeBindings.requestExport} />
-      {exportedReport && <section className={styles.exportResult} aria-label="エクスポート結果"><strong>エクスポート結果</strong><pre>{exportedReport}</pre></section>}
+      {exportedReport && <section className={styles.exportResult} aria-label={t("assets.exportResult")}>
+        <strong>{t("assets.exportResult")}</strong><p role="status">{exportResultLabel(exportedReport, locale)}</p>
+      </section>}
     </section>
   );
 }

@@ -2,6 +2,9 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
 import { ProfilerHud } from "./ProfilerHud";
+import { useGameLocale } from "../../test/locale";
+
+useGameLocale("ja-JP");
 
 it("renders a native floating launcher with a Japanese status tooltip", () => {
   const html = renderToStaticMarkup(

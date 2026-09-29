@@ -404,8 +404,9 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
                 _catalog.BeginCapture(deferPublication);
                 _catalogCaptureActive = true;
             }
-            catch
+            catch (Exception ex)
             {
+                Mod.ReportFailure("Prefab catalog capture could not start", ex);
                 LastDiagnosticCode = "APA-CAT-001";
                 DegradeCapability(CapabilityId.PrefabCatalog, "catalog_capture_failed");
                 if (CurrentScan?.State == ScanState.Running)
@@ -561,12 +562,10 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                var capability = session.Stage == ScanStage.CollectingSurfaceTexture
-                    ? CapabilityId.SurfaceMetadata
-                    : CapabilityId.GeometryMetadata;
-                FailAssetAudit("APA-AUD-002", capability, "asset_analysis_stage_failed");
+                Mod.ReportFailure($"Asset Audit stage {session.Stage} failed", ex);
+                FailAssetAudit("APA-AUD-002", AuditStageFailure.CapabilityFor(session.Stage), AuditStageFailure.DetailFor(session.Stage));
             }
         }
 
@@ -610,8 +609,9 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
                 LastDiagnosticCode = observation.Availability == Core.Observations.Availability.Failed ? observation.DiagnosticCode : null;
                 _activeDeepInspectionKey = default;
             }
-            catch
+            catch (Exception ex)
             {
+                Mod.ReportFailure("Deep Inspection failed", ex);
                 FailDeepInspection("APA-DEEP-002", "deep_inspection_failed");
             }
         }
@@ -730,8 +730,9 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
                         return;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Mod.ReportFailure($"Census stage {session.Stage} failed", ex);
                 var failedCapability = session.Stage == ScanStage.CapturingNetworkCensus || session.Stage == ScanStage.ReducingNetworkCensus
                     ? CapabilityId.NetworkEdgeCensus
                     : CapabilityId.ObjectCensus;
@@ -824,10 +825,11 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
             PollCensusCleanup();
         }
 
-        private void FailAssetAudit(string diagnosticCode, CapabilityId capability, string capabilityDetail)
+        private void FailAssetAudit(string diagnosticCode, CapabilityId? capability, string capabilityDetail)
         {
             LastDiagnosticCode = diagnosticCode;
-            DegradeCapability(capability, capabilityDetail);
+            if (capability.HasValue)
+                DegradeCapability(capability.Value, capabilityDetail);
             _catalogScanRequested = false;
             _assetAuditWaitingForCatalog = false;
             if (_catalogCaptureActive)

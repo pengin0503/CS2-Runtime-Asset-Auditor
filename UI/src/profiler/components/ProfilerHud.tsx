@@ -3,6 +3,7 @@ import { Button, Tooltip } from "cs2/ui";
 import type { UiHudSnapshot } from "../bindings";
 import { formatSpeed } from "../format";
 import { captureStateLabel } from "../text";
+import { useText } from "../../i18n/locale";
 import profilerIcon from "../../images/profiler-icon.svg";
 
 interface ProfilerHudProps {
@@ -16,7 +17,12 @@ interface ProfilerHudProps {
 // GameTopLeft row aligns it like the other floating launchers; the previous vertically centering
 // flex wrapper most likely stretched to the row height (badges on other launchers) and pushed it down.
 export function ProfilerHud({ snapshot, panelVisible, onToggle }: ProfilerHudProps) {
-  const tooltip = `CS2 Runtime Asset Auditorを開く\n指定速度 ${formatSpeed(snapshot.selectedSpeed)} / 実効速度 ${formatSpeed(snapshot.actualSpeed)} / ${captureStateLabel(snapshot.state, snapshot.isDeepCapture)}`;
+  const { locale, t } = useText();
+  const tooltip = t("hud.tooltip", {
+    selected: formatSpeed(snapshot.selectedSpeed),
+    actual: formatSpeed(snapshot.actualSpeed),
+    state: captureStateLabel(snapshot.state, snapshot.isDeepCapture, locale)
+  });
   return (
     <Tooltip tooltip={tooltip}>
       <Button

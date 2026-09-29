@@ -29,6 +29,16 @@ namespace CS2RuntimeAssetAuditor
         public static DiagnosticSessionContext SessionContext => _sessions.Current;
         public static DiagnosticWorkCoordinator WorkCoordinator => _workCoordinator;
 
+        /// <summary>
+        /// Records a handled failure with its exception so diagnostic codes shown in the UI can be traced in the
+        /// log. Logging must never turn a handled failure into an unhandled one.
+        /// </summary>
+        public static void ReportFailure(string context, System.Exception exception)
+        {
+            try { Log.Error(exception, context); }
+            catch { }
+        }
+
         public void OnLoad(UpdateSystem updateSystem)
         {
             var version = typeof(Mod).Assembly.GetName().Version?.ToString() ?? "unknown";

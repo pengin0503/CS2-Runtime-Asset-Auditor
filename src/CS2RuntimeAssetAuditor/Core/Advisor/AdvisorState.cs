@@ -24,5 +24,7 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor
         public string BaselineCaptureId { get; set; } = string.Empty;
         public IReadOnlyList<SettingChange> Changes { get; set; } = new SettingChange[0];
         public AdvisorComparison Comparison { get; set; }
+        // Outcome of the latest Apply/Undo/conflict action; null until the user acts.
+        public CS2RuntimeAssetAuditor.Advisor.Settings.AdvisorActionResult LastAction { get; set; }
     }
 }

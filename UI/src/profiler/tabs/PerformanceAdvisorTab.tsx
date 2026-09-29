@@ -1,84 +1,77 @@
 import React, { useState } from "react";
 import { Button } from "cs2/ui";
-import { AdvisorChange, AdvisorRecommendation, AdvisorUiState, CaptureSummaryUi, EMPTY_ADVISOR } from "../bindings";
+import { AdvisorAction, AdvisorChange, AdvisorRecommendation, AdvisorUiState, CaptureSummaryUi, EMPTY_ADVISOR } from "../bindings";
+import { advisorTextLabel } from "../text";
+import { useText, type Locale, type Translate } from "../../i18n/locale";
+import type { MessageKey } from "../../i18n/messages";
 import styles from "../profiler.module.scss";
 
-const GROUPS = [
-  { id: "high", label: "高優先", include: (r: AdvisorRecommendation) => r.direction === "LowerRecommended" && r.priority === "High" },
-  { id: "medium", label: "中優先", include: (r: AdvisorRecommendation) => r.direction === "LowerRecommended" && r.priority === "Medium" },
-  { id: "low", label: "低優先", include: (r: AdvisorRecommendation) => r.direction === "LowerRecommended" && r.priority === "Low" },
-  { id: "headroom", label: "上げる余地あり", include: (r: AdvisorRecommendation) => r.direction === "HeadroomAvailable" },
-  { id: "none", label: "推奨なし", include: (r: AdvisorRecommendation) => r.direction === "NoRecommendation" || r.direction === "KeepCurrent" }
+const GROUPS: Array<{ id: string; labelKey: MessageKey; include: (r: AdvisorRecommendation) => boolean }> = [
+  { id: "high", labelKey: "advisor.group.high", include: r => r.direction === "LowerRecommended" && r.priority === "High" },
+  { id: "medium", labelKey: "advisor.group.medium", include: r => r.direction === "LowerRecommended" && r.priority === "Medium" },
+  { id: "low", labelKey: "advisor.group.low", include: r => r.direction === "LowerRecommended" && r.priority === "Low" },
+  { id: "headroom", labelKey: "advisor.group.headroom", include: r => r.direction === "HeadroomAvailable" },
+  { id: "none", labelKey: "advisor.group.none", include: r => r.direction === "NoRecommendation" || r.direction === "KeepCurrent" }
 ];
 
 const GROUP_TITLE_STYLE = { whiteSpace: "nowrap", margin: "0 0 3rem", fontSize: "13rem" } as const;
 
-function categoryLabel(value: string): string {
-  switch (value) {
-    case "RenderingGpu": return "描画/GPU";
-    case "SimulationCpu": return "シミュレーション/CPU";
-    case "MemoryGc": return "メモリ/GC";
-    case "Pathfinding": return "経路探索";
-    case "Unknown": return "不明";
-    default: return value || "不明";
-  }
+function lookup(t: Translate, prefix: string, value: string, fallback: MessageKey): string {
+  const key = `${prefix}.${value}` as MessageKey;
+  const text = t(key);
+  return text === key ? (value || t(fallback)) : text;
 }
 
-function levelLabel(value: string): string {
-  switch (value) {
-    case "High": return "高";
-    case "Medium": return "中";
-    case "Low": return "低";
-    case "InsufficientEvidence": return "根拠不足";
-    default: return value || "不明";
-  }
-}
+const categoryLabel = (value: string, t: Translate) => lookup(t, "advisor.category", value, "advisor.category.Unknown");
+const levelLabel = (value: string, t: Translate) => lookup(t, "advisor.level", value, "advisor.level.Unknown");
+const changeStatusLabel = (value: string, t: Translate) => lookup(t, "advisor.status", value, "advisor.level.Unknown");
+const applyBehaviorLabel = (value: string, t: Translate) => lookup(t, "advisor.behavior", value, "advisor.level.Unknown");
 
-function changeStatusLabel(value: string): string {
-  switch (value) {
-    case "Pending": return "処理待ち";
-    case "Applied": return "適用済み";
-    case "Undone": return "元に戻しました";
-    case "ExternallyModified": return "外部変更あり";
-    case "KeptExternalValue": return "外部変更を維持";
-    case "ApplyFailed": return "適用失敗";
-    case "UndoFailed": return "復元失敗";
-    case "RestartPending": return "再起動待ち";
-    default: return value || "不明";
-  }
-}
-
-function applyBehaviorLabel(value: string): string {
-  switch (value) {
-    case "Immediate": return "即時反映";
-    case "ApplyRequired": return "適用操作が必要";
-    case "ConfirmationRequired": return "確認が必要";
-    case "RestartRequired": return "再起動が必要";
-    case "ReadOnlyForAdvisor": return "標準設定画面から変更";
-    default: return value || "不明";
-  }
-}
-
-function advisorReasonLabel(value?: string | null): string {
+export function advisorReasonLabel(value: string | null | undefined, t: Translate): string {
   if (!value) return "";
 
   let match = value.match(/^Standard Options catalog unavailable(?:: (.+))?$/);
-  if (match) return match[1]
-    ? `標準設定カタログを取得できません: ${match[1]}`
-    : "標準設定カタログを取得できません。";
+  if (match) return match[1] ? t("advisor.reason.catalogDetail", { detail: match[1] }) : t("advisor.reason.catalog");
 
   match = value.match(/^Advisor diagnosis unavailable(?:: (.+))?$/);
-  if (match) return match[1]
-    ? `Advisor の診断を実行できません: ${match[1]}`
-    : "Advisor の診断を実行できません。";
+  if (match) return match[1] ? t("advisor.reason.diagnosisDetail", { detail: match[1] }) : t("advisor.reason.diagnosis");
 
-  if (value === "Advisor export unavailable") return "Advisor のエクスポート情報を取得できません。";
+  if (value === "Advisor export unavailable") return t("advisor.reason.export");
   return value;
 }
 
-function RecommendationCard({ recommendation, onApply }: {
+/** Translates a machine-readable failure reason from the Advisor backend. */
+export function advisorFailureLabel(reason: string, t: Translate): string {
+  if (!reason) return "";
+  const key = `advisor.failure.${reason}` as MessageKey;
+  const text = t(key);
+  return text === key ? t("advisor.failure.other", { reason }) : text;
+}
+
+export function advisorActionMessage(action: AdvisorAction, t: Translate): string {
+  const name = action.displayName || action.settingId;
+  if (action.kind === "UndoSession") {
+    if (action.confirmationRequiredSettingIds?.length)
+      return t("advisor.action.sessionConfirm", { count: action.succeededCount, pending: action.confirmationRequiredSettingIds.length });
+    if (action.failedSettingIds?.length)
+      return t("advisor.action.sessionPartial", { count: action.succeededCount, failed: action.failedSettingIds.join(", ") });
+    return t("advisor.action.success.UndoSession", { count: action.succeededCount });
+  }
+  if (action.succeeded) return t(`advisor.action.success.${action.kind}` as MessageKey, { name });
+  return t("advisor.action.failed", { name, reason: advisorFailureLabel(action.failureReason, t) });
+}
+
+function isApplied(recommendation: AdvisorRecommendation, changes: AdvisorChange[]): boolean {
+  return changes.some(change => change.settingId === recommendation.settingId
+    && change.status === "Applied" && change.appliedValue === recommendation.recommendedValue);
+}
+
+function RecommendationCard({ recommendation, applied, onApply, locale, t }: {
   recommendation: AdvisorRecommendation;
+  applied: boolean;
   onApply?: (id: string, value: string, confirmed: boolean) => void;
+  locale: Locale;
+  t: Translate;
 }) {
   const [details, setDetails] = useState(false);
   const [acknowledge, setAcknowledge] = useState(false);
@@ -86,48 +79,66 @@ function RecommendationCard({ recommendation, onApply }: {
   return (
     <article className={styles.advisorCard}>
       <strong>{recommendation.displayName}</strong>
-      <span>現在値: {recommendation.currentValue} → 提案値: {recommendation.recommendedValue}</span>
-      <span>優先度: {levelLabel(recommendation.priority)}・確信度: {levelLabel(recommendation.confidence)}</span>
-      <span>{recommendation.applyCapability === "ReadOnlyForAdvisor"
-        ? "この項目はゲームの標準設定画面で変更してください。" : "変更する前に根拠を確認してください。"}</span>
-      {onApply && recommendation.applyCapability === "Available" &&
-        (needsConfirmation && !acknowledge
-          ? <Button as="button" variant="flat" onSelect={() => setAcknowledge(true)}>確認が必要: 変更内容を確認</Button>
-          : <Button as="button" variant="flat" onSelect={() => onApply(recommendation.settingId,
-              recommendation.recommendedValue, needsConfirmation && acknowledge)}>適用</Button>)}
+      <span>{t("advisor.current", { current: recommendation.currentValue, proposed: recommendation.recommendedValue })}</span>
+      <span>{t("advisor.priority", { priority: levelLabel(recommendation.priority, t), confidence: levelLabel(recommendation.confidence, t) })}</span>
+      <span>{recommendation.applyCapability === "ReadOnlyForAdvisor" ? t("advisor.readOnly") : t("advisor.checkEvidence")}</span>
+      {applied
+        ? <span>{t("advisor.applied")}</span>
+        : onApply && recommendation.applyCapability === "Available" &&
+          (needsConfirmation && !acknowledge
+            ? <Button as="button" variant="flat" onSelect={() => setAcknowledge(true)}>{t("advisor.confirmRequired")}</Button>
+            : <Button as="button" variant="flat" onSelect={() => onApply(recommendation.settingId,
+                recommendation.recommendedValue, needsConfirmation && acknowledge)}>{t("advisor.apply")}</Button>)}
       <Button as="button" variant="flat" onSelect={() => setDetails(!details)} aria-expanded={details}>
-        {details ? "詳細を閉じる" : "詳細を見る"}
+        {details ? t("advisor.hideDetails") : t("advisor.showDetails")}
       </Button>
       {details && <div className={styles.advisorDetails}>
-        <span>{recommendation.rationale}</span>
-        <span>根拠: {recommendation.evidenceIds?.join("、") || "十分な根拠なし"}</span>
-        <span>反映方法: {applyBehaviorLabel(recommendation.applyBehavior)}</span>
+        <span>{advisorTextLabel(recommendation.rationale, locale)}</span>
+        <span>{t("advisor.evidence", { evidence: recommendation.evidenceIds?.join(", ") || t("advisor.noEvidence") })}</span>
+        <span>{t("advisor.applyBehavior", { behavior: applyBehaviorLabel(recommendation.applyBehavior, t) })}</span>
       </div>}
     </article>
   );
 }
 
-function ChangeCard({ change, onUndo, onResolveConflict }: {
+function ChangeCard({ change, onUndo, onResolveConflict, t }: {
   change: AdvisorChange;
   onUndo?: (id: string, confirmed: boolean) => void;
   onResolveConflict?: (id: string, restoreOriginal: boolean) => void;
+  t: Translate;
 }) {
   const [acknowledgeUndo, setAcknowledgeUndo] = useState(false);
   return <article className={styles.advisorCard}>
-    <strong>{change.settingId}</strong>
-    <span>{change.originalValue} → {change.appliedValue}・現在値: {change.currentObservedValue}</span>
-    <span>状態: {changeStatusLabel(change.status)}</span>
+    <strong title={change.settingId}>{change.displayName || change.settingId}</strong>
+    <span>{t("advisor.changeValues", { original: change.originalValue, applied: change.appliedValue, current: change.currentObservedValue })}</span>
+    <span>{t("advisor.changeStatus", { status: changeStatusLabel(change.status, t) })}</span>
     {change.status === "Applied" && onUndo && (
       acknowledgeUndo
-        ? <Button as="button" variant="flat" onSelect={() => onUndo(change.settingId, true)}>元に戻す操作を確定</Button>
-        : <Button as="button" variant="flat" onSelect={() => setAcknowledgeUndo(true)}>元に戻す</Button>
+        ? <Button as="button" variant="flat" onSelect={() => onUndo(change.settingId, true)}>{t("advisor.undoConfirm")}</Button>
+        : <Button as="button" variant="flat" onSelect={() => setAcknowledgeUndo(true)}>{t("advisor.undo")}</Button>
     )}
     {change.status === "ExternallyModified" && onResolveConflict && <div className={styles.advisorActions}>
-      <span>外部変更を検出しました。元の値へ自動的には戻しません。</span>
-      <Button as="button" variant="flat" onSelect={() => onResolveConflict(change.settingId, false)}>現在値を維持</Button>
-      <Button as="button" variant="flat" onSelect={() => onResolveConflict(change.settingId, true)}>変更前の値へ戻す</Button>
+      <span>{t("advisor.conflict")}</span>
+      <Button as="button" variant="flat" onSelect={() => onResolveConflict(change.settingId, false)}>{t("advisor.keepCurrent")}</Button>
+      <Button as="button" variant="flat" onSelect={() => onResolveConflict(change.settingId, true)}>{t("advisor.restoreOriginal")}</Button>
     </div>}
   </article>;
+}
+
+function UndoSessionControl({ appliedCount, onUndoSession, t }: {
+  appliedCount: number;
+  onUndoSession: (confirmed: boolean) => void;
+  t: Translate;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  if (!confirming)
+    return <Button as="button" variant="flat" onSelect={() => setConfirming(true)}>{t("advisor.undoSession")}</Button>;
+  return <div className={styles.advisorActions}>
+    <Button as="button" variant="flat" onSelect={() => { setConfirming(false); onUndoSession(true); }}>
+      {t("advisor.undoSessionConfirm", { count: appliedCount })}
+    </Button>
+    <Button as="button" variant="flat" onSelect={() => setConfirming(false)}>{t("advisor.cancel")}</Button>
+  </div>;
 }
 
 export function PerformanceAdvisorTab({ advisor = EMPTY_ADVISOR, captures = [], onDiagnose, onBaseline, onManualCapture,
@@ -139,36 +150,40 @@ export function PerformanceAdvisorTab({ advisor = EMPTY_ADVISOR, captures = [], 
   onManualCapture?: () => void;
   onApply?: (id: string, value: string, confirmed: boolean) => void;
   onUndo?: (id: string, confirmed: boolean) => void;
-  onUndoSession?: () => void;
+  onUndoSession?: (confirmed: boolean) => void;
   onResolveConflict?: (id: string, restoreOriginal: boolean) => void;
   onRediagnose?: (id: string) => void;
 }) {
+  const { locale, t } = useText();
   const [showNoRecommendation, setShowNoRecommendation] = useState(false);
+  const changes = advisor.changes ?? [];
+  const appliedCount = changes.filter(change => change.status === "Applied").length;
   return (
     <section className={styles.advisorTab}>
-      <h2>Performance Advisor・改善提案</h2>
-      <p>診断 → 提案 → ユーザーによる変更 → 再診断。変更後の結果をもう一度計測してください。</p>
+      <h2>{t("advisor.title")}</h2>
+      <p>{t("advisor.intro")}</p>
+      {advisor.lastAction && <p className={styles.exportResult} role="status">{advisorActionMessage(advisor.lastAction, t)}</p>}
       <div className={styles.advisorActions}>
-        {onManualCapture && <Button as="button" variant="flat" onSelect={onManualCapture}>手動詳細キャプチャを開始</Button>}
+        {onManualCapture && <Button as="button" variant="flat" onSelect={onManualCapture}>{t("advisor.manualCapture")}</Button>}
         {captures.map(capture => (
           <div className={styles.advisorCapture} key={capture.id}>
             <span>{capture.id}</span>
-            {onDiagnose && <Button as="button" variant="flat" onSelect={() => onDiagnose(capture.id)}>このキャプチャを診断</Button>}
+            {onDiagnose && <Button as="button" variant="flat" onSelect={() => onDiagnose(capture.id)}>{t("advisor.diagnose")}</Button>}
             {onRediagnose && advisor.selectedCaptureId && <Button as="button" variant="flat"
-              onSelect={() => onRediagnose(capture.id)}>このキャプチャで再診断</Button>}
-            {onBaseline && <Button as="button" variant="flat" onSelect={() => onBaseline(capture.id)}>比較の基準に選択</Button>}
+              onSelect={() => onRediagnose(capture.id)}>{t("advisor.rediagnose")}</Button>}
+            {onBaseline && <Button as="button" variant="flat" onSelect={() => onBaseline(capture.id)}>{t("advisor.baseline")}</Button>}
           </div>
         ))}
       </div>
-      {advisor.unavailableReason && <p className={styles.empty}>Advisor: {advisorReasonLabel(advisor.unavailableReason)}</p>}
+      {advisor.unavailableReason && <p className={styles.empty}>{t("advisor.unavailable", { reason: advisorReasonLabel(advisor.unavailableReason, t) })}</p>}
       {advisor.selectedCaptureId
-        ? <p>診断対象: {advisor.selectedCaptureId}{advisor.baselineCaptureId ? `・基準: ${advisor.baselineCaptureId}` : ""}</p>
-        : <p>完了した詳細キャプチャを選んで診断してください。</p>}
+        ? <p>{t("advisor.target", { id: advisor.selectedCaptureId })}{advisor.baselineCaptureId ? t("advisor.targetBaseline", { id: advisor.baselineCaptureId }) : ""}</p>
+        : <p>{t("advisor.pick")}</p>}
       {advisor.observations.map((observation, index) => (
         <div className={styles.advisorObservation} key={`${observation.category}-${index}`}>
-          <strong>{categoryLabel(observation.category)}・{levelLabel(observation.severity)}</strong>
-          <span>確信度: {levelLabel(observation.confidence)}・根拠: {observation.evidenceIds?.join("、")}</span>
-          <span>{observation.rationale}</span>
+          <strong>{t("advisor.observation", { category: categoryLabel(observation.category, t), severity: levelLabel(observation.severity, t) })}</strong>
+          <span>{t("advisor.observationEvidence", { confidence: levelLabel(observation.confidence, t), evidence: observation.evidenceIds?.join(", ") ?? "" })}</span>
+          <span>{advisorTextLabel(observation.rationale, locale)}</span>
         </div>
       ))}
       {GROUPS.map(group => {
@@ -177,30 +192,28 @@ export function PerformanceAdvisorTab({ advisor = EMPTY_ADVISOR, captures = [], 
         return (
           <section className={styles.advisorGroup} key={group.id}>
             {group.id === "none"
-              ? <Button as="button" variant="flat" aria-label="推奨なしを表示" aria-expanded={open}
-                  onSelect={() => setShowNoRecommendation(!showNoRecommendation)}>{group.label} ({entries.length})</Button>
-              : <h3 style={GROUP_TITLE_STYLE}>{group.label} ({entries.length})</h3>}
-            {open && entries.map(entry => <RecommendationCard key={entry.settingId} recommendation={entry} onApply={onApply} />)}
+              ? <Button as="button" variant="flat" aria-label={t("advisor.showNone")} aria-expanded={open}
+                  onSelect={() => setShowNoRecommendation(!showNoRecommendation)}>{t(group.labelKey)} ({entries.length})</Button>
+              : <h3 style={GROUP_TITLE_STYLE}>{t(group.labelKey)} ({entries.length})</h3>}
+            {open && entries.map(entry => <RecommendationCard key={entry.settingId} recommendation={entry}
+              applied={isApplied(entry, changes)} onApply={onApply} locale={locale} t={t} />)}
           </section>
         );
       })}
-      {!!advisor.changes?.length && <section className={styles.advisorGroup}>
-        <h3 style={GROUP_TITLE_STYLE}>このセッションの変更 ({advisor.changes.length})</h3>
-        {advisor.changes.map((change, index) => <ChangeCard key={`${change.settingId}-${index}`} change={change}
-          onUndo={onUndo} onResolveConflict={onResolveConflict} />)}
-        {onUndoSession && advisor.changes.some(change => change.status === "Applied") &&
-          <Button as="button" variant="flat" onSelect={onUndoSession}>セッションの変更を元に戻す</Button>}
+      {!!changes.length && <section className={styles.advisorGroup}>
+        <h3 style={GROUP_TITLE_STYLE}>{t("advisor.changes", { count: changes.length })}</h3>
+        {changes.map((change, index) => <ChangeCard key={`${change.settingId}-${index}`} change={change}
+          onUndo={onUndo} onResolveConflict={onResolveConflict} t={t} />)}
+        {onUndoSession && appliedCount > 0 && <UndoSessionControl appliedCount={appliedCount} onUndoSession={onUndoSession} t={t} />}
       </section>}
       {advisor.comparison && <section className={styles.advisorGroup}>
-        <h3 style={GROUP_TITLE_STYLE}>診断の前後比較</h3>
-        {advisor.comparison.multipleChanges &&
-          <p>複数の設定を変更しています。以下は測定差分であり、個別設定の効果を断定しません。</p>}
+        <h3 style={GROUP_TITLE_STYLE}>{t("advisor.comparison")}</h3>
+        {advisor.comparison.multipleChanges && <p>{t("advisor.multipleChanges")}</p>}
         {advisor.comparison.metrics.map(metric => (
           <div className={styles.advisorObservation} key={metric.id}>
-            <strong>{metric.id}: {{ Improved: "改善", Regressed: "悪化", NoMaterialChange: "大きな変化なし",
-              NotComparable: "比較不可" }[metric.state]}</strong>
-            <span>{metric.baselineValue ?? "取得不可"} → {metric.followUpValue ?? "取得不可"}</span>
-            {metric.reason && <span>{metric.reason}</span>}
+            <strong>{metric.id}: {t(`advisor.compare.${metric.state}` as MessageKey)}</strong>
+            <span>{metric.baselineValue ?? t("advisor.notAvailableValue")} → {metric.followUpValue ?? t("advisor.notAvailableValue")}</span>
+            {metric.reason && <span>{advisorTextLabel(metric.reason, locale)}</span>}
           </div>
         ))}
       </section>}

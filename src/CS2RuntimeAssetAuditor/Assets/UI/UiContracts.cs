@@ -7,6 +7,8 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
         public const string Group = AssetAuditBindingNames.Group;
         public const string Snapshot = "snapshot";
         public const string ExportedReport = "exportedReport";
+        // Findings change only when an analysis is published, so they travel separately from the scan status.
+        public const string Findings = "findings";
         public const string RequestCensus = "requestCensus";
         public const string RequestAssetAudit = "requestAssetAudit";
         public const string RequestDeepInspection = "requestDeepInspection";
@@ -17,13 +19,19 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
     }
 
     [DataContract]
+    public sealed class UiFindingList
+    {
+        [DataMember(Name = "analysisGeneration", Order = 1)] public long AnalysisGeneration { get; set; }
+        [DataMember(Name = "findings", Order = 2)] public UiFinding[] Findings { get; set; } = new UiFinding[0];
+    }
+
+    [DataContract]
     public sealed class UiSnapshot
     {
         [DataMember(Name = "scanStatus", Order = 1)] public UiScanStatus ScanStatus { get; set; } = new UiScanStatus();
         [DataMember(Name = "summary", Order = 2)] public UiSummary Summary { get; set; } = new UiSummary();
         [DataMember(Name = "assetPage", Order = 3)] public UiAssetPage AssetPage { get; set; } = new UiAssetPage();
         [DataMember(Name = "settings", Order = 4)] public UiScanOptions Settings { get; set; } = new UiScanOptions();
-        [DataMember(Name = "findings", Order = 5)] public UiFinding[] Findings { get; set; } = new UiFinding[0];
         [DataMember(Name = "diagnostics", Order = 6)] public UiDiagnostics Diagnostics { get; set; } = new UiDiagnostics();
         [DataMember(Name = "sessionId", Order = 7, EmitDefaultValue = true)] public string? SessionId { get; set; }
     }

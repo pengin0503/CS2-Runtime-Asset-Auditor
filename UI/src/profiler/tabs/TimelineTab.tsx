@@ -4,6 +4,7 @@ import type { TimelinePoint } from "../bindings";
 import { formatByUnit, shortMetricName } from "../format";
 import { confidenceLabel } from "../text";
 import styles from "../profiler.module.scss";
+import { useText } from "../../i18n/locale";
 
 interface MetricIdentity {
   kind: string;
@@ -110,6 +111,7 @@ export function chartableSeries(points: TimelinePoint[]): { series: Series[]; si
 }
 
 export function TimelineTab({ points }: { points: TimelinePoint[] }) {
+  const { locale, t } = useText();
   const { series, singleSampleCount } = useMemo(() => chartableSeries(points), [points]);
   const labels = useMemo(() => buildSeriesLabels(series.map(item => item.metric)), [series]);
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
@@ -122,7 +124,7 @@ export function TimelineTab({ points }: { points: TimelinePoint[] }) {
   });
 
   if (!series.length) {
-    return <p className={styles.empty}>保持されているタイムライン履歴はまだありません。単一時点のカウンターから履歴を捏造することはありません。</p>;
+    return <p className={styles.empty}>{t("timeline.empty")}</p>;
   }
 
   const allPoints = series.flatMap(item => item.points);
@@ -164,7 +166,7 @@ export function TimelineTab({ points }: { points: TimelinePoint[] }) {
       </div>
 
       <div className={styles.chartWrap}>
-        <svg className={styles.timelineChart} viewBox="0 0 1000 260" role="img" aria-label="プロファイラーのタイムライン">
+        <svg className={styles.timelineChart} viewBox="0 0 1000 260" role="img" aria-label={t("timeline.chartAria")}>
           <line x1="28" y1="232" x2="972" y2="232" className={styles.chartAxis} />
           <line x1="28" y1="28" x2="28" y2="232" className={styles.chartAxis} />
           {visible.map(item => {
@@ -176,7 +178,7 @@ export function TimelineTab({ points }: { points: TimelinePoint[] }) {
                   fill="none" stroke={visual.color} strokeDasharray={visual.dash || undefined} className={styles.chartLine} />
                 {coords.map(({ point, x, y }, index) => (
                   <circle key={`${point.timestampSeconds}-${index}`} cx={x} cy={y} r="5" fill={visual.color} className={styles.chartPoint} onClick={() => setSelectedTime(point.timestampSeconds)}>
-                    <title>{`${labelOf(item.metric)} / ${point.timestampSeconds.toFixed(2)}秒 = ${formatByUnit(point.value, item.unitType)}（${confidenceLabel(point.confidence)}）`}</title>
+                    <title>{t("timeline.pointTitle", { series: labelOf(item.metric), time: point.timestampSeconds.toFixed(2), value: formatByUnit(point.value, item.unitType), confidence: confidenceLabel(point.confidence, locale) })}</title>
                   </circle>
                 ))}
               </g>
@@ -185,14 +187,14 @@ export function TimelineTab({ points }: { points: TimelinePoint[] }) {
         </svg>
       </div>
       <p className={styles.chartNote}>
-        形状比較のため各系列は観測範囲ごとに正規化しています。生の値はポイントのホバー／選択で確認できます。色が再利用される場合は線種も変わります。
-        {singleSampleCount > 0 ? ` 1点しかない値（${singleSampleCount} 件）は線にならないため表示していません。` : ""}
+        {t("timeline.note")}
+        {singleSampleCount > 0 ? t("timeline.singleSamples", { count: singleSampleCount }) : ""}
       </p>
       {selectedTime != null && (
         <div className={styles.selectedPoint}>
-          <strong>時刻 = {selectedTime.toFixed(2)} 秒</strong>
+          <strong>{t("timeline.selectedTime", { time: selectedTime.toFixed(2) })}</strong>
           {selected.map(({ point, unitType }) => (
-            <span key={point.metric}>{labelOf(point.metric)}: {formatByUnit(point.value, unitType)}（{confidenceLabel(point.confidence)}）</span>
+            <span key={point.metric}>{labelOf(point.metric)}: {formatByUnit(point.value, unitType)} ({confidenceLabel(point.confidence, locale)})</span>
           ))}
         </div>
       )}

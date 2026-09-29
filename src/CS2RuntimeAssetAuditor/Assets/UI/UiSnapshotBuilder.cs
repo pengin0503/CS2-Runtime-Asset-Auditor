@@ -17,6 +17,12 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
 {
     public sealed class UiSnapshotBuilder
     {
+        // Building a DataContractJsonSerializer reflects over the whole contract; reuse one per type.
+        private static class SerializerCache<T>
+        {
+            public static readonly DataContractJsonSerializer Instance = new DataContractJsonSerializer(typeof(T));
+        }
+
         private CensusSnapshot? _cachedCensus;
         private UiCensusCounts? _cachedCensusCounts;
 
@@ -92,16 +98,22 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                     CensusCounts = GetCensusCounts(census)
                 },
                 AssetPage = MapPage(assetPage, analysis),
-                Settings = CopySettings(settings),
-                Findings = MapFindings(analysis)
+                Settings = CopySettings(settings)
             };
         }
+
+        /// <summary>Findings of the current analysis; published on their own binding only when the analysis changes.</summary>
+        public static UiFindingList BuildFindings(AssetAnalysisSnapshot? analysis) => new UiFindingList
+        {
+            AnalysisGeneration = analysis?.AnalysisGeneration ?? 0,
+            Findings = MapFindings(analysis)
+        };
 
         public static string Serialize<T>(T value)
         {
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
-            var serializer = new DataContractJsonSerializer(typeof(T));
+            var serializer = SerializerCache<T>.Instance;
             using (var stream = new MemoryStream())
             {
                 serializer.WriteObject(stream, value);
@@ -116,7 +128,7 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                 return false;
             try
             {
-                var serializer = new DataContractJsonSerializer(typeof(T));
+                var serializer = SerializerCache<T>.Instance;
                 using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(json)))
                     value = serializer.ReadObject(stream) as T ?? null!;
                 return value != null;

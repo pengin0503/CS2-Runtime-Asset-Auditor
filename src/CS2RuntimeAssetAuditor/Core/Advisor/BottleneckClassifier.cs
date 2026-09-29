@@ -30,14 +30,14 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor
                         ? AdvisorConfidence.High : AdvisorConfidence.Medium;
                 if (overheadHigh) confidence = AdvisorConfidence.Low;
                 result.Add(new BottleneckObservation(BottleneckCategory.RenderingGpu, BottleneckSeverity.High,
-                    confidence, new[] { "frame.p95.ms", "gpu.frame.ms" }, "フレーム時間とGPU時間の両方で描画負荷の上昇を確認しました。"));
+                    confidence, new[] { "frame.p95.ms", "gpu.frame.ms" }, "Both frame time and GPU time show elevated rendering load."));
             }
             else if (gpu.Availability == MetricAvailability.Available && gpu.Value >= SlowGpuMilliseconds
                 && gpu.Confidence == MetricConfidence.Full && frame.Availability == MetricAvailability.Unavailable)
             {
                 result.Add(new BottleneckObservation(BottleneckCategory.RenderingGpu, BottleneckSeverity.High,
                     overheadHigh ? AdvisorConfidence.Low : AdvisorConfidence.Medium,
-                    new[] { "gpu.frame.ms" }, "直接GPU時間が高い状態です。総フレーム時間は取得できないため確信度を抑えています。"));
+                    new[] { "gpu.frame.ms" }, "Direct GPU time is high. Total frame time is unavailable, so confidence is reduced."));
             }
 
             if (simulation.Availability == MetricAvailability.Available && simulation.Value < LowSimulationEfficiency)
@@ -45,7 +45,7 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor
                 var confidence = overheadHigh ? AdvisorConfidence.Low : simulation.Confidence == MetricConfidence.Full
                     ? AdvisorConfidence.High : AdvisorConfidence.Medium;
                 result.Add(new BottleneckObservation(BottleneckCategory.SimulationCpu, BottleneckSeverity.High,
-                    confidence, new[] { "simulation.efficiency" }, "キャプチャ後半を含む計測窓でシミュレーション効率の低下が継続しています。"));
+                    confidence, new[] { "simulation.efficiency" }, "Simulation efficiency stays low across the measurement window, including the later part of the capture."));
             }
             else if (triggerSimulation.Availability == MetricAvailability.Available
                 && triggerSimulation.Value < LowSimulationEfficiency)
@@ -56,7 +56,7 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor
                 result.Add(new BottleneckObservation(BottleneckCategory.SimulationCpu, BottleneckSeverity.Medium,
                     overheadHigh ? AdvisorConfidence.Low : AdvisorConfidence.Medium,
                     evidenceIds,
-                    "トリガー時にはシミュレーション効率が低下していましたが、計測窓では継続的な低下を確認できませんでした。"));
+                    "Simulation efficiency was low at the trigger, but no sustained drop was confirmed in the measurement window."));
             }
 
             // Low pressure is evidence of potential headroom, not proof that increasing quality is safe.
@@ -67,7 +67,7 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor
                 result.Add(new BottleneckObservation(BottleneckCategory.RenderingGpu, BottleneckSeverity.Low,
                     overheadHigh ? AdvisorConfidence.Low : AdvisorConfidence.Medium,
                     new[] { "gpu.frame.ms", "frame.p95.ms", "simulation.efficiency" },
-                    "現在の計測条件では描画負荷に余裕があります。設定変更後は再診断してください。"));
+                    "Rendering has headroom under the current measurement conditions. Diagnose again after changing settings."));
             }
             return result;
         }

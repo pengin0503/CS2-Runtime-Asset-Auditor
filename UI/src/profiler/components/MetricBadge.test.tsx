@@ -2,6 +2,9 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { MetricBadge } from "./MetricBadge";
+import { useGameLocale } from "../../test/locale";
+
+useGameLocale("ja-JP");
 
 describe("MetricBadge", () => {
   it("shows Japanese unavailable text and preserves the technical reason", () => {

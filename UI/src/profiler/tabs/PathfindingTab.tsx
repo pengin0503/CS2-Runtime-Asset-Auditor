@@ -3,19 +3,21 @@ import type { UiMetricRow } from "../bindings";
 import { formatMetricValue, shortMetricName } from "../format";
 import { MetricBadge } from "../components/MetricBadge";
 import { metricReasonLabel } from "../text";
+import { useText } from "../../i18n/locale";
 import styles from "../profiler.module.scss";
 
 export function PathfindingTab({ metrics }: { metrics: UiMetricRow[] }) {
+  const { locale, t } = useText();
   if (!metrics?.length) {
-    return <p className={styles.empty}>現在のランタイムから検証済みの経路探索カウンターを取得できません。</p>;
+    return <p className={styles.empty}>{t("pathfinding.empty")}</p>;
   }
 
   return (
     <div className={styles.tabBody}>
-      <p className={styles.explainer}>これらは補助的な指標です。キューの増加や処理量の変化だけで原因と断定しません。</p>
+      <p className={styles.explainer}>{t("pathfinding.explainer")}</p>
       <div className={styles.metricList}>
         {metrics.map(metric => {
-          const reason = metricReasonLabel(metric.reason);
+          const reason = metricReasonLabel(metric.reason, locale);
           return (
             <div className={styles.metricRow} key={metric.id}>
               <div className={styles.metricIdentity}>

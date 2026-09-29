@@ -5,6 +5,9 @@ import { PathfindingTab } from "./PathfindingTab";
 import { TimelineTab } from "./TimelineTab";
 import { CapturesTab } from "./CapturesTab";
 import { DiagnosticsTab } from "./DiagnosticsTab";
+import { useGameLocale } from "../../test/locale";
+
+useGameLocale("ja-JP");
 
 const snapshot: any = {
   global: { available: true, timestampSeconds: 20, selectedSpeed: 4, actualSpeed: 2.5, efficiency: 0.625, recorderMetrics: [] },

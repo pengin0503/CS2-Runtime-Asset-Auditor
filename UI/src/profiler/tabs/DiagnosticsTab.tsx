@@ -1,44 +1,48 @@
 import React from "react";
 import type { CaptureSummaryUi, DiagnosticsUi } from "../bindings";
 import { formatMilliseconds, formatPercent } from "../format";
+import { diagnosticMessageLabel } from "../text";
+import { useText } from "../../i18n/locale";
+import type { MessageKey } from "../../i18n/messages";
 import styles from "../profiler.module.scss";
 
 export function DiagnosticsTab({ diagnostics, captures }: { diagnostics: DiagnosticsUi; captures: CaptureSummaryUi[] }) {
+  const { locale, t } = useText();
   const latest = captures?.length ? captures[captures.length - 1] : null;
-  const values: Array<[string, string | number]> = [
-    ["ゲームバージョン", diagnostics.gameVersion || "利用不可"],
-    ["プロファイラーバージョン", diagnostics.profilerVersion || "利用不可"],
-    ["検出マーカー数", diagnostics.discoveredMarkerCount],
-    ["サンプル取得マーカー数", diagnostics.capturedMarkerCount],
-    ["システム行数", diagnostics.systemCount],
-    ["マーカーバッチサイズ", diagnostics.markerBatchSize],
-    ["サンプリング間引き", diagnostics.samplingStride],
-    ["キャプチャ処理負荷", formatPercent(diagnostics.profilerOverheadShare)],
-    ["未帰属ジョブ時間", diagnostics.unattributedJobsMilliseconds == null ? "未計測" : formatMilliseconds(diagnostics.unattributedJobsMilliseconds)],
-    ["パッチ情報", diagnostics.patchMapState || "利用不可"]
+  const values: Array<[MessageKey, string | number]> = [
+    ["diagnostics.gameVersion", diagnostics.gameVersion || t("common.unavailable")],
+    ["diagnostics.profilerVersion", diagnostics.profilerVersion || t("common.unavailable")],
+    ["diagnostics.discoveredMarkers", diagnostics.discoveredMarkerCount],
+    ["diagnostics.capturedMarkers", diagnostics.capturedMarkerCount],
+    ["diagnostics.systemRows", diagnostics.systemCount],
+    ["diagnostics.batchSize", diagnostics.markerBatchSize],
+    ["diagnostics.stride", diagnostics.samplingStride],
+    ["diagnostics.overhead", formatPercent(diagnostics.profilerOverheadShare)],
+    ["diagnostics.unattributedJobs", diagnostics.unattributedJobsMilliseconds == null ? t("diagnostics.notMeasured") : formatMilliseconds(diagnostics.unattributedJobsMilliseconds)],
+    ["diagnostics.patchMap", diagnostics.patchMapState ? diagnosticMessageLabel(diagnostics.patchMapState, locale) : t("common.unavailable")]
   ];
 
   return (
     <div className={styles.tabBody}>
       <div className={styles.diagnosticsGrid}>
-        {values.map(([name, value]) => <div className={styles.diagnosticItem} key={name}><span>{name}</span><strong>{value}</strong></div>)}
+        {values.map(([name, value]) => <div className={styles.diagnosticItem} key={name}><span>{t(name)}</span><strong>{value}</strong></div>)}
       </div>
-      <p className={styles.diagnosticMessage}>キャプチャ処理負荷は、詳細キャプチャ制御・集計処理を0.5秒の監視周期に対する割合で示した値です。ゲーム全体のプロファイラー負荷ではありません。</p>
+      <p className={styles.diagnosticMessage}>{t("diagnostics.overheadNote")}</p>
       {latest && (
         <section>
-          <h3>最新キャプチャのサンプル取得状況</h3>
+          <h3>{t("diagnostics.latestCoverage")}</h3>
           <div className={styles.captureFacts}>
-            <span>サンプル取得率 <b>{formatPercent(latest.coverageRatio)}</b></span>
-            <span>方式 <b>{latest.batched ? "分割計測" : "同時計測"}</b></span>
-            <span>最大キャプチャ処理負荷 <b>{formatPercent(latest.profilerOverheadShare)}</b></span>
+            <span>{t("diagnostics.coverage")} <b>{formatPercent(latest.coverageRatio)}</b></span>
+            <span>{t("diagnostics.mode")} <b>{latest.batched ? t("captures.batched") : t("captures.simultaneous")}</b></span>
+            <span>{t("diagnostics.maxOverhead")} <b>{formatPercent(latest.profilerOverheadShare)}</b></span>
           </div>
         </section>
       )}
       <section>
-        <h3>コレクター／互換性メモ</h3>
+        <h3>{t("diagnostics.notes")}</h3>
         {diagnostics.messages?.length
-          ? diagnostics.messages.map(message => <p className={styles.diagnosticMessage} key={message}>{message}</p>)
-          : <p className={styles.empty}>診断メッセージはありません。</p>}
+          ? diagnostics.messages.map(message => <p className={styles.diagnosticMessage} key={message}>{diagnosticMessageLabel(message, locale)}</p>)
+          : <p className={styles.empty}>{t("diagnostics.noMessages")}</p>}
       </section>
     </div>
   );

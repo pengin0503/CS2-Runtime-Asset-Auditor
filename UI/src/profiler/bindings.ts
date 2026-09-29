@@ -137,6 +137,20 @@ export interface AdvisorUiState {
   recommendations: AdvisorRecommendation[];
   changes?: AdvisorChange[];
   comparison?: AdvisorComparison | null;
+  lastAction?: AdvisorAction | null;
+}
+
+/** Outcome of the latest Apply/Undo/conflict action, so no button press is silent. */
+export interface AdvisorAction {
+  kind: "Apply" | "Undo" | "UndoSession" | "ResolveConflict";
+  settingId: string;
+  displayName: string;
+  succeeded: boolean;
+  failureReason: string;
+  succeededCount: number;
+  failedSettingIds: string[];
+  confirmationRequiredSettingIds: string[];
+  atUtc: string;
 }
 
 export interface AdvisorComparison {
@@ -148,6 +162,7 @@ export interface AdvisorComparison {
 
 export interface AdvisorChange {
   settingId: string;
+  displayName?: string;
   originalValue: string;
   appliedValue: string;
   currentObservedValue: string;
@@ -156,7 +171,7 @@ export interface AdvisorChange {
 
 export const EMPTY_ADVISOR: AdvisorUiState = {
   available: false, unavailableReason: "", selectedCaptureId: "", baselineCaptureId: "",
-  catalog: [], observations: [], recommendations: [], changes: [], comparison: null
+  catalog: [], observations: [], recommendations: [], changes: [], comparison: null, lastAction: null
 };
 
 export interface UiSnapshot {
@@ -260,7 +275,8 @@ export const selectAdvisorBaseline = (id: string) => trigger(GROUP, "selectAdvis
 export const advisorApply = (id: string, value: string, confirmed = false) =>
   trigger(GROUP, "advisorApply", id, value, confirmed);
 export const advisorUndo = (id: string, confirmed = false) => trigger(GROUP, "advisorUndo", id, confirmed);
-export const advisorUndoSession = () => trigger(GROUP, "advisorUndoSession");
+/** Undoes every applied change; `confirmed` also restores settings that require confirmation. */
+export const advisorUndoSession = (confirmed = false) => trigger(GROUP, "advisorUndoSession", confirmed);
 export const advisorResolveConflict = (id: string, restoreOriginal: boolean) =>
   trigger(GROUP, "advisorResolveConflict", id, restoreOriginal);
 export const exportReport = () => trigger(GROUP, "exportReport");

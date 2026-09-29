@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import type { ExportAssetKey, ExportFormat, ExportRequest, ExportScope } from "../types";
 import { ChoiceControl } from "./ChoiceControl";
+import { useText } from "../../i18n/locale";
+import type { MessageKey } from "../../i18n/messages";
 
 export function ExportControls({
   selectedAsset,
@@ -9,23 +11,22 @@ export function ExportControls({
   selectedAsset: ExportAssetKey | null;
   onExport: (request: ExportRequest) => void;
 }): React.JSX.Element {
+  const { t } = useText();
   const [format, setFormat] = useState<ExportFormat>("Json");
   const [scope, setScope] = useState<ExportScope>("Full");
   const selectedUnavailable = !selectedAsset;
   const effectiveScope: ExportScope = selectedUnavailable && scope === "Selected" ? "Full" : scope;
+  const scopes: ExportScope[] = ["Full", "Filtered", ...(!selectedUnavailable ? ["Selected" as ExportScope] : []), "Census", "Findings"];
 
   return (
-    <section className="apa__export-controls" aria-label="Export audit data">
+    <section className="apa__export-controls" aria-label={t("exportc.aria")}>
       <div className="apa__section-heading">
-        <div><p className="apa__eyebrow">Shared export action</p><h3>Export</h3></div>
+        <div><p className="apa__eyebrow">{t("exportc.eyebrow")}</p><h3>{t("exportc.title")}</h3></div>
       </div>
       <div className="apa__filters">
-        <ChoiceControl label="Format" value={format} choices={[["Json", "JSON"], ["Csv", "CSV"]]} onChange={setFormat} />
-        <ChoiceControl label="Scope" value={effectiveScope} choices={([
-          ["Full", "Full report"], ["Filtered", "Filtered assets"],
-          ...(!selectedUnavailable ? [["Selected", "Selected asset"]] : []),
-          ["Census", "Census only"], ["Findings", "Findings only"]
-        ] as Array<[ExportScope, string]>)} onChange={setScope} />
+        <ChoiceControl label={t("exportc.format")} value={format} choices={[["Json", "JSON"], ["Csv", "CSV"]]} onChange={setFormat} />
+        <ChoiceControl label={t("exportc.scope")} value={effectiveScope}
+          choices={scopes.map(value => [value, t(`exportc.scope.${value}` as MessageKey)] as const)} onChange={setScope} />
         <button
           type="button"
           className="apa__button"
@@ -35,11 +36,11 @@ export function ExportControls({
             selectedKeys: effectiveScope === "Selected" && selectedAsset ? [selectedAsset] : [],
           })}
         >
-          Save {format === "Json" ? "unified JSON" : "Asset CSV"} report
+          {format === "Json" ? t("exportc.saveJson") : t("exportc.saveCsv")}
         </button>
       </div>
-      {selectedUnavailable ? <p className="apa__muted">Select an asset to enable Selected export.</p> : null}
-      <p className="apa__muted">Reports are saved in ModsData/CS2RuntimeAssetAuditor. Filtered Asset CSV includes all matching rows, not only the visible page.</p>
+      {selectedUnavailable ? <p className="apa__muted">{t("exportc.selectHint")}</p> : null}
+      <p className="apa__muted">{t("exportc.location")}</p>
     </section>
   );
 }

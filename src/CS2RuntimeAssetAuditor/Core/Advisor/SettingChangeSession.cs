@@ -16,6 +16,7 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor
         internal SettingChange(string settingId, string original, string applied, DateTime timestamp)
         {
             SettingId = settingId;
+            DisplayName = settingId;
             OriginalValue = original;
             AppliedValue = applied;
             CurrentObservedValue = original;
@@ -24,6 +25,8 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor
         }
 
         public string SettingId { get; }
+        // Human-readable name from the recommendation that produced the change; falls back to the ID.
+        public string DisplayName { get; internal set; }
         public string OriginalValue { get; internal set; }
         public string AppliedValue { get; }
         public string CurrentObservedValue { get; internal set; }
@@ -36,10 +39,19 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor
         private readonly List<SettingChange> _changes = new List<SettingChange>();
         public IReadOnlyList<SettingChange> Changes => _changes.ToArray();
 
-        public void RecordPending(string settingId, string originalValue, string requestedValue, DateTime appliedAt)
+        public void RecordPending(string settingId, string originalValue, string requestedValue, DateTime appliedAt, string displayName = null)
         {
             if (string.IsNullOrWhiteSpace(settingId)) throw new ArgumentException("A setting ID is required.", nameof(settingId));
-            _changes.Add(new SettingChange(settingId, originalValue, requestedValue, appliedAt));
+            var change = new SettingChange(settingId, originalValue, requestedValue, appliedAt);
+            if (!string.IsNullOrWhiteSpace(displayName)) change.DisplayName = displayName;
+            _changes.Add(change);
+        }
+
+        /// <summary>Removes a pending record whose write never started (for example, it still needs confirmation).</summary>
+        public void DiscardPending(string settingId)
+        {
+            var pending = _changes.LastOrDefault(c => c.SettingId == settingId && c.Status == SettingChangeStatus.Pending);
+            if (pending != null) _changes.Remove(pending);
         }
 
         public void RecordApplied(string settingId, string originalValue, string appliedValue, DateTime appliedAt)

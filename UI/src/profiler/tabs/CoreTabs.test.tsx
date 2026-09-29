@@ -6,6 +6,9 @@ import { OverviewTab } from "./OverviewTab";
 import { SystemsTab } from "./SystemsTab";
 import { ModsTab } from "./ModsTab";
 import { DiagnosticsTab } from "./DiagnosticsTab";
+import { useGameLocale } from "../../test/locale";
+
+useGameLocale("ja-JP");
 
 const snapshot: any = {
   global: {
@@ -73,7 +76,7 @@ describe("core profiler tabs", () => {
     act(() => systemButton.props.onClick());
 
     const expandedHtml = renderedText(renderer.toJSON());
-    expect(expandedHtml).toContain("測定元: 管理システムの実行境界（管理コードの OnUpdate 同期実行時間。ジョブ/Burst のワーカー時間は含みません）");
+    expect(expandedHtml).toContain("測定元: 管理システムの実行境界（管理コードの同期実行の自己時間。入れ子の管理システムと Job/Burst のワーカー時間は含みません）");
     expect(expandedHtml).toContain("最後の呼び出し: 3.40 ms");
     expect(systemButton.props["aria-expanded"]).toBe(true);
   });

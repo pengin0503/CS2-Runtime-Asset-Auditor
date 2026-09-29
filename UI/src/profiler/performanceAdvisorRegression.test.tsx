@@ -4,6 +4,10 @@ import { describe, expect, it } from "vitest";
 import { PerformanceAdvisorTab } from "./tabs/PerformanceAdvisorTab";
 import { EMPTY_ADVISOR, type AdvisorRecommendation, type AdvisorUiState } from "./bindings";
 import { readFileSync } from "node:fs";
+import { useGameLocale } from "../test/locale";
+import { ja } from "../i18n/messages";
+
+useGameLocale("ja-JP");
 
 const recommendation = (id: string, direction: string, priority: string): AdvisorRecommendation => ({
   settingId: id, displayName: id, currentValue: "High", recommendedValue: "Medium", direction, priority,
@@ -65,7 +69,8 @@ describe("Performance Advisor read-only tab", () => {
   it("is a Japanese tab inside the existing scroll viewport", () => {
     const root = readFileSync(new URL("../shell/RuntimeAssetAuditorRoot.tsx", import.meta.url), "utf8");
     const navigation = readFileSync(new URL("../shell/navigation.ts", import.meta.url), "utf8");
-    expect(navigation).toContain('{ id: "advisor", label: "改善提案" }');
+    expect(navigation).toContain('{ id: "advisor", labelKey: "nav.advisor" }');
+    expect(ja["nav.advisor"]).toBe("改善提案");
     expect(root.indexOf('section === "advisor"')).toBeGreaterThan(root.indexOf('<Scrollable vertical'));
   });
 

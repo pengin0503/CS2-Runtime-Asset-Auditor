@@ -13,14 +13,41 @@ import {
   type ExportRequest,
   type NormalizedUiScanOptions,
   type UiObservation,
+  type UiFinding,
   type UiScanOptions,
   type UiSnapshot,
 } from "./types";
+import type { Translate } from "../i18n/locale";
 
 export const UI_BINDING_GROUP = "CS2RuntimeAssetAuditor.assets";
 
 const snapshotBinding = bindValue<string>(UI_BINDING_GROUP, "snapshot", "{}");
 const exportedReportBinding = bindValue<string>(UI_BINDING_GROUP, "exportedReport", "");
+// Findings are published separately and only when a different analysis becomes current.
+const findingsBinding = bindValue<string>(UI_BINDING_GROUP, "findings", "{}");
+
+export interface FindingList {
+  analysisGeneration: number;
+  findings: UiFinding[];
+}
+
+export function parseFindings(raw: string): FindingList {
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (value && typeof value === "object" && Array.isArray((value as FindingList).findings)) {
+      const list = value as FindingList;
+      return { analysisGeneration: Number(list.analysisGeneration) || 0, findings: list.findings };
+    }
+  } catch {
+    // A malformed/missing binding means no published analysis.
+  }
+  return { analysisGeneration: 0, findings: [] };
+}
+
+export function useAuditorFindings(): FindingList {
+  const raw = useValue(findingsBinding);
+  return useMemo(() => parseFindings(raw), [raw]);
+}
 
 export function useAuditorSnapshot(): UiSnapshot {
   const raw = useValue(snapshotBinding);
@@ -106,25 +133,25 @@ function clampFinite(value: number | undefined, minimum: number, maximum: number
   return Math.min(maximum, Math.max(minimum, value));
 }
 
-export function formatObservation(observation: UiObservation<number>): string {
+export function formatObservation(observation: UiObservation<number>, t: Translate): string {
   switch (observation.availability) {
     case "Available":
-      return observation.value === null || observation.value === undefined ? "Unknown" : String(observation.value);
-    case "NotScanned": return "Not scanned";
-    case "NotApplicable": return "N/A";
-    case "Unsupported": return "Unsupported";
-    case "Failed": return "Failed";
-    default: return "Unknown";
+      return observation.value === null || observation.value === undefined ? t("obs.unknown") : String(observation.value);
+    case "NotScanned": return t("obs.notScanned");
+    case "NotApplicable": return t("obs.notApplicable");
+    case "Unsupported": return t("obs.unsupported");
+    case "Failed": return t("obs.failed");
+    default: return t("obs.unknown");
   }
 }
 
-export function formatCountKind(countKind: CountKind): string {
+export function formatCountKind(countKind: CountKind, t: Translate): string {
   switch (countKind) {
-    case "TopLevelObjects": return "Top-level objects";
-    case "SubordinateObjects": return "Subordinate objects";
-    case "LiveObjectReferences": return "Live object references";
-    case "NetworkEdges": return "Network edges";
-    default: return "Not applicable";
+    case "TopLevelObjects": return t("count.TopLevelObjects");
+    case "SubordinateObjects": return t("count.SubordinateObjects");
+    case "LiveObjectReferences": return t("count.LiveObjectReferences");
+    case "NetworkEdges": return t("count.NetworkEdges");
+    default: return t("count.NotApplicable");
   }
 }
 

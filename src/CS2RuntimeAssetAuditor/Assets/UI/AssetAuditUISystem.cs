@@ -29,6 +29,10 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
 
         private ValueBinding<string>? _snapshotBinding;
         private ValueBinding<string>? _exportBinding;
+        private ValueBinding<string>? _findingsBinding;
+        private AssetAnalysisSnapshot? _publishedFindingsAnalysis;
+        private bool _publishedFindingsOnce;
+        private bool _deferredChanges;
         private AssetAuditSystem? _lastAuditSystem;
         private CensusSnapshot? _lastCensus;
         private AssetAnalysisSnapshot? _lastAnalysis;
@@ -49,6 +53,8 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
             _exportBinding = new ValueBinding<string>(UiBindingContract.Group, UiBindingContract.ExportedReport, string.Empty);
             AddBinding(_snapshotBinding);
             AddBinding(_exportBinding);
+            _findingsBinding = new ValueBinding<string>(UiBindingContract.Group, UiBindingContract.Findings, "{}");
+            AddBinding(_findingsBinding);
             AddBinding(new TriggerBinding<string>(UiBindingContract.Group, UiBindingContract.RequestCensus, HandleRequestCensus, new Colossal.UI.Binding.StringReader()));
             AddBinding(new TriggerBinding<string>(UiBindingContract.Group, UiBindingContract.RequestAssetAudit, HandleRequestAssetAudit, new Colossal.UI.Binding.StringReader()));
             AddBinding(new TriggerBinding<string>(UiBindingContract.Group, UiBindingContract.RequestDeepInspection, HandleRequestDeepInspection, new Colossal.UI.Binding.StringReader()));
@@ -66,7 +72,17 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
             var auditSystem = GetAuditSystem();
             var dataChanged = RefreshAssetPage(auditSystem, force: false);
             var statusChanged = !Equals(CaptureStatus(auditSystem), _lastPublishedStatus);
+            // The shared shell owns panel visibility; this system only reads it.
+            var shellVisible = IsPanelVisible();
+            if (!shellVisible)
+            {
+                // Building the snapshot maps the asset page and serializes it; skip that work while nobody can see it.
+                _deferredChanges |= dataChanged || statusChanged;
+                return;
+            }
             var decision = UiPublishPolicy.Decide(
+                shellVisible,
+                _deferredChanges,
                 dataChanged,
                 statusChanged,
                 auditSystem?.IsScanActive == true,
@@ -80,10 +96,20 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
         {
             _snapshotBinding = null;
             _exportBinding = null;
+            _findingsBinding = null;
+            _publishedFindingsAnalysis = null;
             _lastAuditSystem = null;
             _lastCensus = null;
             _lastAnalysis = null;
             base.OnDestroy();
+        }
+
+        private bool IsPanelVisible()
+        {
+            if (!World.IsCreated)
+                return false;
+            var shell = World.GetExistingSystemManaged<global::CS2RuntimeAssetAuditor.UI.ProfilerUISystem>();
+            return shell?.IsPanelVisible ?? true;
         }
 
         private AssetAuditSystem? GetAuditSystem()
@@ -104,8 +130,9 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                 GetAuditSystem()?.RequestCensusScan(scanOptions);
                 PublishSnapshot();
             }
-            catch
+            catch (Exception ex)
             {
+                Mod.ReportFailure("Census request was rejected", ex);
                 _diagnostics.Add("APA-CEN-004", "ui_census_request_rejected");
                 PublishSnapshot();
             }
@@ -132,8 +159,9 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                 }
                 PublishSnapshot();
             }
-            catch
+            catch (Exception ex)
             {
+                Mod.ReportFailure("Asset Audit request was rejected", ex);
                 _diagnostics.Add("APA-AUD-004", "ui_asset_audit_request_rejected");
                 PublishSnapshot();
             }
@@ -143,18 +171,23 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
         {
             try
             {
-                if (!RenderAssetKey.TryParse(renderKeyText, out var renderKey))
-                    throw new ArgumentException("The render-asset key payload was invalid.", nameof(renderKeyText));
                 var auditSystem = GetAuditSystem();
                 if (auditSystem != null)
                     auditSystem.DeepInspectionLimit = _uiSettings.DeepInspectionLimit;
-                if (auditSystem == null || !auditSystem.RequestDeepInspection(renderKey))
-                    throw new InvalidOperationException("Deep Inspection could not be started for the selected render asset.");
+                // An invalid key or a busy/stale audit is an expected rejection, not an error worth logging.
+                if (!RenderAssetKey.TryParse(renderKeyText, out var renderKey)
+                    || auditSystem == null || !auditSystem.RequestDeepInspection(renderKey))
+                {
+                    _diagnostics.Add("APA-DEEP-004", "ui_deep_inspection_request_rejected");
+                    PublishSnapshot();
+                    return;
+                }
                 InvalidateExport();
                 PublishSnapshot();
             }
-            catch
+            catch (Exception ex)
             {
+                Mod.ReportFailure("Deep Inspection request failed", ex);
                 _diagnostics.Add("APA-DEEP-004", "ui_deep_inspection_request_rejected");
                 PublishSnapshot();
             }
@@ -176,8 +209,9 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                 RefreshAssetPage(GetAuditSystem(), force: true);
                 PublishSnapshot();
             }
-            catch
+            catch (Exception ex)
             {
+                Mod.ReportFailure("Asset query was rejected", ex);
                 _diagnostics.Add("APA-EXP-002", "ui_asset_query_rejected");
                 PublishSnapshot();
             }
@@ -192,8 +226,9 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                 ApplySettings(options);
                 PublishSnapshot();
             }
-            catch
+            catch (Exception ex)
             {
+                Mod.ReportFailure("Asset settings update was rejected", ex);
                 _diagnostics.Add("APA-EXP-003", "ui_scan_settings_rejected");
                 PublishSnapshot();
             }
@@ -201,9 +236,15 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
 
         private void HandleRequestExport(string requestJson)
         {
-            var auditSystem = GetAuditSystem();
-            if (auditSystem?.Capabilities == null || _exportBinding == null)
+            if (_exportBinding == null)
                 return;
+            var auditSystem = GetAuditSystem();
+            if (auditSystem?.Capabilities == null)
+            {
+                // Same "ok:"/"error:" protocol as the Runtime export, so the UI can always show an outcome.
+                _exportBinding.Update(ExportResultFormat.Failed("APA-EXP-004", "Asset capabilities are not available yet; load a city and try again."));
+                return;
+            }
             try
             {
                 if (!UiSnapshotBuilder.TryDeserialize<UiExportRequest>(requestJson, out var request))
@@ -233,7 +274,7 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                     {
                         using (var writer = new StreamWriter(stream, new UTF8Encoding(false))) writer.Write(csv);
                     }, ".csv");
-                    _exportBinding.Update("ok:" + Path.GetFileName(path));
+                    _exportBinding.Update(ExportResultFormat.Succeeded(Path.GetFileName(path)));
                 }
                 else
                 {
@@ -242,13 +283,16 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                         ? profiler.BuildCurrentUnifiedReport(report)
                         : RuntimeAssetAuditReportBuilder.Build(null, report, Mod.SessionContext, DateTimeOffset.UtcNow);
                     var result = new ReportExporter().Export(unified);
-                    _exportBinding.Update(result.Success ? "ok:" + Path.GetFileName(result.Path) : "error:" + result.Error);
+                    _exportBinding.Update(result.Success
+                        ? ExportResultFormat.Succeeded(Path.GetFileName(result.Path))
+                        : ExportResultFormat.Failed("APA-EXP-001", result.Error));
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Mod.ReportFailure("Asset report export failed", ex);
                 _diagnostics.Add("APA-EXP-001", "audit_report_export_failed");
-                _exportBinding.Update("{\"errorCode\":\"APA-EXP-001\"}");
+                _exportBinding.Update(ExportResultFormat.Failed("APA-EXP-001", ReportPrivacy.Sanitize(ex.Message)));
             }
         }
 
@@ -338,8 +382,20 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
             UiAnalysisProjection.ApplyDeepInspections(snapshot, analysis);
             snapshot.Diagnostics = CreateDiagnostics(auditSystem);
             _snapshotBinding.Update(UiSnapshotBuilder.Serialize(snapshot));
+            PublishFindingsIfChanged(analysis);
+            _deferredChanges = false;
             _lastPublishedAt = DateTimeOffset.UtcNow;
             _lastPublishedStatus = CaptureStatus(auditSystem);
+        }
+
+        // Findings are serialized only when a different analysis snapshot becomes current.
+        private void PublishFindingsIfChanged(AssetAnalysisSnapshot? analysis)
+        {
+            if (_findingsBinding == null || (_publishedFindingsOnce && ReferenceEquals(analysis, _publishedFindingsAnalysis)))
+                return;
+            _findingsBinding.Update(UiSnapshotBuilder.Serialize(UiSnapshotBuilder.BuildFindings(analysis)));
+            _publishedFindingsAnalysis = analysis;
+            _publishedFindingsOnce = true;
         }
 
         // Cheap, reference-based view of every snapshot input not covered by RefreshAssetPage (catalog, census,

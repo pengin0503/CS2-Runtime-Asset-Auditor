@@ -30,6 +30,7 @@ import { CapturesTab } from "../profiler/tabs/CapturesTab";
 import { DiagnosticsTab } from "../profiler/tabs/DiagnosticsTab";
 import { PerformanceAdvisorTab } from "../profiler/tabs/PerformanceAdvisorTab";
 import { captureStateLabel } from "../profiler/text";
+import { useText } from "../i18n/locale";
 import { PanelRect, clampPanelRect, movePanelRect, resizePanelRect } from "../profiler/panelLayout";
 import styles from "../profiler/profiler.module.scss";
 import { AssetSection } from "../assets/AssetSection";
@@ -59,6 +60,7 @@ export function RuntimeAssetAuditorRoot() {
   const exportResult = useExportResult();
   const uiScalePercent = useUiScalePercent();
   const savedLayout = usePanelLayout();
+  const { locale, t } = useText();
   const [section, setSection] = useState<TopSection>("overview");
   const [runtimeView, setRuntimeView] = useState<RuntimeSection>("systems");
   const [assetView, setAssetView] = useState<AssetSectionName>("catalog");
@@ -149,22 +151,22 @@ export function RuntimeAssetAuditorRoot() {
     <InputActionConsumer actions={BACK_ACTIONS} ignoreFocusState>
       <div ref={panelRef} className={styles.panel} style={panelStyle} role="dialog" aria-label="CS2 Runtime Asset Auditor">
         <header className={styles.panelHeader}>
-          <div className={styles.dragHandle} onMouseDown={beginDrag("move")} title="ドラッグしてパネルを移動">
+          <div className={styles.dragHandle} onMouseDown={beginDrag("move")} title={t("shell.dragMove")}>
             <strong>CS2 Runtime Asset Auditor</strong>
-            <small>{snapshot.capture.isDeepCapture ? "詳細キャプチャ実行中" : `低負荷監視・${captureStateLabel(snapshot.capture.state)}`}</small>
+            <small>{snapshot.capture.isDeepCapture ? t("shell.deepCaptureRunning") : t("shell.lowOverhead", { state: captureStateLabel(snapshot.capture.state, false, locale) })}</small>
           </div>
           <div className={styles.headerActions}>
             {rect && (
-              <Button as="button" variant="flat" className={styles.headerButton} onSelect={resetPanelLayout} aria-label="パネルの位置とサイズを初期状態に戻す">
-                位置をリセット
+              <Button as="button" variant="flat" className={styles.headerButton} onSelect={resetPanelLayout} aria-label={t("shell.resetLayoutAria")}>
+                {t("shell.resetLayout")}
               </Button>
             )}
-            <Button as="button" variant="flat" className={styles.closeButton} onSelect={closePanel} aria-label="プロファイラーを閉じる">×</Button>
+            <Button as="button" variant="flat" className={styles.closeButton} onSelect={closePanel} aria-label={t("shell.close")}>×</Button>
           </div>
         </header>
 
-        <nav className={styles.tabs} aria-label="診断表示切替">
-          {TOP_SECTIONS.map(({ id, label }) => (
+        <nav className={styles.tabs} aria-label={t("shell.sectionsAria")}>
+          {TOP_SECTIONS.map(({ id, labelKey }) => (
             <Button
               as="button"
               variant="flat"
@@ -173,22 +175,22 @@ export function RuntimeAssetAuditorRoot() {
               className={`${styles.tabButton} ${section === id ? styles.activeTab : ""}`}
               onSelect={() => setSection(id)}
             >
-              {label}
+              {t(labelKey)}
             </Button>
           ))}
         </nav>
 
         <Scrollable vertical trackVisibility="scrollable" className={styles.panelBody}>
           <div className={styles.panelContent}>
-            {section === "runtime" && <nav className={styles.tabs} aria-label="ランタイム表示切替">
-              {RUNTIME_SECTIONS.map(({ id, label }) => <Button as="button" variant="flat" key={id}
+            {section === "runtime" && <nav className={styles.tabs} aria-label={t("shell.runtimeViewsAria")}>
+              {RUNTIME_SECTIONS.map(({ id, labelKey }) => <Button as="button" variant="flat" key={id}
                 selected={runtimeView === id} className={`${styles.tabButton} ${runtimeView === id ? styles.activeTab : ""}`}
-                onSelect={() => setRuntimeView(id)}>{label}</Button>)}
+                onSelect={() => setRuntimeView(id)}>{t(labelKey)}</Button>)}
             </nav>}
-            {section === "assets" && <nav className={styles.tabs} aria-label="アセット表示切替">
-              {ASSET_SECTIONS.map(({ id, label }) => <Button as="button" variant="flat" key={id}
+            {section === "assets" && <nav className={styles.tabs} aria-label={t("shell.assetViewsAria")}>
+              {ASSET_SECTIONS.map(({ id, labelKey }) => <Button as="button" variant="flat" key={id}
                 selected={assetView === id} className={`${styles.tabButton} ${assetView === id ? styles.activeTab : ""}`}
-                onSelect={() => setAssetView(id)}>{label}</Button>)}
+                onSelect={() => setAssetView(id)}>{t(labelKey)}</Button>)}
             </nav>}
             {section === "overview" && <><OverviewTab snapshot={snapshot} onManualCapture={requestManualCapture} onExport={exportReport} exportResult={exportResult} />
               <AssetSection view="overview" active={visible} /></>}
@@ -198,7 +200,7 @@ export function RuntimeAssetAuditorRoot() {
             {section === "runtime" && runtimeView === "timeline" && <TimelineTab points={snapshot.timeline} />}
             {section === "runtime" && runtimeView === "captures" && <CapturesTab captures={snapshot.captures} onSelect={selectCapture}
               onInvestigate={id => { setInvestigationCaptureId(id); selectCapture(id); setAssetView("catalog"); setSection("assets"); }} />}
-            {section === "assets" && <><p>アセットの形状・テクスチャ・配置数は調査の手がかりです。個々のアセットのフレーム時間や GPU 負荷を測定した値ではありません。</p>
+            {section === "assets" && <><p>{t("shell.assetDisclaimer")}</p>
               <AssetSection view={assetView} active={visible} capture={snapshot.captures.find(capture => capture.id === investigationCaptureId)}
                 onOpenRuntimeCaptures={() => { setRuntimeView("captures"); setSection("runtime"); }} /></>}
             {section === "advisor" && <PerformanceAdvisorTab advisor={snapshot.advisor} captures={snapshot.captures}
@@ -210,7 +212,7 @@ export function RuntimeAssetAuditorRoot() {
           </div>
         </Scrollable>
 
-        <div className={styles.resizeGrip} onMouseDown={beginDrag("resize")} title="ドラッグしてパネルのサイズを変更" />
+        <div className={styles.resizeGrip} onMouseDown={beginDrag("resize")} title={t("shell.dragResize")} />
       </div>
     </InputActionConsumer>
   );

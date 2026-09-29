@@ -55,10 +55,10 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor
                 ? RecommendationPriority.High : direction == RecommendationDirection.NoRecommendation
                     ? RecommendationPriority.Low : RecommendationPriority.Medium;
             var rationale = lower && depthOfField
-                ? "計測したGPU負荷から、被写界深度を「無効」にして再計測する価値があります。"
-                : lower ? "計測した描画負荷から、品質を1段階下げて再計測する価値があります。"
-                : headroom ? "現在の計測条件では描画負荷に余裕があります。上げる場合は変更後に再計測してください。"
-                : "現在の根拠だけでは性能目的の設定変更を推奨できません。";
+                ? "Based on the measured GPU load, it is worth disabling depth of field and measuring again."
+                : lower ? "Based on the measured rendering load, it is worth lowering the quality by one step and measuring again."
+                : headroom ? "Rendering has headroom under the current measurement conditions. If you raise it, measure again after the change."
+                : "The current evidence alone does not justify a performance-motivated setting change.";
             return new SettingRecommendation(setting.SettingId, setting.DisplayName, setting.CurrentValue,
                 next, direction, priority, confidence, rationale,
                 direction == RecommendationDirection.NoRecommendation ? Array.Empty<string>() : observation.EvidenceIds,

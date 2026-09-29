@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using Colossal.UI.Binding;
 using CS2RuntimeAssetAuditor.Advisor;
+using CS2RuntimeAssetAuditor.Advisor.Settings;
 using CS2RuntimeAssetAuditor.Core.Advisor;
 using CS2RuntimeAssetAuditor.Collectors;
 using CS2RuntimeAssetAuditor.Core;
@@ -34,6 +35,7 @@ namespace CS2RuntimeAssetAuditor.UI
         private RawValueBinding _hudSnapshotBinding;
         private ValueBinding<bool> _panelVisibleBinding;
         private ValueBinding<int> _uiScalePercentBinding;
+        private ValueBinding<string> _localeBinding;
         private ValueBinding<string> _selectedCaptureBinding;
         private ValueBinding<string> _exportResultBinding;
         private RawValueBinding _panelLayoutBinding;
@@ -42,6 +44,8 @@ namespace CS2RuntimeAssetAuditor.UI
         private string _selectedCaptureId = string.Empty;
 
         public override GameMode gameMode => GameMode.Game;
+
+        public bool IsPanelVisible => _panelVisible;
 
         protected override void OnCreate()
         {
@@ -58,6 +62,8 @@ namespace CS2RuntimeAssetAuditor.UI
             AddBinding(_hudSnapshotBinding = new RawValueBinding(Group, "hudSnapshot", WriteHudSnapshot));
             AddBinding(_panelVisibleBinding = new ValueBinding<bool>(Group, "panelVisible", false));
             AddBinding(_uiScalePercentBinding = new ValueBinding<int>(Group, "uiScalePercent", GetUiScalePercent()));
+            // The panel follows the game's interface language; the UI resolves Japanese locales to ja and all others to en.
+            AddBinding(_localeBinding = new ValueBinding<string>(Group, "locale", ActiveLocaleReader.Read()));
             AddBinding(_selectedCaptureBinding = new ValueBinding<string>(Group, "selectedCaptureId", string.Empty));
             AddBinding(_exportResultBinding = new ValueBinding<string>(Group, "exportResult", string.Empty));
 
@@ -74,7 +80,7 @@ namespace CS2RuntimeAssetAuditor.UI
             AddBinding(new TriggerBinding<string>(Group, "selectAdvisorBaseline", SelectAdvisorBaseline));
             AddBinding(new TriggerBinding<string, string, bool>(Group, "advisorApply", AdvisorApply));
             AddBinding(new TriggerBinding<string, bool>(Group, "advisorUndo", AdvisorUndo));
-            AddBinding(new TriggerBinding(Group, "advisorUndoSession", AdvisorUndoSession));
+            AddBinding(new TriggerBinding<bool>(Group, "advisorUndoSession", AdvisorUndoSession));
             AddBinding(new TriggerBinding<string, bool>(Group, "advisorResolveConflict", AdvisorResolveConflict));
             AddBinding(new TriggerBinding(Group, "exportReport", ExportReport));
 
@@ -91,6 +97,7 @@ namespace CS2RuntimeAssetAuditor.UI
 
             _nextRefreshAt = now + GetUiRefreshPeriodSeconds();
             _uiScalePercentBinding.Update(GetUiScalePercent());
+            _localeBinding.Update(ActiveLocaleReader.Read());
             _hudSnapshotBinding.Update();
 
             if (!_panelVisible)
@@ -201,9 +208,9 @@ namespace CS2RuntimeAssetAuditor.UI
             if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
         }
 
-        private void AdvisorUndoSession()
+        private void AdvisorUndoSession(bool confirmed)
         {
-            _advisor?.UndoSession();
+            _advisor?.UndoSession(confirmed);
             if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
         }
 
@@ -230,15 +237,14 @@ namespace CS2RuntimeAssetAuditor.UI
             try
             {
                 var result = _exporter.Export(BuildCurrentUnifiedReport());
-                var message = result.Success
-                    ? $"ok:{Path.GetFileName(result.Path)}"
-                    : $"error:{result.Error}";
-                _exportResultBinding.Update(message);
+                _exportResultBinding.Update(result.Success
+                    ? ExportResultFormat.Succeeded(Path.GetFileName(result.Path))
+                    : ExportResultFormat.Failed(null, result.Error));
             }
             catch (Exception ex)
             {
-                Mod.Log.Error(ex, "UI-triggered profiler report export failed");
-                _exportResultBinding.Update($"error:{ReportPrivacy.Sanitize(ex.Message)}");
+                Mod.ReportFailure("UI-triggered profiler report export failed", ex);
+                _exportResultBinding.Update(ExportResultFormat.Failed(null, ReportPrivacy.Sanitize(ex.Message)));
             }
         }
 
@@ -306,15 +312,15 @@ namespace CS2RuntimeAssetAuditor.UI
             var timing = detailCapture?.SystemTiming;
             var diagnostics = new List<string>();
             if (timing == null)
-                diagnostics.Add("システム別の実行時間は、対応する詳細キャプチャが作成されるまで利用できません。");
-            diagnostics.Add("タイムラインは現在選択しているキャプチャが実際に保持した履歴だけを表示します。利用できない系列を推測で生成することはありません。");
+                diagnostics.Add(UiDiagnosticText.SystemTimingPending);
+            diagnostics.Add(UiDiagnosticText.TimelineRetainedOnly);
 
             var markerCapture = detailCapture ?? currentCapture ?? captures.LastOrDefault();
             var patchMapState = timing == null
-                ? "利用不可: システム時間スナップショットがありません。"
+                ? UiDiagnosticText.PatchMapUnavailable
                 : timing.Systems.Any(system => system.PatchOwners != null && system.PatchOwners.Count > 0)
-                    ? "現在のシステム時間スナップショットでパッチ情報を検出しました。"
-                    : "現在のシステム時間スナップショットではパッチ所有者を検出していません。";
+                    ? UiDiagnosticText.PatchMapDetected
+                    : UiDiagnosticText.PatchMapNone;
 
             return new UiSnapshotInput(
                 _global?.Latest,
@@ -457,6 +463,7 @@ namespace CS2RuntimeAssetAuditor.UI
             {
                 writer.TypeBegin("CS2RuntimeAssetAuditor.AdvisorChange");
                 writer.PropertyName("settingId"); writer.Write(item.SettingId);
+                writer.PropertyName("displayName"); writer.Write(item.DisplayName ?? item.SettingId);
                 writer.PropertyName("originalValue"); writer.Write(item.OriginalValue ?? string.Empty);
                 writer.PropertyName("appliedValue"); writer.Write(item.AppliedValue ?? string.Empty);
                 writer.PropertyName("currentObservedValue"); writer.Write(item.CurrentObservedValue ?? string.Empty);
@@ -464,6 +471,8 @@ namespace CS2RuntimeAssetAuditor.UI
                 writer.TypeEnd();
             }
             writer.ArrayEnd();
+            writer.PropertyName("lastAction");
+            WriteAdvisorAction(writer, state.LastAction);
             writer.PropertyName("comparison");
             if (state.Comparison == null) writer.WriteNull();
             else
@@ -486,6 +495,26 @@ namespace CS2RuntimeAssetAuditor.UI
                 writer.ArrayEnd();
                 writer.TypeEnd();
             }
+            writer.TypeEnd();
+        }
+
+        private static void WriteAdvisorAction(IJsonWriter writer, AdvisorActionResult action)
+        {
+            if (action == null)
+            {
+                writer.WriteNull();
+                return;
+            }
+            writer.TypeBegin("CS2RuntimeAssetAuditor.AdvisorAction");
+            writer.PropertyName("kind"); writer.Write(action.Kind.ToString());
+            writer.PropertyName("settingId"); writer.Write(action.SettingId ?? string.Empty);
+            writer.PropertyName("displayName"); writer.Write(action.DisplayName ?? string.Empty);
+            writer.PropertyName("succeeded"); writer.Write(action.Succeeded);
+            writer.PropertyName("failureReason"); writer.Write(action.FailureReason ?? string.Empty);
+            writer.PropertyName("succeededCount"); writer.Write(action.SucceededCount);
+            writer.PropertyName("failedSettingIds"); WriteStrings(writer, action.FailedSettingIds);
+            writer.PropertyName("confirmationRequiredSettingIds"); WriteStrings(writer, action.ConfirmationRequiredSettingIds);
+            writer.PropertyName("atUtc"); writer.Write(action.AtUtc.ToString("O"));
             writer.TypeEnd();
         }
 

@@ -1,26 +1,28 @@
+import type { MessageKey } from "../i18n/messages";
+
 export const TOP_SECTIONS = [
-  { id: "overview", label: "概要" },
-  { id: "runtime", label: "ランタイム" },
-  { id: "assets", label: "アセット" },
-  { id: "advisor", label: "改善提案" },
-  { id: "diagnostics", label: "診断" }
-] as const;
+  { id: "overview", labelKey: "nav.overview" },
+  { id: "runtime", labelKey: "nav.runtime" },
+  { id: "assets", labelKey: "nav.assets" },
+  { id: "advisor", labelKey: "nav.advisor" },
+  { id: "diagnostics", labelKey: "nav.diagnostics" }
+] as const satisfies ReadonlyArray<{ id: string; labelKey: MessageKey }>;
 
 export const RUNTIME_SECTIONS = [
-  { id: "systems", label: "システム" },
-  { id: "mods", label: "MOD" },
-  { id: "pathfinding", label: "経路探索" },
-  { id: "timeline", label: "タイムライン" },
-  { id: "captures", label: "キャプチャ" }
-] as const;
+  { id: "systems", labelKey: "nav.systems" },
+  { id: "mods", labelKey: "nav.mods" },
+  { id: "pathfinding", labelKey: "nav.pathfinding" },
+  { id: "timeline", labelKey: "nav.timeline" },
+  { id: "captures", labelKey: "nav.captures" }
+] as const satisfies ReadonlyArray<{ id: string; labelKey: MessageKey }>;
 
 export const ASSET_SECTIONS = [
-  { id: "catalog", label: "カタログ" },
-  { id: "census", label: "Census" },
-  { id: "findings", label: "所見" },
-  { id: "compare", label: "比較" },
-  { id: "settings", label: "設定" }
-] as const;
+  { id: "catalog", labelKey: "nav.catalog" },
+  { id: "census", labelKey: "nav.census" },
+  { id: "findings", labelKey: "nav.findings" },
+  { id: "compare", labelKey: "nav.compare" },
+  { id: "settings", labelKey: "nav.settings" }
+] as const satisfies ReadonlyArray<{ id: string; labelKey: MessageKey }>;
 
 export type TopSection = typeof TOP_SECTIONS[number]["id"];
 export type RuntimeSection = typeof RUNTIME_SECTIONS[number]["id"];

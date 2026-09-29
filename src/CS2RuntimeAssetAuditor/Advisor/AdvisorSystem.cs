@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using CS2RuntimeAssetAuditor.Advisor.Settings;
 using CS2RuntimeAssetAuditor.Core.Advisor;
 using CS2RuntimeAssetAuditor.Profiling;
@@ -12,6 +13,7 @@ namespace CS2RuntimeAssetAuditor.Advisor
         private AdvisorCoordinator _coordinator;
         private IGameSettingGateway _gateway;
         private readonly SettingChangeSession _changeSession = new SettingChangeSession();
+        private AdvisorSettingOperations _operations;
         private AdvisorEvidenceSnapshot _baselineEvidence;
         private DateTime _baselineSelectedAt;
         private long _observedSessionGeneration = -1;
@@ -24,7 +26,11 @@ namespace CS2RuntimeAssetAuditor.Advisor
             get
             {
                 var state = _coordinator?.CurrentState;
-                if (state != null) state.Changes = _changeSession.Changes;
+                if (state != null)
+                {
+                    state.Changes = _changeSession.Changes;
+                    state.LastAction = _operations?.LastAction;
+                }
                 return state;
             }
         }
@@ -68,7 +74,11 @@ namespace CS2RuntimeAssetAuditor.Advisor
                 }
                 return true;
             }
-            catch (Exception) { return false; }
+            catch (Exception ex)
+            {
+                Mod.ReportFailure("Advisor diagnosis failed", ex);
+                return false;
+            }
         }
 
         public bool Rediagnose(string id) => DiagnoseCompletedCapture(id);
@@ -85,91 +95,28 @@ namespace CS2RuntimeAssetAuditor.Advisor
                 if (CurrentState != null) CurrentState.Comparison = null;
                 return true;
             }
-            catch (Exception) { return false; }
+            catch (Exception ex)
+            {
+                Mod.ReportFailure("Advisor baseline selection failed", ex);
+                return false;
+            }
         }
+
+        public AdvisorActionResult LastAction => Operations.LastAction;
+
+        private AdvisorSettingOperations Operations
+            => _operations ?? (_operations = new AdvisorSettingOperations(() => Gateway, _changeSession));
 
         public SettingApplyResult ApplySetting(string settingId, string proposedValue, bool confirmed = false)
-        {
-            var recommended = CurrentState?.Recommendations;
-            var recommendation = System.Linq.Enumerable.FirstOrDefault(recommended ?? Array.Empty<SettingRecommendation>(),
-                r => r.SettingId == settingId);
-            try
-            {
-                var original = Gateway.Read(settingId);
-                if (original == null) return new SettingApplyResult { Requested = proposedValue, FailureReason = "SettingReadUnavailable" };
-                if (!AdvisorApplyPolicy.IsCurrentRecommendation(recommendation, original, proposedValue))
-                    return new SettingApplyResult { Requested = proposedValue, ObservedBefore = original,
-                        FailureReason = "StaleOrUnavailableRecommendation" };
-                var at = DateTime.UtcNow;
-                _changeSession.RecordPending(settingId, original, proposedValue, at);
-                var result = Gateway.Apply(settingId, proposedValue, confirmed);
-                if (result.Succeeded)
-                    _changeSession.RecordApplied(settingId, result.ObservedBefore, result.ObservedAfter, at);
-                else
-                    _changeSession.MarkApplyFailed(settingId, result.ObservedAfter ?? result.ObservedBefore);
-                return result;
-            }
-            catch (Exception ex)
-            {
-                _changeSession.MarkApplyFailed(settingId, null);
-                return new SettingApplyResult { Requested = proposedValue, FailureReason = "AdvisorApplyFailure:" + ex.GetType().Name };
-            }
-        }
+            => Operations.Apply(CurrentState?.Recommendations, settingId, proposedValue, confirmed);
 
         public SettingApplyResult UndoSetting(string settingId, bool confirmed = false)
-        {
-            var change = _changeSession.GetCurrentChange(settingId);
-            if (change == null) return new SettingApplyResult { FailureReason = "NoUndoableChange" };
-            try
-            {
-                var decision = _changeSession.EvaluateUndo(settingId, Gateway.Read(settingId));
-                if (decision == UndoDecision.AlreadyRestored) return new SettingApplyResult { Succeeded = true,
-                    ObservedAfter = change.OriginalValue, Requested = change.OriginalValue };
-                if (decision != UndoDecision.SafeRestore)
-                    return new SettingApplyResult { ObservedAfter = change.CurrentObservedValue,
-                        Requested = change.OriginalValue, FailureReason = "ExternallyModified" };
-                var result = Gateway.Restore(settingId, change.AppliedValue, change.OriginalValue, confirmed);
-                if (result.Succeeded) _changeSession.MarkUndone(settingId);
-                else if (result.FailureReason == "ExternallyModified")
-                    _changeSession.EvaluateUndo(settingId, Gateway.Read(settingId));
-                else if (result.FailureReason != "ConfirmationRequired")
-                    _changeSession.MarkUndoFailed(settingId, result.ObservedAfter);
-                return result;
-            }
-            catch (Exception ex)
-            {
-                _changeSession.MarkUndoFailed(settingId, null);
-                return new SettingApplyResult { FailureReason = "AdvisorUndoFailure:" + ex.GetType().Name };
-            }
-        }
+            => Operations.Undo(settingId, confirmed);
 
-        public void UndoSession()
-        {
-            foreach (var change in _changeSession.PlanSessionUndo()) UndoSetting(change.SettingId);
-        }
+        public IReadOnlyList<SettingApplyResult> UndoSession(bool confirmed = false)
+            => Operations.UndoSession(confirmed);
 
         public SettingApplyResult ResolveConflict(string settingId, bool restoreOriginal)
-        {
-            var change = _changeSession.GetCurrentChange(settingId);
-            if (change?.Status != SettingChangeStatus.ExternallyModified)
-                return new SettingApplyResult { FailureReason = "NoConflict" };
-            if (!restoreOriginal)
-            {
-                _changeSession.KeepCurrent(settingId);
-                return new SettingApplyResult { Succeeded = true, ObservedAfter = change.CurrentObservedValue };
-            }
-            try
-            {
-                var result = Gateway.Restore(settingId, change.CurrentObservedValue, change.OriginalValue, confirmed: true);
-                if (result.Succeeded) _changeSession.MarkUndone(settingId);
-                else if (result.FailureReason == "ExternallyModified")
-                    _changeSession.EvaluateUndo(settingId, Gateway.Read(settingId));
-                return result;
-            }
-            catch (Exception ex)
-            {
-                return new SettingApplyResult { FailureReason = "ConflictResolutionFailure:" + ex.GetType().Name };
-            }
-        }
+            => Operations.ResolveConflict(settingId, restoreOriginal);
     }
 }

@@ -4,6 +4,8 @@ import type { SystemUiRow } from "../bindings";
 import { formatInteger, formatMilliseconds } from "../format";
 import { MetricBadge } from "../components/MetricBadge";
 import styles from "../profiler.module.scss";
+import { useText, type Translate } from "../../i18n/locale";
+import type { MessageKey } from "../../i18n/messages";
 
 type SortKey = "frame" | "mean" | "p95" | "p99" | "max" | "calls" | "name";
 
@@ -31,25 +33,26 @@ function sortValue(row: SystemUiRow, key: SortKey): number | string {
   }
 }
 
-function measurementSource(confidence: string): string {
+function measurementSource(confidence: string, t: Translate): string {
   switch (confidence) {
-    case "Full": return "Unity ECS プロファイラーマーカー";
-    case "Managed": return "管理システムの実行境界（管理コードの OnUpdate 同期実行時間。ジョブ/Burst のワーカー時間は含みません）";
-    case "Indirect": return "間接的なランタイムカウンター";
-    default: return "不明";
+    case "Full": return t("systems.source.full");
+    case "Managed": return t("systems.source.managed");
+    case "Indirect": return t("systems.source.indirect");
+    default: return t("systems.source.unknown");
   }
 }
 
-const COLUMNS: Array<[SortKey, string, string]> = [
-  ["frame", "フレーム平均", "キャプチャ中の合計時間 ÷ 描画フレーム数。更新頻度の異なるシステム同士を比較でき、合算できます。"],
-  ["mean", "平均/回", "1回の呼び出しあたりの平均時間。まれに実行されるシステムでは大きく見えます。"],
-  ["p95", "P95", "1回あたりの時間の95パーセンタイル。"],
-  ["p99", "P99", "1回あたりの時間の99パーセンタイル。"],
-  ["max", "最大", "キャプチャ中で最も長かった1回の時間。"],
-  ["calls", "呼出回数", "キャプチャ中の呼び出し回数。"]
+const COLUMNS: Array<[SortKey, MessageKey, MessageKey]> = [
+  ["frame", "systems.col.frame", "systems.col.frameTip"],
+  ["mean", "systems.col.mean", "systems.col.meanTip"],
+  ["p95", "systems.col.p95", "systems.col.p95Tip"],
+  ["p99", "systems.col.p99", "systems.col.p99Tip"],
+  ["max", "systems.col.max", "systems.col.maxTip"],
+  ["calls", "systems.col.calls", "systems.col.callsTip"]
 ];
 
 export function SystemsTab({ systems }: SystemsTabProps) {
+  const { t } = useText();
   const [sortKey, setSortKey] = useState<SortKey>("frame");
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -60,7 +63,7 @@ export function SystemsTab({ systems }: SystemsTabProps) {
     return Number(bv) - Number(av) || a.id.localeCompare(b.id);
   }), [systems, sortKey]);
 
-  if (!rows.length) return <p className={styles.empty}>システム別の実行時間は、対応する詳細キャプチャが作成されるまで利用できません。</p>;
+  if (!rows.length) return <p className={styles.empty}>{t("systems.empty")}</p>;
 
   const changeSort = (key: SortKey) => {
     setSortKey(key);
@@ -73,20 +76,20 @@ export function SystemsTab({ systems }: SystemsTabProps) {
     <div className={styles.tabBody}>
       <p className={styles.explainer}>
         {perFrameAvailable
-          ? "既定では「フレーム平均」（合計時間 ÷ フレーム数）の大きい順に並べます。オートセーブ時のシリアライズのように1回だけ長く実行されたシステムは、平均/回・最大が大きくてもフレーム平均は小さくなります。"
-          : "このキャプチャにはフレーム数がないため、「フレーム平均」列はサンプル平均で代用しています。"}
+          ? t("systems.explainerPerFrame")
+          : t("systems.explainerNoFrames")}
       </p>
-      <div className={styles.systemList} role="table" aria-label="システム別の実行時間">
+      <div className={styles.systemList} role="table" aria-label={t("systems.tableAria")}>
         <div className={`${styles.systemRow} ${styles.systemHeader}`} role="row">
           <span className={styles.systemNameCell}>
-            <Button as="button" variant="flat" className={`${styles.sortButton} ${sortKey === "name" ? styles.sortActive : ""}`} onSelect={() => changeSort("name")}>システム</Button>
+            <Button as="button" variant="flat" className={`${styles.sortButton} ${sortKey === "name" ? styles.sortActive : ""}`} onSelect={() => changeSort("name")}>{t("systems.system")}</Button>
           </span>
           {COLUMNS.map(([key, label, tooltip]) => (
-            <span key={key} className={styles.systemValueCell} title={tooltip}>
-              <Button as="button" variant="flat" className={`${styles.sortButton} ${sortKey === key ? styles.sortActive : ""}`} onSelect={() => changeSort(key)}>{label}</Button>
+            <span key={key} className={styles.systemValueCell} title={t(tooltip)}>
+              <Button as="button" variant="flat" className={`${styles.sortButton} ${sortKey === key ? styles.sortActive : ""}`} onSelect={() => changeSort(key)}>{t(label)}</Button>
             </span>
           ))}
-          <span className={styles.systemBadgeCell}>根拠</span>
+          <span className={styles.systemBadgeCell}>{t("systems.basis")}</span>
         </div>
 
         {shown.map(row => {
@@ -99,9 +102,9 @@ export function SystemsTab({ systems }: SystemsTabProps) {
                   <Button as="button" variant="flat" className={styles.systemNameButton} onSelect={() => setExpanded(isExpanded ? null : row.id)} aria-expanded={isExpanded}>
                     <strong>{isExpanded ? "▾ " : "▸ "}{row.id}</strong>
                     <small>
-                      所有元: {row.ownerAssembly || "—"}
-                      {patchOwners ? ` ・ パッチ: ${patchOwners}` : ""}
-                      {row.isAggregateContainer ? " ・ 集約グループ（MOD合計に含めません）" : ""}
+                      {t("systems.owner", { owner: row.ownerAssembly || "—" })}
+                      {patchOwners ? t("systems.patches", { owners: patchOwners }) : ""}
+                      {row.isAggregateContainer ? t("systems.aggregate") : ""}
                     </small>
                   </Button>
                 </span>
@@ -111,16 +114,16 @@ export function SystemsTab({ systems }: SystemsTabProps) {
                 <span className={styles.systemValueCell}>{formatMilliseconds(row.p99Milliseconds)}</span>
                 <span className={styles.systemValueCell}>{formatMilliseconds(row.maxMilliseconds)}</span>
                 <span className={styles.systemValueCell}>{formatInteger(row.calls)}</span>
-                <span className={styles.systemBadgeCell} title={`測定元: ${measurementSource(row.confidence)}`}>
+                <span className={styles.systemBadgeCell} title={t("systems.source", { source: measurementSource(row.confidence, t) })}>
                   <MetricBadge confidence={row.confidence} availability={row.confidence === "Unavailable" ? "Unavailable" : "Available"} />
                 </span>
               </div>
               {isExpanded && (
                 <div className={styles.details}>
-                  <div>測定元: {measurementSource(row.confidence)}</div>
-                  <div>最後の呼び出し: {formatMilliseconds(row.currentMilliseconds)} ・ 中央値: {formatMilliseconds(row.medianMilliseconds)} ・ キャプチャ中の合計: {formatMilliseconds(row.totalMilliseconds)}</div>
-                  <div>パッチ所有者: {patchOwners || "検出なし"}</div>
-                  <div>マーカーや更新間隔の詳細は現在のスナップショットでは公開されていません。</div>
+                  <div>{t("systems.source", { source: measurementSource(row.confidence, t) })}</div>
+                  <div>{t("systems.detailTimes", { last: formatMilliseconds(row.currentMilliseconds), median: formatMilliseconds(row.medianMilliseconds), total: formatMilliseconds(row.totalMilliseconds) })}</div>
+                  <div>{t("systems.patchOwners", { owners: patchOwners || t("systems.noPatchOwners") })}</div>
+                  <div>{t("systems.noMarkerDetails")}</div>
                 </div>
               )}
             </div>
@@ -128,9 +131,9 @@ export function SystemsTab({ systems }: SystemsTabProps) {
         })}
       </div>
       <div className={styles.actionRow}>
-        <span className={styles.exportResult}>{shown.length} / {rows.length} 件を表示</span>
+        <span className={styles.exportResult}>{t("systems.shown", { shown: shown.length, total: rows.length })}</span>
         {shown.length < rows.length && (
-          <Button as="button" variant="flat" onSelect={() => setLimit(limit + PAGE_SIZE)}>さらに {Math.min(PAGE_SIZE, rows.length - shown.length)} 件表示</Button>
+          <Button as="button" variant="flat" onSelect={() => setLimit(limit + PAGE_SIZE)}>{t("systems.showMore", { count: Math.min(PAGE_SIZE, rows.length - shown.length) })}</Button>
         )}
       </div>
     </div>

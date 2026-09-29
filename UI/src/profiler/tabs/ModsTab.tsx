@@ -4,6 +4,7 @@ import type { ModUiRow, SystemUiRow } from "../bindings";
 import { formatMilliseconds } from "../format";
 import { frameCost } from "./SystemsTab";
 import styles from "../profiler.module.scss";
+import { useText, type Translate } from "../../i18n/locale";
 
 interface ModsTabProps {
   mods: ModUiRow[];
@@ -12,20 +13,19 @@ interface ModsTabProps {
 
 const TOP_SYSTEMS = 10;
 
-function costLabel(row: ModUiRow): string {
-  return row.directCostBasis === "perSample" ? "直接システム時間（サンプル平均）" : "直接システム時間（フレーム平均）";
+function costLabel(row: ModUiRow, t: Translate): string {
+  return row.directCostBasis === "perSample" ? t("mods.costPerSample") : t("mods.costPerFrame");
 }
 
 export function ModsTab({ mods, systems = [] }: ModsTabProps) {
+  const { t } = useText();
   const [expanded, setExpanded] = useState<string | null>(null);
   const rows = [...mods].sort((a, b) => b.directSystemMilliseconds - a.directSystemMilliseconds || a.assemblyName.localeCompare(b.assemblyName));
-  if (!rows.length) return <p className={styles.empty}>現在のスナップショットには、MODが直接所有するシステムの計測値がありません。</p>;
+  if (!rows.length) return <p className={styles.empty}>{t("mods.empty")}</p>;
 
   return (
     <div className={styles.tabBody}>
-      <p className={styles.explainer}>
-        直接時間には、そのアセンブリが所有するシステムだけを含めます。各システムの合計時間をフレーム数で割った値を合算するため、1回だけ長く実行された処理（オートセーブ等）が合計を支配しません。バニラシステムへのパッチはメタデータとして表示し、その実行時間をパッチ所有者へ付け替えません。カードを選ぶと内訳を表示します。
-      </p>
+      <p className={styles.explainer}>{t("mods.explainer")}</p>
       <div className={styles.modGrid}>
         {rows.map(row => {
           const isExpanded = expanded === row.assemblyName;
@@ -46,9 +46,9 @@ export function ModsTab({ mods, systems = [] }: ModsTabProps) {
               aria-expanded={isExpanded}
             >
               <strong>{isExpanded ? "▾ " : "▸ "}{row.assemblyName}</strong>
-              <span>{costLabel(row)} <b>{formatMilliseconds(row.directSystemMilliseconds)}</b></span>
-              <span>直接所有システム <b>{row.directSystemCount}</b></span>
-              <span>パッチ対象システム <b>{row.patchedVanillaSystemCount}</b></span>
+              <span>{costLabel(row, t)} <b>{formatMilliseconds(row.directSystemMilliseconds)}</b></span>
+              <span>{t("mods.ownedSystems")} <b>{row.directSystemCount}</b></span>
+              <span>{t("mods.patchedSystems")} <b>{row.patchedVanillaSystemCount}</b></span>
               {isExpanded && (
                 <span className={styles.modBreakdown}>
                   {owned.slice(0, TOP_SYSTEMS).map(system => (
@@ -57,9 +57,9 @@ export function ModsTab({ mods, systems = [] }: ModsTabProps) {
                       <b>{formatMilliseconds(frameCost(system))}</b>
                     </span>
                   ))}
-                  {owned.length > TOP_SYSTEMS && <small>ほか {owned.length - TOP_SYSTEMS} 件（システムタブで確認できます）</small>}
-                  {patched.length > 0 && <small>パッチ対象: {patched.slice(0, TOP_SYSTEMS).map(system => system.id).join(", ")}{patched.length > TOP_SYSTEMS ? " …" : ""}</small>}
-                  {owned.length === 0 && patched.length === 0 && <small>このキャプチャには内訳がありません。</small>}
+                  {owned.length > TOP_SYSTEMS && <small>{t("mods.more", { count: owned.length - TOP_SYSTEMS })}</small>}
+                  {patched.length > 0 && <small>{t("mods.patchTargets", { targets: patched.slice(0, TOP_SYSTEMS).map(system => system.id).join(", ") + (patched.length > TOP_SYSTEMS ? " …" : "") })}</small>}
+                  {owned.length === 0 && patched.length === 0 && <small>{t("mods.noBreakdown")}</small>}
                 </span>
               )}
             </Button>

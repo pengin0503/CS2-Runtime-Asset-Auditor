@@ -4,6 +4,9 @@ import { describe, expect, it } from "vitest";
 import { TimelineTab, seriesVisualIdentity } from "./tabs/TimelineTab";
 import { PerformanceAdvisorTab } from "./tabs/PerformanceAdvisorTab";
 import { EMPTY_ADVISOR } from "./bindings";
+import { useGameLocale } from "../test/locale";
+
+useGameLocale("ja-JP");
 
 function text(node: any): string {
   if (node == null) return "";

@@ -4,11 +4,24 @@ interface StubBinding<T> {
   dispose(): void;
 }
 
-export function bindValue<T>(_group: string, _name: string, fallbackValue?: T): StubBinding<T> {
+// Tests can publish a binding value (for example the game locale) before rendering.
+const published = new Map<string, unknown>();
+
+export function setBindingValue(group: string, name: string, value: unknown): void {
+  published.set(`${group}/${name}`, value);
+}
+
+export function clearBindingValues(): void {
+  published.clear();
+}
+
+export function bindValue<T>(group: string, name: string, fallbackValue?: T): StubBinding<T> {
+  const key = `${group}/${name}`;
+  const read = () => (published.has(key) ? published.get(key) : fallbackValue) as T;
   return {
-    value: fallbackValue as T,
+    get value() { return read(); },
     subscribe(listener?: (value: T) => void) {
-      if (listener) listener(fallbackValue as T);
+      if (listener) listener(read());
       return { dispose() {} };
     },
     dispose() {}
