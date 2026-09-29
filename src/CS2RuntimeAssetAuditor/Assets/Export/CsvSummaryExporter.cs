@@ -27,6 +27,24 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
                 if (finding.PrefabId != null && finding.PrefabType != null)
                     rows.Add((finding.PrefabType, finding.PrefabId));
 
+            // Count findings once up front; counting per row was O(rows x findings x evidence).
+            var ownedFindingCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+            var evidenceFindingCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var finding in report.Analysis.Findings)
+            {
+                if (finding.PrefabId != null && finding.PrefabType != null)
+                {
+                    Increment(ownedFindingCounts, RowKey(finding.PrefabType, finding.PrefabId));
+                    continue;
+                }
+                // Findings supplied without an owning analysis entry can only be attributed through their evidence.
+                foreach (var prefabId in finding.Evidence
+                    .Where(evidence => evidence != null && evidence.StartsWith(AssetEvidencePrefix, StringComparison.Ordinal))
+                    .Select(evidence => evidence.Substring(AssetEvidencePrefix.Length))
+                    .Distinct(StringComparer.Ordinal))
+                    Increment(evidenceFindingCounts, prefabId);
+            }
+
             var builder = new StringBuilder();
             builder.AppendLine("prefabId,prefabType,displayName,traits,presence,topLevelObjects,findingCount");
             foreach (var (type, id) in rows)
@@ -34,7 +52,9 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
                 var key = RowKey(type, id);
                 catalog.TryGetValue(key, out var prefab);
                 census.TryGetValue(key, out var entry);
-                var findingCount = report.Analysis.Findings.Count(finding => BelongsTo(finding, type, id));
+                ownedFindingCounts.TryGetValue(key, out var owned);
+                evidenceFindingCounts.TryGetValue(id, out var byEvidence);
+                var findingCount = owned + byEvidence;
                 builder.Append(EscapeText(id)).Append(',')
                     .Append(EscapeText(type)).Append(',')
                     .Append(EscapeText(prefab?.DisplayName ?? string.Empty)).Append(',')
@@ -46,13 +66,10 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
             return builder.ToString();
         }
 
-        private static bool BelongsTo(ReportFinding finding, string prefabType, string prefabId)
-        {
-            if (finding.PrefabId != null && finding.PrefabType != null)
-                return StringComparer.Ordinal.Equals(finding.PrefabId, prefabId) && StringComparer.Ordinal.Equals(finding.PrefabType, prefabType);
-            // Findings supplied without an owning analysis entry can only be attributed through their evidence.
-            return finding.Evidence.Any(evidence => StringComparer.Ordinal.Equals(evidence, "asset=" + prefabId));
-        }
+        private const string AssetEvidencePrefix = "asset=";
+
+        private static void Increment(Dictionary<string, int> counts, string key)
+            => counts[key] = counts.TryGetValue(key, out var count) ? count + 1 : 1;
 
         private static string RowKey(string prefabType, string prefabId) => prefabType + "\n" + prefabId;
 
