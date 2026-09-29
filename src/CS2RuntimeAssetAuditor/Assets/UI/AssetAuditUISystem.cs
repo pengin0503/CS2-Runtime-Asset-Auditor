@@ -286,7 +286,7 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                     }, ".csv");
                     var written = System.Diagnostics.Stopwatch.GetTimestamp();
                     // The export runs on the main thread, so these times are the length of the freeze it causes.
-                    Mod.Log.Info(string.Format(
+                    Mod.Info(string.Format(
                         System.Globalization.CultureInfo.InvariantCulture,
                         "Asset CSV export timing: file={0} buildMs={1:0.0} formatMs={2:0.0} writeMs={3:0.0} characters={4}",
                         Path.GetFileName(path),

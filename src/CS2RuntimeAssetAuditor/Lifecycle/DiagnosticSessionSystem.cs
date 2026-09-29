@@ -60,7 +60,7 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
             if (mode == GameMode.Game)
             {
                 var context = Mod.Sessions.Begin(UnityEngine.Application.version, BuildIdentityProvider.Current, DateTimeOffset.UtcNow);
-                Mod.Log.Info($"Diagnostic city session started: {context.SessionId}");
+                Mod.Info($"Diagnostic city session started: {context.SessionId} {Mod.LoggerState}");
             }
             else
             {
@@ -69,9 +69,9 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
         }
 
         private static void LogProgress(string milestone) =>
-            Mod.Log.Info(LoadingTraceLogFormatter.FormatProgress(Mod.LoadingTrace.Snapshot(), milestone));
+            Mod.Info(LoadingTraceLogFormatter.FormatProgress(Mod.LoadingTrace.Snapshot(), milestone));
 
         private static void LogSummary() =>
-            Mod.Log.Info(LoadingTraceLogFormatter.FormatSummary(Mod.LoadingTrace.Snapshot()));
+            Mod.Info(LoadingTraceLogFormatter.FormatSummary(Mod.LoadingTrace.Snapshot()));
     }
 }

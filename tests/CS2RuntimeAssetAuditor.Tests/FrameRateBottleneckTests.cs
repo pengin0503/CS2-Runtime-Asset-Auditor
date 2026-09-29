@@ -178,6 +178,58 @@ public class FrameRateBottleneckTests
         Assert.That(SimulationStepLimits.FrameRateEfficiencyCeiling(1, 0), Is.Null);
     }
 
+    [Test]
+    public void Automatic_capture_does_not_start_when_the_frame_rate_explains_the_slowdown()
+    {
+        var machine = new DeepCaptureStateMachine(0.8, 2, 10, 5, 30);
+        for (var t = 0d; t <= 5; t += 0.5)
+            machine.Observe(t, 1, 0.6, automaticTriggerAllowed: true, slowdownExplainedByFrameRate: true);
+        Assert.Multiple(() =>
+        {
+            Assert.That(machine.State, Is.EqualTo(CaptureState.Monitoring));
+            Assert.That(machine.FrameRateSkips, Is.EqualTo(1), "One run of skipped samples counts once.");
+            Assert.That(machine.LastFrameRateSkipEfficiency, Is.EqualTo(0.6).Within(1e-9));
+        });
+
+        machine.Observe(5.5, 1, 1, automaticTriggerAllowed: true, slowdownExplainedByFrameRate: false);
+        machine.Observe(6, 1, 0.6, automaticTriggerAllowed: true, slowdownExplainedByFrameRate: true);
+        Assert.That(machine.FrameRateSkips, Is.EqualTo(2), "A new run after recovery counts again.");
+
+        // A slowdown the frame rate does not explain still starts a capture after the sustain time.
+        machine.Observe(6.5, 1, 0.6, automaticTriggerAllowed: true, slowdownExplainedByFrameRate: false);
+        machine.Observe(8.5, 1, 0.6, automaticTriggerAllowed: true, slowdownExplainedByFrameRate: false);
+        Assert.That(machine.State, Is.EqualTo(CaptureState.DeepCapture));
+    }
+
+    [Test]
+    public void Capture_controller_skips_the_automatic_capture_for_a_frame_rate_limited_sample()
+    {
+        using var limited = CreateController();
+        // 20 fps at 1x: the ceiling is 2/3 and the efficiency of 0.62 reaches most of it.
+        for (var t = 0d; t <= 4; t += 0.5)
+            limited.Observe(t, Sample(t, 20, 0.62, 1.0), automaticTriggerAllowed: true, prebuffer: null);
+        Assert.That(limited.State, Is.EqualTo(CaptureState.Monitoring));
+        Assert.That(limited.FrameRateSkips, Is.EqualTo(1));
+
+        using var slow = CreateController();
+        // 60 fps: the frame rate allows full speed, so the slowdown is the simulation's own.
+        for (var t = 0d; t <= 4; t += 0.5)
+            slow.Observe(t, Sample(t, 60, 0.62, 0.2), automaticTriggerAllowed: true, prebuffer: null);
+        Assert.That(slow.State, Is.EqualTo(CaptureState.DeepCapture));
+        Assert.That(slow.FrameRateSkips, Is.EqualTo(0));
+    }
+
+    private static CS2RuntimeAssetAuditor.Profiling.DeepCaptureController CreateController()
+    {
+        var descriptors = Enumerable.Range(0, 4)
+            .Select(index => new RecorderDescriptor($"marker-{index}", "CPU", $"Marker {index}", "TimeNanoseconds", "Int64"))
+            .ToArray();
+        var manager = new CS2RuntimeAssetAuditor.Profiling.RecorderManager(new NullBackend(descriptors));
+        var controller = new CS2RuntimeAssetAuditor.Profiling.DeepCaptureController(manager, new DeepCaptureStateMachine(0.8, 2, 10, 5, 30), maxConcurrent: 4, overheadCeiling: 0.08);
+        controller.Initialize();
+        return controller;
+    }
+
     private static GlobalMetricsSnapshot Sample(double timestamp, double fps, double efficiency, double capShare)
     {
         var frameMs = 1000d / fps;
@@ -205,4 +257,20 @@ public class FrameRateBottleneckTests
 
     private static IReadOnlyList<BottleneckObservation> Classify(params NamedMetricValue[] metrics)
         => new BottleneckClassifier().Classify(new AdvisorEvidenceSnapshot(DateTime.UtcNow, metrics));
+}
+
+internal sealed class NullBackend : CS2RuntimeAssetAuditor.Profiling.IRecorderBackend
+{
+    private readonly IReadOnlyList<RecorderDescriptor> _descriptors;
+    public NullBackend(IReadOnlyList<RecorderDescriptor> descriptors) => _descriptors = descriptors;
+    public IReadOnlyList<RecorderDescriptor> Discover() => _descriptors;
+    public CS2RuntimeAssetAuditor.Profiling.IActiveRecorder Start(RecorderDescriptor descriptor, int capacity) => new NullRecorder(descriptor.Id);
+
+    private sealed class NullRecorder : CS2RuntimeAssetAuditor.Profiling.IActiveRecorder
+    {
+        public NullRecorder(string id) => Id = id;
+        public string Id { get; }
+        public RecorderReading Read() => new(1d, 1);
+        public void Dispose() { }
+    }
 }

@@ -56,7 +56,8 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
             "modUpdateMsMedian",
             "modUpdateMsMax",
             "modUpdateSlowestSystem",
-            "modUpdateSlowestSystemMs"
+            "modUpdateSlowestSystemMs",
+            "autoSaveStarts"
         };
 
         public static readonly IReadOnlyList<string> MarkerInventoryColumns = new[]
@@ -130,7 +131,8 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
                 Median(row.ModUpdateMs),
                 Max(row.ModUpdateMs),
                 row.ModUpdateSlowestSystem ?? string.Empty,
-                Number(row.ModUpdateSlowestSystemMs)
+                Number(row.ModUpdateSlowestSystemMs),
+                Integer(row.AutoSaveStarts)
             };
             foreach (var value in row.RecorderValues)
                 fields.Add(Number(value));

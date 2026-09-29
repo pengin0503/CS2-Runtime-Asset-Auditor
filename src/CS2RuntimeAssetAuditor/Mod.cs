@@ -1,6 +1,7 @@
 using Colossal.IO.AssetDatabase;
 using Colossal.Logging;
 using CS2RuntimeAssetAuditor.Collectors;
+using CS2RuntimeAssetAuditor.Core.DiagnosticLog;
 using CS2RuntimeAssetAuditor.Core.Loading;
 using CS2RuntimeAssetAuditor.Assets.GameIntegration;
 using CS2RuntimeAssetAuditor.Assets.UI;
@@ -39,15 +40,76 @@ namespace CS2RuntimeAssetAuditor
         /// </summary>
         public static void ReportFailure(string context, System.Exception exception)
         {
-            try { Log.Error(exception, context); }
+            Error(exception, context);
+        }
+
+        private static readonly object EventLogLock = new object();
+        private static ModEventLogFile? _eventLog;
+        private static bool _eventLogUnavailable;
+
+        /// <summary>
+        /// Writes a line to the game's mod log and to the mod's own events file
+        /// (<c>ModsData/CS2RuntimeAssetAuditor/CS2RuntimeAssetAuditor-events.log</c>). Logging never throws.
+        /// </summary>
+        public static void Info(string message)
+        {
+            try { Log.Info(message); }
             catch { }
+            WriteEvent("INFO", message);
+        }
+
+        public static void Warn(string message)
+        {
+            try { Log.Warn(message); }
+            catch { }
+            WriteEvent("WARN", message);
+        }
+
+        public static void Error(System.Exception exception, string message)
+        {
+            try { Log.Error(exception, message); }
+            catch { }
+            WriteEvent("ERROR", exception == null ? message : message + " | " + ReportPrivacy.Sanitize(exception.ToString()));
+        }
+
+        private static void WriteEvent(string level, string message)
+        {
+            lock (EventLogLock)
+            {
+                if (_eventLogUnavailable)
+                    return;
+                try
+                {
+                    _eventLog ??= new ModEventLogFile(System.IO.Path.Combine(
+                        Colossal.PSI.Environment.EnvPath.kUserDataPath, "ModsData", Id, Id + "-events.log"));
+                    _eventLog.Write(System.DateTime.Now, level, message);
+                }
+                catch (System.Exception ex)
+                {
+                    // Stop trying for this game run rather than failing on every line; say so once in the game log.
+                    _eventLogUnavailable = true;
+                    _eventLog?.Dispose();
+                    _eventLog = null;
+                    try { Log.Error(ex, "The mod's events file could not be written; later lines go only to the game log."); }
+                    catch { }
+                }
+            }
+        }
+
+        private static void CloseEventLog()
+        {
+            lock (EventLogLock)
+            {
+                _eventLog?.Dispose();
+                _eventLog = null;
+            }
         }
 
         public void OnLoad(UpdateSystem updateSystem)
         {
             _loadingTrace.MarkModStarted(System.DateTimeOffset.UtcNow);
             var version = typeof(Mod).Assembly.GetName().Version?.ToString() ?? "unknown";
-            Log.Info($"{nameof(OnLoad)} version={version} build={BuildIdentityProvider.Current}");
+            Info($"{nameof(OnLoad)} version={version} build={BuildIdentityProvider.Current} {LoggerState}");
 
             Settings = new Setting(this);
             ProfilerReportBuilder.RuntimeMetadataProvider = RuntimeReportMetadataProvider.Capture;
@@ -82,7 +144,7 @@ namespace CS2RuntimeAssetAuditor
 
         public void OnDispose()
         {
-            Log.Info(nameof(OnDispose));
+            Info($"{nameof(OnDispose)} {LoggerState}");
             if (LoadingMetrics != null)
             {
                 LoadingMetrics.enabled = false;
@@ -96,6 +158,20 @@ namespace CS2RuntimeAssetAuditor
             _sessions.Close();
             _workCoordinator.Complete(DiagnosticWorkKind.RuntimeDeepCapture);
             _workCoordinator.Complete(DiagnosticWorkKind.AssetHeavyScan);
+            CloseEventLog();
+        }
+
+        /// <summary>
+        /// The game logger's level, written with lifecycle lines: if the game's mod log stops receiving lines again,
+        /// the events file shows whether the logger's level changed.
+        /// </summary>
+        public static string LoggerState
+        {
+            get
+            {
+                try { return $"gameLoggerLevel={Log.effectivenessLevel}"; }
+                catch { return "gameLoggerLevel=unknown"; }
+            }
         }
     }
 }

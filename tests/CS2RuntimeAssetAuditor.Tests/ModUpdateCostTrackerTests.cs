@@ -80,3 +80,74 @@ public class ModUpdateCostTrackerTests
         Assert.That(untimed, Is.Empty);
     }
 }
+
+public class AutoSaveAndEventLogTests
+{
+    [Test]
+    public void Autosave_is_counted_only_when_the_check_time_moves_forward_from_an_active_value()
+    {
+        var counter = new AutoSaveTriggerCounter();
+        Assert.Multiple(() =>
+        {
+            Assert.That(counter.Observe(-1f), Is.False, "First reading.");
+            Assert.That(counter.Observe(120f), Is.False, "Autosave became active when the city loaded.");
+            Assert.That(counter.Observe(120f), Is.False);
+            Assert.That(counter.Observe(241f), Is.True, "An autosave started.");
+            Assert.That(counter.Observe(241f), Is.False);
+            Assert.That(counter.Observe(-1f), Is.False, "Autosave turned off.");
+            Assert.That(counter.Observe(300f), Is.False, "Turned on again.");
+            Assert.That(counter.Observe(null), Is.False, "Unreadable.");
+            Assert.That(counter.Observe(420f), Is.False, "No known previous value.");
+            Assert.That(counter.Observe(540f), Is.True);
+        });
+    }
+
+    [Test]
+    public void Diagnostic_rows_write_autosave_starts_and_leave_them_empty_when_unreadable()
+    {
+        var accumulator = new DiagnosticLogAccumulator(null);
+        var header = DiagnosticLogCsv.FormatHeader(null).Split(',');
+        var index = Array.IndexOf(header, "autoSaveStarts");
+        Assert.That(index, Is.GreaterThan(0));
+
+        var saved = accumulator.Complete(DateTimeOffset.UnixEpoch, 1, new DiagnosticIntervalContext(null, null, null, null, null, 1));
+        var unreadable = accumulator.Complete(DateTimeOffset.UnixEpoch, 2, new DiagnosticIntervalContext(null, null, null, null, null));
+        Assert.That(DiagnosticLogCsv.FormatRow(saved).Split(',')[index], Is.EqualTo("1"));
+        Assert.That(DiagnosticLogCsv.FormatRow(unreadable).Split(',')[index], Is.Empty);
+    }
+
+    [Test]
+    public void Event_log_appends_lines_and_keeps_one_old_file_when_it_reaches_its_cap()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "cs2raa-events-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var path = Path.Combine(directory, "events.log");
+            var time = new DateTime(2026, 9, 29, 19, 29, 19, 52);
+            using (var log = new ModEventLogFile(path, maxBytes: 200))
+            {
+                log.Write(time, "INFO", "first");
+                Assert.That(File.ReadAllText(path), Is.EqualTo("[2026-09-29 19:29:19,052] [INFO] first" + Environment.NewLine));
+                for (var i = 0; i < 10; i++)
+                    log.Write(time, "INFO", "line " + i);
+            }
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(File.Exists(path + ".old"), Is.True);
+                Assert.That(new FileInfo(path).Length, Is.LessThan(200 + 64));
+                Assert.That(File.ReadAllText(path) + File.ReadAllText(path + ".old"), Does.Contain("line 9"));
+                Assert.That(Directory.GetFiles(directory), Has.Length.EqualTo(2), "At most two files are kept.");
+            });
+
+            using (var reopened = new ModEventLogFile(path, maxBytes: 200))
+                reopened.Write(time, "WARN", "after restart");
+            Assert.That(File.ReadAllText(path), Does.EndWith("[WARN] after restart" + Environment.NewLine));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+                Directory.Delete(directory, recursive: true);
+        }
+    }
+}

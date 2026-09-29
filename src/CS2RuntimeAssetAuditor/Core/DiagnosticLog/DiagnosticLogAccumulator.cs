@@ -76,6 +76,7 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
                 Interval = _interval.Complete(),
                 ManagedHeapMiB = context.ManagedHeapBytes.HasValue ? context.ManagedHeapBytes.Value / (1024d * 1024d) : (double?)null,
                 GcCollections = GcDelta(context.GcCollectionCount),
+                AutoSaveStarts = context.AutoSaveStarts,
                 CaptureState = context.CaptureState,
                 CaptureTrigger = context.CaptureTrigger,
                 CaptureId = context.CaptureId,

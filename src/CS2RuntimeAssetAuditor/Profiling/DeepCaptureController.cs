@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CS2RuntimeAssetAuditor.Core;
+using CS2RuntimeAssetAuditor.Core.Frames;
 
 namespace CS2RuntimeAssetAuditor.Profiling
 {
@@ -32,6 +33,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
         private int _consecutiveOverheadBreaches;
         private int _degradationActions;
         private int _profilerMemoryDegradeLevel;
+        private double? _lastProfilerMemoryGrowth;
         private double _batchStartedAt;
         private double _lastObservedSeconds;
         private int _consecutiveSafetyStops;
@@ -57,6 +59,8 @@ namespace CS2RuntimeAssetAuditor.Profiling
         public int CurrentBatchSize => _maxConcurrent;
         public int SamplingStride => _sampleStride;
         public int ConsecutiveSafetyStops => _consecutiveSafetyStops;
+        public int FrameRateSkips => _stateMachine.FrameRateSkips;
+        public double LastFrameRateSkipEfficiency => _stateMachine.LastFrameRateSkipEfficiency;
 
         public void ClearCompletedSessions() => _completed.Clear();
 
@@ -104,7 +108,8 @@ namespace CS2RuntimeAssetAuditor.Profiling
                 nowSeconds,
                 global?.SelectedSpeed ?? 0,
                 global?.ActualSpeed ?? 0,
-                automaticTriggerAllowed);
+                automaticTriggerAllowed,
+                IsSlowdownExplainedByFrameRate(global));
             var after = _stateMachine.State;
 
             if (before != CaptureState.DeepCapture && after == CaptureState.DeepCapture)
@@ -174,6 +179,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
             _consecutiveOverheadBreaches = 0;
             _degradationActions = 0;
             _profilerMemoryDegradeLevel = 0;
+            _lastProfilerMemoryGrowth = null;
             _lastState = _stateMachine.State;
         }
 
@@ -215,6 +221,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
             _consecutiveOverheadBreaches = 0;
             _degradationActions = 0;
             _profilerMemoryDegradeLevel = 0;
+            _lastProfilerMemoryGrowth = null;
             _plan = MarkerBatchPlanner.Create(_recorders.Descriptors.Select(d => d.Id), _maxConcurrent);
             CurrentSession = new CaptureSession($"capture-{DateTime.UtcNow:yyyyMMdd-HHmmss-fff}", _stateMachine.LastTrigger ?? new CaptureTrigger(CaptureTriggerKind.Manual, nowSeconds, null), 4096);
             CurrentSession.SetTriggerSnapshot(triggerSample);
@@ -238,12 +245,24 @@ namespace CS2RuntimeAssetAuditor.Profiling
                 return;
 
             CurrentSession.ObserveProfilerMemory(reading.Value);
-            var delta = CurrentSession.ProfilerMemoryDeltaBytes;
-            if (!delta.HasValue || delta.Value < ProfilerMemoryGrowthStepBytes)
+            var baseline = CurrentSession.ProfilerMemoryBaselineBytes;
+            if (!baseline.HasValue)
                 return;
 
-            var deltaMiB = delta.Value / (1024d * 1024d);
-            if (delta.Value >= ProfilerMemoryHardStopBytes)
+            // Only growth seen in two consecutive samples counts. The game's autosave raises Profiler Used Memory
+            // by about 800 MiB for a single frame (real-play logs of 2026-09-29, two-minute autosave interval);
+            // acting on that one sample stopped a capture for memory the capture did not use.
+            var growth = Math.Max(0d, reading.Value - baseline.Value);
+            var previous = _lastProfilerMemoryGrowth;
+            _lastProfilerMemoryGrowth = growth;
+            if (!previous.HasValue)
+                return;
+            var sustained = Math.Min(previous.Value, growth);
+            if (sustained < ProfilerMemoryGrowthStepBytes)
+                return;
+
+            var deltaMiB = sustained / (1024d * 1024d);
+            if (sustained >= ProfilerMemoryHardStopBytes)
             {
                 InterruptActiveCapture(
                     $"Profiler memory grew by {deltaMiB:0.#} MiB during this capture, exceeding the 512 MiB safety limit; the capture was finalized early.",
@@ -251,7 +270,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
                 return;
             }
 
-            var targetLevel = (int)Math.Floor(delta.Value / ProfilerMemoryGrowthStepBytes);
+            var targetLevel = (int)Math.Floor(sustained / ProfilerMemoryGrowthStepBytes);
             while (CurrentSession != null && _profilerMemoryDegradeLevel < targetLevel)
             {
                 _profilerMemoryDegradeLevel++;
@@ -276,6 +295,16 @@ namespace CS2RuntimeAssetAuditor.Profiling
                 _sampleStride = Math.Min(16, _sampleStride * 2);
                 CurrentSession.AddWarning(string.Format(strideWarningFormat, _sampleStride));
             }
+        }
+
+        // Uses the frame interval of this sample, so the decision reflects the frame rate while efficiency was low.
+        private static bool IsSlowdownExplainedByFrameRate(GlobalMetricsSnapshot global)
+        {
+            if (global?.FrameInterval == null || global.SelectedSpeed <= 0)
+                return false;
+            var interval = global.FrameInterval;
+            var efficiency = SimulationEfficiency.Calculate(global.SelectedSpeed, global.ActualSpeed);
+            return FrameRateLimit.Explains(efficiency, interval.FrameRateEfficiencyCeiling, FrameRateLimit.RenderCapShare(interval));
         }
 
         private static GlobalMetricsSnapshot FindLatestSample(IEnumerable<GlobalMetricsSnapshot> samples, double nowSeconds)
@@ -365,6 +394,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
             _consecutiveOverheadBreaches = 0;
             _degradationActions = 0;
             _profilerMemoryDegradeLevel = 0;
+            _lastProfilerMemoryGrowth = null;
             CaptureCompleted?.Invoke(completed);
         }
     }

@@ -64,7 +64,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
             _systemCatalog = new SystemCatalogCache(() => new ProfilerCatalog(world: World).Discover());
             if (!_systemCatalog.TryRefresh(out var catalogError))
             {
-                Mod.Log.Info(
+                Mod.Info(
                     "Initial system catalog discovery failed; per-system timing will use the last known good catalog: "
                     + (catalogError ?? "unknown reason"));
             }
@@ -113,6 +113,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
             {
                 var beforeSession = _controller.CurrentSession;
                 var beforeState = _controller.State;
+                var beforeFrameRateSkips = _controller.FrameRateSkips;
                 _controller.Observe(
                     latest.TimestampSeconds,
                     latest,
@@ -120,6 +121,8 @@ namespace CS2RuntimeAssetAuditor.Profiling
                     prebuffer);
                 var afterSession = _controller.CurrentSession;
                 var afterState = _controller.State;
+                if (_controller.FrameRateSkips != beforeFrameRateSkips)
+                    LogFrameRateSkip(latest);
 
                 if (beforeSession == null && afterSession != null && afterState == CaptureState.DeepCapture)
                     BeginCaptureWork(afterSession);
@@ -148,6 +151,23 @@ namespace CS2RuntimeAssetAuditor.Profiling
 
             _lastObservedTimestamp = latest.TimestampSeconds;
         }
+
+        // One line per run of skipped samples, so the log shows why a slowdown did not start a capture.
+        private static void LogFrameRateSkip(GlobalMetricsSnapshot sample)
+        {
+            var interval = sample.FrameInterval;
+            Mod.Info(string.Format(
+                CultureInfo.InvariantCulture,
+                "Automatic capture skipped: the frame rate explains the slowdown. selectedSpeed={0} efficiency={1:0.###} fps={2} frameRateCeiling={3} renderCapShare={4}",
+                sample.SelectedSpeed,
+                sample.Efficiency,
+                Format(interval?.FramesPerSecond),
+                Format(interval?.FrameRateEfficiencyCeiling),
+                Format(Core.Frames.FrameRateLimit.RenderCapShare(interval))));
+        }
+
+        private static string Format(double? value)
+            => value.HasValue ? value.Value.ToString("0.###", CultureInfo.InvariantCulture) : "unavailable";
 
         public CaptureSession RequestManualCapture()
         {
@@ -192,7 +212,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
         private void BeginCaptureWork(CaptureSession capture)
         {
             capture.MarkStarted(Mod.SessionContext?.SessionId, DateTimeOffset.UtcNow);
-            Mod.Log.Info(CaptureCompletionLogFormatter.FormatStarted(capture));
+            Mod.Info(CaptureCompletionLogFormatter.FormatStarted(capture));
             Mod.WorkCoordinator.Request(DiagnosticWorkKind.RuntimeDeepCapture);
             RefreshSystemCatalogForCapture(capture);
             StartManagedTimingForCapture(capture);
@@ -254,7 +274,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
                 "System catalog refresh failed at capture start; using the last known good catalog: "
                 + (error ?? "unknown reason");
             capture?.AddWarning(warning);
-            Mod.Log.Info(warning);
+            Mod.Info(warning);
         }
 
         private void StartManagedTimingForCapture(CaptureSession capture)
@@ -269,7 +289,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
             }
 
             _managedInstrumentationUnavailableReason = reason ?? "unknown reason";
-            Mod.Log.Info(
+            Mod.Info(
                 "Managed SystemBase timing fallback unavailable for this capture: "
                 + _managedInstrumentationUnavailableReason);
         }
@@ -287,7 +307,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
             {
                 capture.AddWarning(
                     "Managed SystemBase timing finalization failed; marker timing remains available.");
-                Mod.Log.Error(ex, "Managed SystemBase timing finalization failed");
+                Mod.Error(ex, "Managed SystemBase timing finalization failed");
             }
         }
 
@@ -326,18 +346,18 @@ namespace CS2RuntimeAssetAuditor.Profiling
             {
                 capture.AddWarning(
                     "System timing projection failed for this capture; per-system timing is unavailable.");
-                Mod.Log.Error(ex, "System timing projection failed for a completed capture");
+                Mod.Error(ex, "System timing projection failed for a completed capture");
             }
             var timingDone = Stopwatch.GetTimestamp();
 
             CaptureCompletionDiagnosticsDispatcher.Dispatch(
                 capture,
-                message => Mod.Log.Info(message),
+                message => Mod.Info(message),
                 TryFlushModLog);
             var logDone = Stopwatch.GetTimestamp();
 
             // Where the completion frame's time went, so a hitch at capture completion can be traced to a step.
-            Mod.Log.Info(string.Format(
+            Mod.Info(string.Format(
                 CultureInfo.InvariantCulture,
                 "Capture completion timing: id={0} workCoordinatorMs={1:0.0} managedTimingMs={2:0.0} systemTimingMs={3:0.0} completionLogMs={4:0.0} totalMs={5:0.0}",
                 capture.Id,

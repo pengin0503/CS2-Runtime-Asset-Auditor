@@ -71,6 +71,17 @@ namespace CS2RuntimeAssetAuditor.AdapterTests
                 "Purpose must come from an assembly the mod project references.");
         }
 
+        // The diagnostic log marks autosaves by watching this field; see AutoSaveTriggerCounter.
+        [Test]
+        public void AutoSaveSystem_keeps_the_last_autosave_check_time_in_a_private_float_field()
+        {
+            var autoSave = _game!.GetType("Game.AutoSaveSystem", throwOnError: true)!;
+            var field = autoSave.GetField("m_LastAutoSaveCheck", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(field, Is.Not.Null);
+            Assert.That(field!.FieldType.FullName, Is.EqualTo("System.Single"));
+            Assert.That(autoSave.BaseType?.FullName, Is.EqualTo("Game.GameSystemBase"));
+        }
+
         [Test]
         public void GameMode_defines_Game()
         {

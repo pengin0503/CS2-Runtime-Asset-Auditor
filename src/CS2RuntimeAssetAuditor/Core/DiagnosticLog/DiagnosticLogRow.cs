@@ -27,8 +27,10 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
             string? captureTrigger,
             string? captureId,
             long? managedHeapBytes,
-            int? gcCollectionCount)
+            int? gcCollectionCount,
+            int? autoSaveStarts = null)
         {
+            AutoSaveStarts = autoSaveStarts;
             CaptureState = captureState;
             CaptureTrigger = captureTrigger;
             CaptureId = captureId;
@@ -43,6 +45,9 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
 
         /// <summary>Cumulative collection count since process start; the row stores the change.</summary>
         public int? GcCollectionCount { get; }
+
+        /// <summary>Game autosaves that started in the interval; null when the game's autosave state is unreadable.</summary>
+        public int? AutoSaveStarts { get; }
     }
 
     /// <summary>One diagnostic-log row (normally one second). Absent values are written as empty cells.</summary>
@@ -54,6 +59,7 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
 
         public int? GcCollections { get; set; }
         public double? ManagedHeapMiB { get; set; }
+        public int? AutoSaveStarts { get; set; }
 
         public string? CaptureState { get; set; }
         public string? CaptureTrigger { get; set; }

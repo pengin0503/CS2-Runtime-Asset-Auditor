@@ -51,13 +51,20 @@ public class Issue15To22RegressionTests
         using var controller = CreateController();
         controller.RequestManualCapture(0, new[] { Global(0, 100 * MiB) });
 
+        // Growth counts once two consecutive samples show it.
         controller.Observe(0.25, Global(0.25, 230 * MiB));
+        Assert.That(controller.CurrentBatchSize, Is.EqualTo(8));
+        controller.Observe(0.50, Global(0.50, 230 * MiB));
         Assert.That(controller.CurrentBatchSize, Is.EqualTo(4));
-        controller.Observe(0.50, Global(0.50, 360 * MiB));
+        controller.Observe(0.75, Global(0.75, 360 * MiB));
+        controller.Observe(1.00, Global(1.00, 360 * MiB));
         Assert.That(controller.CurrentBatchSize, Is.EqualTo(2));
-        controller.Observe(0.75, Global(0.75, 490 * MiB));
+        controller.Observe(1.25, Global(1.25, 490 * MiB));
+        controller.Observe(1.50, Global(1.50, 490 * MiB));
         Assert.That(controller.CurrentBatchSize, Is.EqualTo(1));
-        controller.Observe(1.00, Global(1.00, 620 * MiB));
+        controller.Observe(1.75, Global(1.75, 620 * MiB));
+        Assert.That(controller.CurrentSession, Is.Not.Null, "One sample over the limit does not stop the capture.");
+        controller.Observe(2.00, Global(2.00, 620 * MiB));
 
         Assert.Multiple(() =>
         {

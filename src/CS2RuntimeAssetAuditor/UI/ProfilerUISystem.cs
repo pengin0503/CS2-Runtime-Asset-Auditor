@@ -203,7 +203,7 @@ namespace CS2RuntimeAssetAuditor.UI
             }
             catch (Exception ex)
             {
-                Mod.Log.Warn($"Saving profiler panel layout failed: {ReportPrivacy.Sanitize(ex.Message)}");
+                Mod.Warn($"Saving profiler panel layout failed: {ReportPrivacy.Sanitize(ex.Message)}");
             }
 
             _panelLayoutBinding.Update();

@@ -59,6 +59,25 @@ public class ProfilerMemoryGuardTests
         });
     }
 
+    [Test]
+    public void A_one_sample_profiler_memory_spike_neither_stops_nor_degrades_the_capture()
+    {
+        // The game's autosave raised Profiler Used Memory by about 800 MiB for one frame in the real-play logs.
+        using var controller = CreateController();
+        controller.RequestManualCapture(0, new[] { Global(0, 6000 * MiB) });
+        controller.Observe(0.5, Global(0.5, 6010 * MiB));
+        controller.Observe(1.0, Global(1.0, 6880 * MiB));
+        controller.Observe(1.5, Global(1.5, 6020 * MiB));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(controller.CurrentSession, Is.Not.Null);
+            Assert.That(controller.CurrentBatchSize, Is.EqualTo(8));
+            Assert.That(controller.CurrentSession!.Warnings.Any(w => w.Contains("Profiler memory", StringComparison.OrdinalIgnoreCase)), Is.False);
+            Assert.That(controller.CurrentSession.ProfilerMemoryPeakBytes, Is.EqualTo(6880 * MiB), "The peak is still recorded.");
+        });
+    }
+
     private static DeepCaptureController CreateController()
     {
         var descriptors = Enumerable.Range(0, 8)

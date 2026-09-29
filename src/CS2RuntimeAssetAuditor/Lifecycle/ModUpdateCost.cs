@@ -26,7 +26,7 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
                 var slow = Tracker.Add(UnityEngine.Time.frameCount, system, milliseconds, Clock.Elapsed.TotalSeconds);
                 if (!slow.HasValue)
                     return;
-                Mod.Log.Info(string.Format(
+                Mod.Info(string.Format(
                     CultureInfo.InvariantCulture,
                     "Slow mod update: system={0} ms={1:0.0} frame={2} suppressedSinceLastReport={3}",
                     slow.Value.System,

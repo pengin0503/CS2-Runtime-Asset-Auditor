@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using Colossal.PSI.Environment;
 using CS2RuntimeAssetAuditor.Collectors;
@@ -40,6 +41,13 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
         private double _nextRowAt;
         private GlobalMetricsSnapshot? _lastSnapshot;
 
+        // Game 1.6.2f1: AutoSaveSystem keeps the time of the last autosave check in this private field.
+        private static readonly FieldInfo? AutoSaveCheckField =
+            typeof(AutoSaveSystem).GetField("m_LastAutoSaveCheck", BindingFlags.Instance | BindingFlags.NonPublic);
+        private readonly AutoSaveTriggerCounter _autoSaves = new AutoSaveTriggerCounter();
+        private AutoSaveSystem? _autoSaveSystem;
+        private int _autoSaveStarts;
+
         protected override void OnCreate()
         {
             base.OnCreate();
@@ -49,6 +57,7 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
                 World.GetOrCreateSystemManaged<SimulationSystem>(),
                 World.GetOrCreateSystemManaged<PathfindResultSystem>());
             _capture = World.GetOrCreateSystemManaged<CaptureRuntimeSystem>();
+            _autoSaveSystem = World.GetExistingSystemManaged<AutoSaveSystem>();
         }
         protected override void OnUpdate()
         {
@@ -119,10 +128,12 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
                 _fileGeneration = generation;
                 _rows = 0;
                 _lastSnapshot = null;
+                _autoSaves.Reset();
+                _autoSaveStarts = 0;
                 _clock.Restart();
                 _nextRowAt = RowIntervalSeconds;
 
-                Mod.Log.Info(string.Format(
+                Mod.Info(string.Format(
                     System.Globalization.CultureInfo.InvariantCulture,
                     "Diagnostic log started: file={0} session={1} frameTimingFeature={2} recorderColumns={3} markers={4}",
                     _fileName,
@@ -149,6 +160,7 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
 
             accumulator.AddFrame(_frames.Read());
             accumulator.AddModFrameCost(ModUpdateCost.LastCompletedFrame);
+            ObserveAutoSave();
 
             var latest = _global?.Latest;
             if (latest != null && !ReferenceEquals(latest, _lastSnapshot))
@@ -167,6 +179,21 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
             WriteRow(accumulator, elapsed);
         }
 
+        // The game's autosave stalls a frame for about a second; marking it keeps that stall from being blamed
+        // on the simulation or on this mod.
+        private void ObserveAutoSave()
+        {
+            if (AutoSaveCheckField == null)
+                return;
+            _autoSaveSystem ??= World.GetExistingSystemManaged<AutoSaveSystem>();
+            if (_autoSaveSystem == null)
+                return;
+            if (!_autoSaves.Observe(AutoSaveCheckField.GetValue(_autoSaveSystem) as float?))
+                return;
+            _autoSaveStarts++;
+            Mod.Info("Game autosave started: file=" + _fileName);
+        }
+
         private void WriteRow(DiagnosticLogAccumulator accumulator, double elapsed)
         {
             var writer = _writer;
@@ -179,7 +206,9 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
                 capture?.Trigger?.Kind.ToString(),
                 capture?.Id,
                 GC.GetTotalMemory(false),
-                GC.CollectionCount(0));
+                GC.CollectionCount(0),
+                AutoSaveCheckField != null && _autoSaveSystem != null ? _autoSaveStarts : (int?)null);
+            _autoSaveStarts = 0;
             var row = accumulator.Complete(DateTimeOffset.UtcNow, elapsed, context);
             if (writer.TryWriteLine(DiagnosticLogCsv.FormatRow(row)))
             {
@@ -187,7 +216,7 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
                 return;
             }
 
-            Mod.Log.Info(string.Format(
+            Mod.Info(string.Format(
                 System.Globalization.CultureInfo.InvariantCulture,
                 "Diagnostic log reached its size limit ({0} MiB); later rows for this city are not written: file={1}",
                 DiagnosticLogWriter.DefaultMaxBytes / (1024 * 1024),
@@ -220,7 +249,7 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
             var rows = _rows;
             var bytes = writer.WrittenBytes;
             CloseWriter();
-            Mod.Log.Info(string.Format(
+            Mod.Info(string.Format(
                 System.Globalization.CultureInfo.InvariantCulture,
                 "Diagnostic log stopped: file={0} reason={1} rows={2} bytes={3}",
                 fileName,

@@ -47,7 +47,7 @@ namespace CS2RuntimeAssetAuditor.Export
                 });
                 var written = Stopwatch.GetTimestamp();
                 // The export runs on the main thread, so these times are the length of the freeze it causes.
-                Mod.Log.Info(string.Format(
+                Mod.Info(string.Format(
                     CultureInfo.InvariantCulture,
                     "Report export timing: file={0} buildMs={1} serializeMs={2:0.0} writeMs={3:0.0} characters={4}",
                     Path.GetFileName(path),
@@ -59,7 +59,7 @@ namespace CS2RuntimeAssetAuditor.Export
             }
             catch (Exception ex)
             {
-                Mod.Log.Error(ex, "Failed to export CS2 Runtime Asset Auditor report");
+                Mod.Error(ex, "Failed to export CS2 Runtime Asset Auditor report");
                 return ReportExportResult.Failed(ReportPrivacy.Sanitize(ex.Message));
             }
         }

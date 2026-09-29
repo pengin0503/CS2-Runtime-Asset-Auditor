@@ -14,6 +14,7 @@ namespace CS2RuntimeAssetAuditor.Core
         private double? _lowEfficiencySince;
         private double _stateEnteredAt;
         private double? _extendedCooldownSeconds;
+        private bool _skippingForFrameRate;
 
         public DeepCaptureStateMachine(
             double efficiencyThreshold,
@@ -34,6 +35,10 @@ namespace CS2RuntimeAssetAuditor.Core
 
         public CaptureState State { get; private set; }
         public CaptureTrigger LastTrigger { get; private set; }
+
+        /// <summary>Runs of low-efficiency samples that did not start a capture because the frame rate explained them.</summary>
+        public int FrameRateSkips { get; private set; }
+        public double LastFrameRateSkipEfficiency { get; private set; }
         public double CooldownSeconds => _cooldownSeconds;
         public double CurrentCooldownSeconds => _extendedCooldownSeconds ?? _cooldownSeconds;
 
@@ -77,6 +82,23 @@ namespace CS2RuntimeAssetAuditor.Core
             double actualSpeed,
             bool automaticTriggerAllowed)
         {
+            Observe(nowSeconds, selectedSpeed, actualSpeed, automaticTriggerAllowed, slowdownExplainedByFrameRate: false);
+        }
+
+        /// <summary>
+        /// Low efficiency that <paramref name="slowdownExplainedByFrameRate"/> explains does not start an automatic
+        /// capture: the capture would only measure the frame time that the continuous monitoring already shows,
+        /// and adds profiler load. Each run of such samples counts once in <see cref="FrameRateSkips"/>.
+        /// </summary>
+        public void Observe(
+            double nowSeconds,
+            double selectedSpeed,
+            double actualSpeed,
+            bool automaticTriggerAllowed,
+            bool slowdownExplainedByFrameRate)
+        {
+            var skipping = _skippingForFrameRate;
+            _skippingForFrameRate = false;
             AdvanceTimedStates(nowSeconds);
 
             if (State != CaptureState.Monitoring)
@@ -98,6 +120,18 @@ namespace CS2RuntimeAssetAuditor.Core
             if (efficiency >= _efficiencyThreshold)
             {
                 _lowEfficiencySince = null;
+                return;
+            }
+
+            if (slowdownExplainedByFrameRate)
+            {
+                _lowEfficiencySince = null;
+                _skippingForFrameRate = true;
+                if (!skipping)
+                {
+                    FrameRateSkips++;
+                    LastFrameRateSkipEfficiency = efficiency;
+                }
                 return;
             }
 

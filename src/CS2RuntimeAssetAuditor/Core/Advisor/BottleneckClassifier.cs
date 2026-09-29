@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CS2RuntimeAssetAuditor.Core.Frames;
 
 namespace CS2RuntimeAssetAuditor.Core.Advisor
 {
@@ -15,11 +16,6 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor
         private const double GpuBoundPresentWaitShare = 0.2;
         private const double MainThreadBoundShare = 0.8;
 
-        // The simulation is limited by the frame rate when the frame-rate ceiling is below full speed and either the
-        // measured efficiency reaches most of it or most running frames ran the per-frame maximum of steps.
-        private const double FullSpeedCeiling = 0.95;
-        private const double CeilingReachedRatio = 0.85;
-        private const double RenderCapLimitedShare = 0.5;
         private const double PathfindingLimitedShare = 0.25;
 
         public IReadOnlyList<BottleneckObservation> Classify(AdvisorEvidenceSnapshot evidence)
@@ -119,11 +115,9 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor
         {
             var ceiling = evidence.Find("simulation." + scope + "frame.ceiling");
             var capShare = evidence.Find("simulation." + scope + "render.cap.share");
-            // Between 30 and 60 fps many frames run the per-frame maximum of steps without limiting the speed, so the
-            // step-cap share only counts when the frame rate is low enough to lower the ceiling.
-            var belowCeiling = Available(ceiling) && ceiling.Value < FullSpeedCeiling;
-            var ceilingExplains = belowCeiling && efficiency.Value >= CeilingReachedRatio * ceiling.Value;
-            var capExplains = belowCeiling && Available(capShare) && capShare.Value >= RenderCapLimitedShare;
+            var ceilingValue = Available(ceiling) ? ceiling.Value : null;
+            var ceilingExplains = FrameRateLimit.CeilingExplains(efficiency.Value!.Value, ceilingValue);
+            var capExplains = FrameRateLimit.RenderCapExplains(ceilingValue, Available(capShare) ? capShare.Value : null);
             var efficiencyIds = additionalEvidenceId == null
                 ? new List<string> { efficiency.Id }
                 : new List<string> { efficiency.Id, additionalEvidenceId };
