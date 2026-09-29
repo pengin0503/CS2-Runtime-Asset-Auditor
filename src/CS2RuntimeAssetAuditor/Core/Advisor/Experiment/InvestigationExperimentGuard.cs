@@ -12,6 +12,14 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor.Experiment
                !string.Equals(experiment.SettingId, changedSettingId, StringComparison.Ordinal)
                 ? InvestigationInvalidationReason.AdditionalAdvisorSettingChanged : (InvestigationInvalidationReason?)null;
 
+        public static InvestigationInvalidationReason? EvaluateAdvisorMutation(
+            InvestigationExperiment experiment, string changedSettingId, bool succeeded,
+            string observedBefore, string observedAfter)
+            => experiment?.IsActive == true && succeeded && observedBefore != null && observedAfter != null &&
+               !string.Equals(observedBefore, observedAfter, StringComparison.Ordinal) &&
+               !string.Equals(experiment.SettingId, changedSettingId, StringComparison.Ordinal)
+                ? InvestigationInvalidationReason.AdditionalAdvisorSettingChanged : (InvestigationInvalidationReason?)null;
+
         public static InvestigationInvalidationReason? EvaluateObservedSetting(
             InvestigationExperiment experiment, string observedValue)
             => experiment?.IsActive == true && experiment.ChangeAppliedAtUtc.HasValue &&

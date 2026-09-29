@@ -6,13 +6,15 @@
 
 | 対象 | 結果 | 実行内容・範囲 |
 | --- | --- | --- |
-| Pure .NET tests（Investigation focused / Advisor・Runtime regression を含む） | PASS | .NET 8 SDK の C# コンパイラで純粋テストプロジェクトの271ソースをコンパイルし、NUnitLite で451/451件実行。通常の `dotnet test` / MSBuild はこの Work 環境の `/proc` とプロセス識別の不整合で `Process.GetStat` / `DebugUtils` に失敗するため、標準 VSTest 経路は NOT RUN。 |
-| Adapter のゲーム非依存のソース契約テスト | PASS | net8 NUnitLite にリンクして3/3件。正確な手動 Capture の返却、Advisor の既存操作の利用、都市変更時の取り扱いを確認。 |
+| Pure .NET tests（Investigation focused / Advisor・Runtime regression を含む） | PASS | .NET 8 SDK の C# コンパイラで純粋テストプロジェクトの271ソースをコンパイルし、NUnitLite で452/452件実行。通常の `dotnet test` / MSBuild はこの Work 環境の `/proc` とプロセス識別の不整合で `Process.GetStat` / `DebugUtils` に失敗するため、標準 VSTest 経路は NOT RUN。 |
+| Adapter のゲーム非依存のソース契約テスト | PASS | net8 NUnitLite にリンクして4/4件。正確な手動 Capture の返却、Advisor の既存操作の利用、都市変更時の取り扱い、通常の Undo による別設定変更の検出経路を確認。 |
 | 完全な Adapter tests | NOT RUN | CS2 managed DLL と .NET Framework の実行ホストがこの環境にない。ソース契約テストは代替の全 API 検証ではない。 |
 | UI TypeScript type check | PASS | `npx tsc --noEmit -p .`、終了コード0。 |
 | UI tests | PASS | `npm test`、30ファイル・112/112件。 |
 | UI production build | PASS | `CS2_MOD_UI_OUTPUT_DIR` を一時出力先に設定した `npm run build`、webpack compiled successfully。ゲームへの配置は未検証。 |
 | Mod Release build | NOT RUN | `CSII_TOOLPATH` / `CSII_MANAGEDPATH` / `CSII_USERDATAPATH` / `CSII_LOCALMODSPATH` が未設定で、公式 CS2 Modding Toolchain と managed DLL がこの環境にない。ゲーム側の型結合は未検証。 |
+
+最終レビューで、実験開始前に Advisor が変更した別設定を実験中に Undo すると、変更履歴の時刻フィルターから漏れる問題を検出した。Undo・セッション Undo・競合の復元で実際に値が変わった場合だけ実験を無効化する修正を、RED→GREEN の回帰テストと上記全体検証で確認した。
 
 ## 実ゲーム検証（仕様 §22）
 

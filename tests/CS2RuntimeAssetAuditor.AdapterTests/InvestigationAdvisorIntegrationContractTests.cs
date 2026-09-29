@@ -41,6 +41,18 @@ namespace CS2RuntimeAssetAuditor.AdapterTests
                 "A terminal experiment from the previous city must not be projected into the new city.");
         }
 
+        [Test]
+        public void Ordinary_undo_paths_track_effective_other_setting_mutations()
+        {
+            var source = File.ReadAllText(FindSource());
+            Assert.That(Section(source, "public SettingApplyResult UndoSetting", "public IReadOnlyList<SettingApplyResult> UndoSession"),
+                Does.Contain("InvalidateOnOtherSettingMutation(settingId, result)"));
+            Assert.That(Section(source, "public IReadOnlyList<SettingApplyResult> UndoSession", "public SettingApplyResult ResolveConflict"),
+                Does.Contain("InvalidateOnOtherSettingMutation(planned[index].SettingId, results[index])"));
+            Assert.That(Section(source, "public SettingApplyResult ResolveConflict", "public InvestigationExperiment CurrentExperiment"),
+                Does.Contain("InvalidateOnOtherSettingMutation(settingId, result)"));
+        }
+
         private static string Section(string source, string first, string last)
         {
             var start = source.IndexOf(first, StringComparison.Ordinal);

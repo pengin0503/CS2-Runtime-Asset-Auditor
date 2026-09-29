@@ -146,13 +146,17 @@ namespace CS2RuntimeAssetAuditor.Advisor
         public SettingApplyResult UndoSetting(string settingId, bool confirmed = false)
         {
             var result = Operations.Undo(settingId, confirmed);
+            InvalidateOnOtherSettingMutation(settingId, result);
             if (result.Succeeded) ObserveTestedSettingIntegrity(true);
             return result;
         }
 
         public IReadOnlyList<SettingApplyResult> UndoSession(bool confirmed = false)
         {
+            var planned = _changeSession.PlanSessionUndo();
             var results = Operations.UndoSession(confirmed);
+            for (var index = 0; index < Math.Min(planned.Count, results.Count); index++)
+                InvalidateOnOtherSettingMutation(planned[index].SettingId, results[index]);
             ObserveTestedSettingIntegrity(true);
             return results;
         }
@@ -160,8 +164,16 @@ namespace CS2RuntimeAssetAuditor.Advisor
         public SettingApplyResult ResolveConflict(string settingId, bool restoreOriginal)
         {
             var result = Operations.ResolveConflict(settingId, restoreOriginal);
+            InvalidateOnOtherSettingMutation(settingId, result);
             ObserveTestedSettingIntegrity(true);
             return result;
+        }
+
+        private void InvalidateOnOtherSettingMutation(string settingId, SettingApplyResult result)
+        {
+            var reason = InvestigationExperimentGuard.EvaluateAdvisorMutation(CurrentExperiment, settingId,
+                result?.Succeeded == true, result?.ObservedBefore, result?.ObservedAfter);
+            if (reason.HasValue) _experiment.Invalidate(reason.Value);
         }
 
         public InvestigationExperiment CurrentExperiment => _experiment.Current;

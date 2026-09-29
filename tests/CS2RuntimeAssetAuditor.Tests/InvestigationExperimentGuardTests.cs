@@ -70,6 +70,26 @@ namespace CS2RuntimeAssetAuditor.Tests
                 .Select(change => change.SettingId), Is.EqualTo(new[] { "shadow" }));
         }
 
+        [Test]
+        public void Undo_of_preexisting_other_setting_contaminates_only_when_it_writes_a_new_value()
+        {
+            var coordinator = Started();
+            var session = new SettingChangeSession();
+            session.RecordApplied("fog", "High", "Low", Now.AddSeconds(-1).UtcDateTime);
+            coordinator.RecordApplied(Now.AddSeconds(1));
+            session.RecordApplied("shadow", "High", "Low", Now.AddSeconds(1).UtcDateTime);
+            Assert.That(InvestigationExperimentGuard.SelectQualifyingChanges(coordinator.Current, session.Changes)
+                .Select(change => change.SettingId), Is.EqualTo(new[] { "shadow" }));
+
+            Assert.That(InvestigationExperimentGuard.EvaluateAdvisorMutation(coordinator.Current, "fog", false, "Low", "High"), Is.Null);
+            Assert.That(InvestigationExperimentGuard.EvaluateAdvisorMutation(coordinator.Current, "fog", true, null, "High"), Is.Null);
+            Assert.That(InvestigationExperimentGuard.EvaluateAdvisorMutation(coordinator.Current, "fog", true, "High", "High"), Is.Null);
+            var reason = InvestigationExperimentGuard.EvaluateAdvisorMutation(coordinator.Current, "fog", true, "Low", "High");
+            Assert.That(reason, Is.EqualTo(InvestigationInvalidationReason.AdditionalAdvisorSettingChanged));
+            coordinator.Invalidate(reason.Value);
+            Assert.That(coordinator.Current.State, Is.EqualTo(InvestigationExperimentState.Invalidated));
+        }
+
         private static InvestigationExperimentCoordinator Started()
         {
             var coordinator = new InvestigationExperimentCoordinator();
