@@ -11,7 +11,9 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Prefabs
             bool isTree = false,
             bool isVehicle = false,
             bool isNetwork = false,
-            bool isRenderOnly = false)
+            bool isRenderOnly = false,
+            bool isBuildingExtension = false,
+            bool isPlant = false)
         {
             var traits = PrefabTraits.None;
             if (isBuilding || isServiceBuilding)
@@ -28,6 +30,10 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Prefabs
                 traits |= PrefabTraits.Network;
             if (isRenderOnly)
                 traits |= PrefabTraits.RenderOnly;
+            if (isBuildingExtension)
+                traits |= PrefabTraits.BuildingExtension;
+            if (isPlant)
+                traits |= PrefabTraits.Plant;
             return traits;
         }
 
@@ -41,8 +47,12 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Prefabs
                 return "ServiceBuilding";
             if ((traits & PrefabTraits.Building) != 0)
                 return "Building";
+            if ((traits & PrefabTraits.BuildingExtension) != 0)
+                return "BuildingExtension";
             if ((traits & PrefabTraits.Tree) != 0)
                 return "Tree";
+            if ((traits & PrefabTraits.Plant) != 0)
+                return "Plant";
             if ((traits & PrefabTraits.Prop) != 0)
                 return "Prop";
             if ((traits & PrefabTraits.RenderOnly) != 0)

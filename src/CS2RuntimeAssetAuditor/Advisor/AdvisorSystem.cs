@@ -19,7 +19,7 @@ namespace CS2RuntimeAssetAuditor.Advisor
         private long _observedSessionGeneration = -1;
 
         // The gateway has no UI write binding until the change-session policy is installed.
-        internal IGameSettingGateway Gateway => _gateway ?? (_gateway = new GameSettingGateway());
+        internal IGameSettingGateway Gateway => _gateway ?? (_gateway = AdvisorSettingCatalog.CreateGateway());
 
         public AdvisorState CurrentState
         {
@@ -39,7 +39,9 @@ namespace CS2RuntimeAssetAuditor.Advisor
         {
             base.OnCreate();
             _capture = World.GetOrCreateSystemManaged<CaptureRuntimeSystem>();
-            _coordinator = new AdvisorCoordinator(() => new GameSettingCatalogBuilder().GetCatalog());
+            // Recommendations come from the same catalog the gateway writes through, so a setting without a verified
+            // write adapter is shown read-only instead of offering an Apply that the gateway would refuse.
+            _coordinator = new AdvisorCoordinator(() => Gateway.GetCatalog());
         }
 
         protected override void OnUpdate() => ObserveSessionChange();

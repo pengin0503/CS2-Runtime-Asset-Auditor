@@ -12,7 +12,7 @@ import {
 import { useText } from "../../i18n/locale";
 import type { MessageKey } from "../../i18n/messages";
 
-const TYPE_CHOICES = ["Any", "Building", "ServiceBuilding", "Prop", "Tree", "Vehicle", "Network"] as const;
+const TYPE_CHOICES = ["Any", "Building", "ServiceBuilding", "BuildingExtension", "Prop", "Tree", "Plant", "Vehicle", "Network"] as const;
 const SOURCE_CHOICES = ["Any", "Builtin", "SubscribedMod", "Packaged", "Unknown"] as const;
 const PRESENCE_CHOICES = ["Any", "Present", "NotPresentAtSnapshot", "NotApplicable", "Unknown"] as const;
 const SORT_CHOICES = ["DisplayNameAscending", "DisplayNameDescending", "PrefabIdAscending", "InstancesDescending"] as const;

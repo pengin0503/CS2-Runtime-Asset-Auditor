@@ -127,7 +127,7 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                     ApplySettings(options);
                 var scanOptions = new ScanOptions(_uiSettings.CollectSubordinateObjects, _uiSettings.CollectNetworkEdges);
                 InvalidateExport();
-                GetAuditSystem()?.RequestCensusScan(scanOptions);
+                GetAuditSystem()?.RequestCensusScan(scanOptions, _uiSettings.FrameBudgetMs);
                 PublishSnapshot();
             }
             catch (Exception ex)

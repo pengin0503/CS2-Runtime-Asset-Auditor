@@ -70,7 +70,7 @@ namespace CS2RuntimeAssetAuditor.Localization
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.CollectNetworkEdges)), "ネットワークエッジを収集" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.CollectNetworkEdges)), "対応するネットワークエッジの証拠を次回の Census に含めます。" },
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.FrameBudgetMsOption)), "フレーム予算（ms）" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.FrameBudgetMsOption)), "監査処理を分割実行するときに 1 フレームで使用する管理処理時間の上限です。" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.FrameBudgetMsOption)), "Census・Prefab カタログ取得・Asset Audit が 1 フレームで使う管理処理時間の上限です。大きくするとスキャンは早く終わりますが、1 フレームあたりの負荷が増えます。次のスキャンから反映されます。" },
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.ProgressUpdateMs)), "進捗更新間隔（ms）" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.ProgressUpdateMs)), "スキャン中に進捗だけが変化した場合の UI 更新間隔です。" },
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.RefreshCatalogAtScanStart)), "スキャン開始時にカタログを更新" },

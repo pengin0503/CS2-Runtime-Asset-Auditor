@@ -3,39 +3,44 @@ using System.Collections.Generic;
 using CS2RuntimeAssetAuditor.Assets.Core.Census;
 using CS2RuntimeAssetAuditor.Assets.Core.Prefabs;
 using Game.Common;
-using Game.Net;
-using Game.Objects;
 using Game.Prefabs;
 using Game.Tools;
 using Game.Vehicles;
+using Unity.Collections;
 using Unity.Entities;
 
 namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Census
 {
+    /// <summary>
+    /// Copies the PrefabRef of every counted entity on the main thread, then reduces the copies over later frames.
+    /// The copy is synchronous on purpose: EntityQuery.ToComponentDataListAsync returns a job the ECS dependency
+    /// manager does not track, so structural changes made by other systems could move or free chunks while it
+    /// still reads them. ToComponentDataArray only waits for jobs writing PrefabRef and reads chunks while no
+    /// structural change can run. The reduction reads the copies, never the live chunks.
+    /// </summary>
     public sealed class CensusAccess : IDisposable
     {
         private readonly World _world;
-        private readonly CensusCaptureBuffers _buffers = new CensusCaptureBuffers();
-        private EntityQuery? _topLevelObjectQuery;
-        private EntityQuery? _subordinateObjectQuery;
-        private EntityQuery? _networkEdgeQuery;
+        private NativeArray<PrefabRef> _topLevelObjects;
+        private NativeArray<PrefabRef> _subordinateObjects;
+        private NativeArray<PrefabRef> _networkEdges;
         private IReadOnlyDictionary<Entity, PrefabKey> _catalogKeys = new Dictionary<Entity, PrefabKey>();
         private CensusReducer? _reducer;
         private ScanOptions? _scanOptions;
         private int _topLevelIndex;
         private int _subordinateIndex;
         private int _networkIndex;
-        private bool _objectQueriesReady;
-        private bool _networkQueryReady;
+        private bool _objectsCaptured;
+        private bool _networkCaptured;
 
         public CensusAccess(World world)
         {
             _world = world ?? throw new ArgumentNullException(nameof(world));
         }
 
-        public int CapturedObjectReferenceCount => _buffers.TopLevelObjectCount + _buffers.SubordinateObjectCount;
+        public int CapturedObjectReferenceCount => Length(_topLevelObjects) + Length(_subordinateObjects);
 
-        public int CapturedNetworkEdgeCount => _buffers.NetworkEdgeCount;
+        public int CapturedNetworkEdgeCount => Length(_networkEdges);
 
         public int ProcessedObjectReferenceCount { get; private set; }
 
@@ -43,227 +48,96 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Census
 
         public int UnmatchedPrefabReferenceCount { get; private set; }
 
-        public bool ObjectCaptureJobsCompleted => _buffers.ObjectCaptureJobsCompleted;
+        public bool ObjectReductionCompleted => _objectsCaptured
+            && _topLevelIndex >= Length(_topLevelObjects)
+            && _subordinateIndex >= Length(_subordinateObjects);
 
-        public bool NetworkCaptureJobCompleted => _buffers.NetworkCaptureJobCompleted;
+        public bool NetworkReductionCompleted => _networkCaptured && _networkIndex >= Length(_networkEdges);
 
-        public bool NetworkCaptureJobsCompleted => _scanOptions?.CollectNetworkEdges != true || _buffers.NetworkCaptureJobCompleted;
-
-        public bool ObjectReductionCompleted => _objectQueriesReady
-            && _topLevelIndex >= _buffers.TopLevelObjectCount
-            && _subordinateIndex >= _buffers.SubordinateObjectCount;
-
-        public bool NetworkReductionCompleted => _networkQueryReady && _networkIndex >= _buffers.NetworkEdgeCount;
-
-        public bool CleanupPending => _buffers.CleanupPending;
-
-        public void BeginObjectCapture(
-            IReadOnlyDictionary<Entity, PrefabKey> catalogKeys,
-            CensusReducer reducer,
-            ScanOptions scanOptions)
+        public void CaptureObjects(IReadOnlyDictionary<Entity, PrefabKey> catalogKeys, CensusReducer reducer, ScanOptions scanOptions)
         {
-            if (catalogKeys == null)
-                throw new ArgumentNullException(nameof(catalogKeys));
-            if (reducer == null)
-                throw new ArgumentNullException(nameof(reducer));
-            if (scanOptions == null)
-                throw new ArgumentNullException(nameof(scanOptions));
+            if (catalogKeys == null) throw new ArgumentNullException(nameof(catalogKeys));
+            if (reducer == null) throw new ArgumentNullException(nameof(reducer));
+            if (scanOptions == null) throw new ArgumentNullException(nameof(scanOptions));
             if (!_world.IsCreated)
                 throw new InvalidOperationException("The current game world is no longer available.");
 
+            Reset();
+            UnmatchedPrefabReferenceCount = 0;
             _catalogKeys = catalogKeys;
             _reducer = reducer;
             _scanOptions = scanOptions;
-            _topLevelIndex = 0;
-            _subordinateIndex = 0;
-            ProcessedObjectReferenceCount = 0;
-            UnmatchedPrefabReferenceCount = 0;
-            try
-            {
-                var exclusions = new[]
-                {
-                    ComponentType.ReadOnly<Temp>(),
-                    ComponentType.ReadOnly<Deleted>(),
-                    ComponentType.ReadOnly<Overridden>()
-                };
-                var common = new[]
-                {
-                    ComponentType.ReadOnly<Game.Objects.Object>(),
-                    ComponentType.ReadOnly<PrefabRef>()
-                };
-                var topLevelExclusions = new[]
-                {
-                    exclusions[0], exclusions[1], exclusions[2],
-                    ComponentType.ReadOnly<Owner>(), ComponentType.ReadOnly<Controller>()
-                };
-                _topLevelObjectQuery = CreateQuery(common, null, topLevelExclusions);
 
-                EntityQuery? subordinateQuery = null;
-                if (scanOptions.CollectSubordinateObjects)
-                {
-                    subordinateQuery = CreateQuery(common,
-                        new[] { ComponentType.ReadOnly<Owner>(), ComponentType.ReadOnly<Controller>() },
-                        exclusions);
-                    _subordinateObjectQuery = subordinateQuery;
-                }
-
-                _buffers.ScheduleObjectCapture(_topLevelObjectQuery.Value, subordinateQuery);
-            }
-            catch
-            {
-                _buffers.RequestDisposal();
-                if (!_buffers.CleanupPending)
-                    _buffers.CompleteCleanup();
-                throw;
-            }
-        }
-
-        public void CompleteObjectCapture()
-        {
-            _buffers.CompleteObjectCapture();
-            _objectQueriesReady = true;
+            var owned = new[] { ComponentType.ReadOnly<Owner>(), ComponentType.ReadOnly<Controller>() };
+            var common = new[] { ComponentType.ReadOnly<Game.Objects.Object>(), ComponentType.ReadOnly<PrefabRef>() };
+            _topLevelObjects = Capture(common, null, Excluded(owned));
+            if (scanOptions.CollectSubordinateObjects)
+                _subordinateObjects = Capture(common, owned, Excluded());
+            _objectsCaptured = true;
         }
 
         public int ReduceObjectSlice(int maximumItems)
         {
-            if (maximumItems <= 0)
-                throw new ArgumentOutOfRangeException(nameof(maximumItems));
-            if (!_objectQueriesReady || _reducer == null)
-                throw new InvalidOperationException("Object capture must complete before reduction.");
+            if (maximumItems <= 0) throw new ArgumentOutOfRangeException(nameof(maximumItems));
+            if (!_objectsCaptured || _reducer == null)
+                throw new InvalidOperationException("Objects must be captured before reduction.");
 
             var processed = 0;
-            while (_topLevelIndex < _buffers.TopLevelObjectCount && processed < maximumItems)
+            while (_topLevelIndex < Length(_topLevelObjects) && processed < maximumItems)
             {
-                AddObjectReference(_buffers.TopLevelObjectReferences[_topLevelIndex++], isSubordinate: false);
-                ProcessedObjectReferenceCount++;
+                AddObjectReference(_topLevelObjects[_topLevelIndex++], isSubordinate: false);
                 processed++;
             }
-            while (_subordinateIndex < _buffers.SubordinateObjectCount && processed < maximumItems)
+            while (_subordinateIndex < Length(_subordinateObjects) && processed < maximumItems)
             {
-                AddObjectReference(_buffers.SubordinateObjectReferences[_subordinateIndex++], isSubordinate: true);
-                ProcessedObjectReferenceCount++;
+                AddObjectReference(_subordinateObjects[_subordinateIndex++], isSubordinate: true);
                 processed++;
             }
-
+            ProcessedObjectReferenceCount += processed;
             return processed;
         }
 
         public void ReleaseObjectCapture()
         {
-            _buffers.DisposeObjectArrays();
-            DisposeQuery(ref _topLevelObjectQuery);
-            DisposeQuery(ref _subordinateObjectQuery);
-            _objectQueriesReady = false;
-            _topLevelIndex = 0;
-            _subordinateIndex = 0;
+            DisposeIfCreated(ref _topLevelObjects);
+            DisposeIfCreated(ref _subordinateObjects);
         }
 
-        public void BeginNetworkCapture()
+        public void CaptureNetwork()
         {
+            if (_reducer == null || _scanOptions == null)
+                throw new InvalidOperationException("Object capture must start the census before network capture.");
             _networkIndex = 0;
             ProcessedNetworkEdgeCount = 0;
-            _networkQueryReady = false;
-            if (_scanOptions?.CollectNetworkEdges != true)
+            if (_scanOptions.CollectNetworkEdges)
             {
-                _networkQueryReady = true;
-                return;
+                if (!_world.IsCreated)
+                    throw new InvalidOperationException("The current game world is no longer available.");
+                _networkEdges = Capture(
+                    new[] { ComponentType.ReadOnly<Game.Net.Edge>(), ComponentType.ReadOnly<PrefabRef>() },
+                    null,
+                    Excluded(new[] { ComponentType.ReadOnly<Owner>(), ComponentType.ReadOnly<Controller>() }));
             }
-            if (!_world.IsCreated)
-                throw new InvalidOperationException("The current game world is no longer available.");
-
-            var exclusions = new[]
-            {
-                ComponentType.ReadOnly<Temp>(),
-                ComponentType.ReadOnly<Deleted>(),
-                ComponentType.ReadOnly<Overridden>(),
-                ComponentType.ReadOnly<Owner>(),
-                ComponentType.ReadOnly<Controller>()
-            };
-            var all = new[]
-            {
-                ComponentType.ReadOnly<Game.Net.Edge>(),
-                ComponentType.ReadOnly<PrefabRef>()
-            };
-            _networkEdgeQuery = CreateQuery(all, null, exclusions);
-            _buffers.ScheduleNetworkCapture(_networkEdgeQuery.Value);
-        }
-
-        public void CompleteNetworkCapture()
-        {
-            if (_scanOptions?.CollectNetworkEdges == true)
-            {
-                _buffers.CompleteNetworkCapture();
-                _networkQueryReady = true;
-            }
+            _networkCaptured = true;
         }
 
         public int ReduceNetworkSlice(int maximumItems)
         {
-            if (maximumItems <= 0)
-                throw new ArgumentOutOfRangeException(nameof(maximumItems));
-            if (!_networkQueryReady || _reducer == null)
-                throw new InvalidOperationException("Network capture must complete before reduction.");
-            if (_scanOptions?.CollectNetworkEdges != true)
-                return 0;
+            if (maximumItems <= 0) throw new ArgumentOutOfRangeException(nameof(maximumItems));
+            if (!_networkCaptured || _reducer == null)
+                throw new InvalidOperationException("Network edges must be captured before reduction.");
 
             var processed = 0;
-            while (_networkIndex < _buffers.NetworkEdgeCount && processed < maximumItems)
+            while (_networkIndex < Length(_networkEdges) && processed < maximumItems)
             {
-                var prefabReference = _buffers.NetworkEdgeReferences[_networkIndex++];
-                if (_catalogKeys.TryGetValue(prefabReference.m_Prefab, out var key))
+                if (_catalogKeys.TryGetValue(_networkEdges[_networkIndex++].m_Prefab, out var key))
                     CensusSample.ForNetworkEdge(key).AddTo(_reducer);
                 else
                     UnmatchedPrefabReferenceCount++;
-                ProcessedNetworkEdgeCount++;
                 processed++;
             }
+            ProcessedNetworkEdgeCount += processed;
             return processed;
-        }
-
-        public void ReleaseNetworkCapture()
-        {
-            if (_scanOptions?.CollectNetworkEdges == true)
-            {
-                _buffers.DisposeNetworkArray();
-                DisposeQuery(ref _networkEdgeQuery);
-            }
-            _networkQueryReady = false;
-            _networkIndex = 0;
-        }
-
-        public void RequestCancellation()
-        {
-            _buffers.RequestDisposal();
-            if (!_buffers.CleanupPending)
-                CompleteCleanup();
-        }
-
-        public void CompleteCleanup()
-        {
-            _buffers.CompleteCleanup();
-            DisposeQuery(ref _topLevelObjectQuery);
-            DisposeQuery(ref _subordinateObjectQuery);
-            DisposeQuery(ref _networkEdgeQuery);
-            _objectQueriesReady = false;
-            _networkQueryReady = false;
-            _catalogKeys = new Dictionary<Entity, PrefabKey>();
-            _reducer = null;
-            _scanOptions = null;
-            _topLevelIndex = 0;
-            _subordinateIndex = 0;
-            _networkIndex = 0;
-        }
-
-        public void FinishScan()
-        {
-            _catalogKeys = new Dictionary<Entity, PrefabKey>();
-            _reducer = null;
-            _scanOptions = null;
-            _topLevelIndex = 0;
-            _subordinateIndex = 0;
-            _networkIndex = 0;
-            _objectQueriesReady = false;
-            _networkQueryReady = false;
         }
 
         public CensusSnapshot BuildSnapshot()
@@ -271,16 +145,24 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Census
             return _reducer?.BuildSnapshot() ?? throw new InvalidOperationException("No Census reducer is active.");
         }
 
-        public void Dispose()
+        /// <summary>Releases the copies and forgets the scan; used on completion, cancellation and failure.</summary>
+        public void Reset()
         {
-            _buffers.Dispose();
-            DisposeQuery(ref _topLevelObjectQuery);
-            DisposeQuery(ref _subordinateObjectQuery);
-            DisposeQuery(ref _networkEdgeQuery);
+            ReleaseObjectCapture();
+            DisposeIfCreated(ref _networkEdges);
             _catalogKeys = new Dictionary<Entity, PrefabKey>();
             _reducer = null;
             _scanOptions = null;
+            _topLevelIndex = 0;
+            _subordinateIndex = 0;
+            _networkIndex = 0;
+            _objectsCaptured = false;
+            _networkCaptured = false;
+            ProcessedObjectReferenceCount = 0;
+            ProcessedNetworkEdgeCount = 0;
         }
+
+        public void Dispose() => Reset();
 
         private void AddObjectReference(PrefabRef prefabReference, bool isSubordinate)
         {
@@ -290,23 +172,39 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Census
                 UnmatchedPrefabReferenceCount++;
         }
 
-        private EntityQuery CreateQuery(ComponentType[] all, ComponentType[]? any, ComponentType[] none)
+        private NativeArray<PrefabRef> Capture(ComponentType[] all, ComponentType[]? any, ComponentType[] none)
         {
-            var description = new EntityQueryDesc
+            var query = _world.EntityManager.CreateEntityQuery(new[] { new EntityQueryDesc { All = all, Any = any, None = none } });
+            try
             {
-                All = all,
-                Any = any,
-                None = none
-            };
-            return _world.EntityManager.CreateEntityQuery(new[] { description });
+                return query.ToComponentDataArray<PrefabRef>(Allocator.Persistent);
+            }
+            finally
+            {
+                query.Dispose();
+            }
         }
 
-        private static void DisposeQuery(ref EntityQuery? query)
+        // Preview (Temp), removed (Deleted) and replaced (Overridden) entities are not part of the city.
+        private static ComponentType[] Excluded(params ComponentType[] additional)
         {
-            if (!query.HasValue)
-                return;
-            query.Value.Dispose();
-            query = null;
+            var excluded = new List<ComponentType>
+            {
+                ComponentType.ReadOnly<Temp>(),
+                ComponentType.ReadOnly<Deleted>(),
+                ComponentType.ReadOnly<Overridden>()
+            };
+            excluded.AddRange(additional);
+            return excluded.ToArray();
+        }
+
+        private static int Length(NativeArray<PrefabRef> array) => array.IsCreated ? array.Length : 0;
+
+        private static void DisposeIfCreated(ref NativeArray<PrefabRef> array)
+        {
+            if (array.IsCreated)
+                array.Dispose();
+            array = default;
         }
     }
 }

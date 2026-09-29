@@ -119,7 +119,7 @@ export const en = {
 
   // Pathfinding
   "pathfinding.empty": "No verified pathfinding counters are available from the current runtime.",
-  "pathfinding.explainer": "These are supporting indicators. Queue growth or throughput changes alone do not establish a cause.",
+  "pathfinding.explainer": "These are supporting indicators. Queue growth or throughput changes alone do not establish a cause. pendingPathfindActions counts requests still waiting for a worker; inFlightPathfindActions counts requests handed to workers and awaiting results.",
 
   // Timeline
   "timeline.empty": "No retained timeline history yet. History is never fabricated from single-point counters.",
@@ -355,8 +355,10 @@ export const en = {
   "atab.type.Any": "Any type",
   "atab.type.Building": "Building",
   "atab.type.ServiceBuilding": "Service building",
+  "atab.type.BuildingExtension": "Building extension",
   "atab.type.Prop": "Prop",
   "atab.type.Tree": "Tree",
+  "atab.type.Plant": "Plant",
   "atab.type.Vehicle": "Vehicle",
   "atab.type.Network": "Network",
   "atab.source": "Source",
@@ -419,6 +421,7 @@ export const en = {
   "render.unnamedMaterial": "Unnamed material",
   "render.unknownShader": "Unknown shader",
   "render.passes": "{count} passes",
+  "render.deepInspectionBasis": "Template shader and the asset's keywords per material slot. The game's batched material can differ (for example virtual texturing keywords).",
 
   // Census tab
   "census.topLevel": "Top-level objects",
@@ -648,7 +651,7 @@ export const ja: Record<MessageKey, string> = {
   "mods.noBreakdown": "このキャプチャには内訳がありません。",
 
   "pathfinding.empty": "現在のランタイムから検証済みの経路探索カウンターを取得できません。",
-  "pathfinding.explainer": "これらは補助的な指標です。キューの増加や処理量の変化だけで原因と断定しません。",
+  "pathfinding.explainer": "これらは補助的な指標です。キューの増加や処理量の変化だけで原因と断定しません。pendingPathfindActions はワーカーへの割り当てを待っている要求の数、inFlightPathfindActions はワーカーに渡して結果を待っている要求の数です。",
 
   "timeline.empty": "保持されているタイムライン履歴はまだありません。単一時点のカウンターから履歴を捏造することはありません。",
   "timeline.chartAria": "プロファイラーのタイムライン",
@@ -874,8 +877,10 @@ export const ja: Record<MessageKey, string> = {
   "atab.type.Any": "すべての種類",
   "atab.type.Building": "建物",
   "atab.type.ServiceBuilding": "サービス建物",
+  "atab.type.BuildingExtension": "建物の拡張",
   "atab.type.Prop": "小物",
   "atab.type.Tree": "樹木",
+  "atab.type.Plant": "植物",
   "atab.type.Vehicle": "車両",
   "atab.type.Network": "ネットワーク",
   "atab.source": "ソース",
@@ -936,6 +941,7 @@ export const ja: Record<MessageKey, string> = {
   "render.unnamedMaterial": "名前のないマテリアル",
   "render.unknownShader": "不明なシェーダー",
   "render.passes": "{count} パス",
+  "render.deepInspectionBasis": "マテリアル枠ごとのテンプレートシェーダーとアセットのキーワードです。ゲームが描画に使うマテリアルとは一部異なる場合があります（仮想テクスチャのキーワードなど）。",
 
   "census.topLevel": "トップレベルオブジェクト",
   "census.topLevelDetail": "建物・サービス・樹木の配置数",

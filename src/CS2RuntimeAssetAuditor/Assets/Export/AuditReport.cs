@@ -167,6 +167,11 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
         [DataMember(Name = "diagnosticCode", Order = 3, EmitDefaultValue = true)] public string? DiagnosticCode { get; set; }
         [DataMember(Name = "materials", Order = 4)] public ReportMaterialBinding[] Materials { get; set; } = new ReportMaterialBinding[0];
         [DataMember(Name = "surfaceAssetIds", Order = 5)] public string[] SurfaceAssetIds { get; set; } = new string[0];
+        // Materials describe each slot's template material and the asset's serialized keywords, not the material
+        // instance the game builds for batched rendering.
+        [DataMember(Name = "basis", Order = 6)] public string Basis { get; set; } = DeepInspectionBasis;
+
+        public const string DeepInspectionBasis = "surfaceTemplateAndAssetKeywords";
     }
 
     [DataContract]

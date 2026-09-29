@@ -30,7 +30,7 @@ namespace CS2RuntimeAssetAuditor.Localization
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.CollectNetworkEdges)), "Collect network edges" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.CollectNetworkEdges)), "Include supported network-edge evidence in the next census." },
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.FrameBudgetMsOption)), "Managed frame budget (ms)" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.FrameBudgetMsOption)), "Maximum managed work budget used by bounded audit slices each frame." },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.FrameBudgetMsOption)), "Managed work time per frame for Census, Prefab catalog capture and Asset Audit. Higher values finish scans sooner at a larger per-frame cost. Applies to the next scan." },
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.ProgressUpdateMs)), "Progress update interval (ms)" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.ProgressUpdateMs)), "Minimum interval between progress-only UI snapshot updates while a scan is active." },
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.RefreshCatalogAtScanStart)), "Refresh catalog at scan start" },

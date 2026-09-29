@@ -22,8 +22,11 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
 {
     public sealed partial class AssetAuditSystem : GameSystemBase
     {
+        // Work is split into small batches and repeated until the frame budget is spent, so the budget (not a fixed
+        // item count) bounds the per-frame cost of every stage.
         private const int CatalogSliceSize = 64;
         private const int CensusReductionSliceSize = 512;
+        private const double DefaultFrameBudgetMs = 1.0;
         private static long _nextWorldGeneration;
 
         private IPrefabCatalogAccess? _catalog;
@@ -38,8 +41,6 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
         private bool _catalogScanRequested;
         private bool _catalogCaptureActive;
         private bool _censusScanRequested;
-        private bool _censusCleanupRequested;
-        private bool _networkCaptureStarted;
         private bool _assetAuditRequested;
         private bool _assetAuditWaitingForCatalog;
         private bool _assetAuditRefreshCatalog = true;
@@ -52,7 +53,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
         private bool _interruptedByRuntimeCapture;
         private RenderAssetKey _requestedDeepInspectionKey;
         private RenderAssetKey _activeDeepInspectionKey;
-        private double _assetAuditFrameBudgetMs = 1.0;
+        private double _frameBudgetMs = DefaultFrameBudgetMs;
         private long _completedCatalogCapturesBeforeCapture;
         private long _nextAnalysisGeneration;
         private long _observedSessionGeneration = -1;
@@ -89,27 +90,22 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
         // Scans describe the loaded city; without an active city session there is nothing to audit.
         private static bool CitySessionActive => Mod.Sessions.IsActive;
 
-        public void RequestCatalogScan()
+        public void RequestCensusScan(ScanOptions? scanOptions = null, double frameBudgetMilliseconds = DefaultFrameBudgetMs)
         {
-            if (CitySessionActive && !IsScanActive && !_catalogCaptureActive && !_assetAuditRequested && !_deepInspectionRequested)
-                _catalogScanRequested = true;
-        }
-
-        public void RequestCensusScan(ScanOptions? scanOptions = null)
-        {
-            if (!CitySessionActive || IsScanActive || _censusScanRequested || _censusCleanupRequested || _assetAuditRequested || _assetAuditWaitingForCatalog || _deepInspectionRequested)
+            if (!CitySessionActive || IsScanActive || _censusScanRequested || _assetAuditRequested || _assetAuditWaitingForCatalog || _deepInspectionRequested)
                 return;
             _requestedOptions = scanOptions ?? ScanOptions.Default;
+            _frameBudgetMs = NormalizeFrameBudget(frameBudgetMilliseconds);
             _censusScanRequested = true;
         }
 
-        public void RequestAssetAudit(double frameBudgetMilliseconds = 1.0, bool refreshCatalogAtScanStart = true, bool enableHeuristicFindings = true,
+        public void RequestAssetAudit(double frameBudgetMilliseconds = DefaultFrameBudgetMs, bool refreshCatalogAtScanStart = true, bool enableHeuristicFindings = true,
             bool enablePeerOutliers = true, ComparisonPopulation comparisonPopulation = ComparisonPopulation.SameCategory,
             int metadataCacheLimit = AssetAnalysisCollector.DefaultMetadataCacheLimit)
         {
-            if (!CitySessionActive || IsScanActive || _assetAuditRequested || _assetAuditWaitingForCatalog || _censusScanRequested || _censusCleanupRequested || _catalogCaptureActive || _deepInspectionRequested)
+            if (!CitySessionActive || IsScanActive || _assetAuditRequested || _assetAuditWaitingForCatalog || _censusScanRequested || _catalogCaptureActive || _deepInspectionRequested)
                 return;
-            _assetAuditFrameBudgetMs = NormalizeFrameBudget(frameBudgetMilliseconds);
+            _frameBudgetMs = NormalizeFrameBudget(frameBudgetMilliseconds);
             _assetAuditRefreshCatalog = refreshCatalogAtScanStart;
             _assetAuditEnableHeuristics = enableHeuristicFindings;
             _assetAuditEnablePeerOutliers = enablePeerOutliers;
@@ -127,7 +123,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
 
         public bool RequestDeepInspection(RenderAssetKey key)
         {
-            if (!CitySessionActive || !key.IsValid || IsScanActive || _catalogCaptureActive || _catalogScanRequested || _censusScanRequested || _censusCleanupRequested || _assetAuditRequested || _assetAuditWaitingForCatalog || _deepInspectionRequested)
+            if (!CitySessionActive || !key.IsValid || IsScanActive || _catalogCaptureActive || _catalogScanRequested || _censusScanRequested || _assetAuditRequested || _assetAuditWaitingForCatalog || _deepInspectionRequested)
                 return false;
             var analysis = PublishedAnalysis;
             var graph = _publishedRuntimeRenderGraph;
@@ -174,7 +170,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
             }
             finally
             {
-                if (!IsScanActive && !_censusCleanupRequested && !_catalogCaptureActive
+                if (!IsScanActive && !_catalogCaptureActive
                     && !_catalogScanRequested && !_censusScanRequested && !_assetAuditRequested && !_deepInspectionRequested)
                 {
                     Mod.WorkCoordinator.Complete(DiagnosticWorkKind.AssetHeavyScan);
@@ -255,18 +251,9 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
 
         private void UpdateScans()
         {
-            if (_censusCleanupRequested)
-            {
-                PollCensusCleanup();
-                return;
-            }
-
             if (CurrentScan?.State == ScanState.CancellationRequested)
             {
-                if (CurrentScan.Kind == ScanKind.Census)
-                    BeginCensusCancellation();
-                else
-                    CancelManagedScan();
+                CancelScan();
                 return;
             }
 
@@ -431,7 +418,9 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
             {
                 var before = _catalog.ProcessedEntityCount;
                 var stopwatch = Stopwatch.StartNew();
-                _catalog.ProcessNextSlice(CatalogSliceSize);
+                do
+                    _catalog.ProcessNextSlice(CatalogSliceSize);
+                while (_catalog.IsWorking && stopwatch.Elapsed.TotalMilliseconds < _frameBudgetMs);
                 stopwatch.Stop();
                 RecordManagedSlice(stopwatch.Elapsed, Math.Max(0, _catalog.ProcessedEntityCount - before));
                 if (CurrentScan?.Kind == ScanKind.Census && CurrentScan.Stage == ScanStage.CapturingCatalog && CurrentScan.State == ScanState.Running)
@@ -516,7 +505,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
                     {
                         var before = collector.RenderProcessedCount;
                         var stopwatch = Stopwatch.StartNew();
-                        var completed = collector.ProcessRenderGraphSlice(_assetAuditFrameBudgetMs);
+                        var completed = collector.ProcessRenderGraphSlice(_frameBudgetMs);
                         stopwatch.Stop();
                         RecordManagedSlice(stopwatch.Elapsed, Math.Max(0, collector.RenderProcessedCount - before));
                         ReportExactProgress(session, collector.RenderProcessedCount, collector.RenderTargetCount);
@@ -528,7 +517,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
                     {
                         var before = collector.GeometryProcessedCount;
                         var stopwatch = Stopwatch.StartNew();
-                        var completed = collector.ProcessGeometrySlice(_assetAuditFrameBudgetMs);
+                        var completed = collector.ProcessGeometrySlice(_frameBudgetMs);
                         stopwatch.Stop();
                         RecordManagedSlice(stopwatch.Elapsed, Math.Max(0, collector.GeometryProcessedCount - before));
                         ReportExactProgress(session, collector.GeometryProcessedCount, collector.GeometryTargetCount);
@@ -540,7 +529,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
                     {
                         var before = collector.SurfaceTextureProcessedCount;
                         var stopwatch = Stopwatch.StartNew();
-                        var completed = collector.ProcessSurfaceTextureSlice(_assetAuditFrameBudgetMs);
+                        var completed = collector.ProcessSurfaceTextureSlice(_frameBudgetMs);
                         stopwatch.Stop();
                         RecordManagedSlice(stopwatch.Elapsed, Math.Max(0, collector.SurfaceTextureProcessedCount - before));
                         ReportExactProgress(session, collector.SurfaceTextureProcessedCount, collector.SurfaceTextureTargetCount);
@@ -552,7 +541,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
                     {
                         var before = collector.FindingsProcessedCount;
                         var stopwatch = Stopwatch.StartNew();
-                        var completed = collector.ProcessFindingSlice(_assetAuditFrameBudgetMs);
+                        var completed = collector.ProcessFindingSlice(_frameBudgetMs);
                         stopwatch.Stop();
                         RecordManagedSlice(stopwatch.Elapsed, Math.Max(0, collector.FindingsProcessedCount - before));
                         ReportExactProgress(session, collector.FindingsProcessedCount, collector.FindingsTargetCount);
@@ -677,57 +666,44 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
                         }
                         _censusReducer = new CensusReducer(catalog.PendingRecords, WorldGeneration, catalog.PendingCatalogGeneration, DateTimeOffset.UtcNow, _requestedOptions);
                         session.TransitionTo(ScanStage.CapturingObjectCensus);
-                        census.BeginObjectCapture(catalog.PendingRuntimeEntityKeys, _censusReducer, _requestedOptions);
-                        return;
-
-                    case ScanStage.CapturingObjectCensus:
-                        if (!census.ObjectCaptureJobsCompleted)
-                            return;
-                        census.CompleteObjectCapture();
+                        census.CaptureObjects(catalog.PendingRuntimeEntityKeys, _censusReducer, _requestedOptions);
                         session.TransitionTo(ScanStage.ReducingObjectCensus);
                         ReportExactProgress(session, 0, census.CapturedObjectReferenceCount);
                         return;
 
                     case ScanStage.ReducingObjectCensus:
-                        var objectBefore = census.ProcessedObjectReferenceCount;
-                        var objectStopwatch = Stopwatch.StartNew();
-                        census.ReduceObjectSlice(CensusReductionSliceSize);
-                        objectStopwatch.Stop();
-                        RecordManagedSlice(objectStopwatch.Elapsed, Math.Max(0, census.ProcessedObjectReferenceCount - objectBefore));
+                    {
+                        var before = census.ProcessedObjectReferenceCount;
+                        var stopwatch = Stopwatch.StartNew();
+                        while (!census.ObjectReductionCompleted && stopwatch.Elapsed.TotalMilliseconds < _frameBudgetMs)
+                            census.ReduceObjectSlice(CensusReductionSliceSize);
+                        stopwatch.Stop();
+                        RecordManagedSlice(stopwatch.Elapsed, Math.Max(0, census.ProcessedObjectReferenceCount - before));
                         ReportExactProgress(session, census.ProcessedObjectReferenceCount, census.CapturedObjectReferenceCount);
                         if (!census.ObjectReductionCompleted)
                             return;
                         census.ReleaseObjectCapture();
                         session.TransitionTo(ScanStage.CapturingNetworkCensus);
-                        return;
-
-                    case ScanStage.CapturingNetworkCensus:
-                        if (!_networkCaptureStarted)
-                        {
-                            census.BeginNetworkCapture();
-                            _networkCaptureStarted = true;
-                            return;
-                        }
-                        if (!census.NetworkCaptureJobsCompleted)
-                            return;
-                        if (_requestedOptions.CollectNetworkEdges)
-                            census.CompleteNetworkCapture();
+                        census.CaptureNetwork();
                         session.TransitionTo(ScanStage.ReducingNetworkCensus);
                         ReportExactProgress(session, 0, census.CapturedNetworkEdgeCount);
                         return;
+                    }
 
                     case ScanStage.ReducingNetworkCensus:
-                        var networkBefore = census.ProcessedNetworkEdgeCount;
-                        var networkStopwatch = Stopwatch.StartNew();
-                        census.ReduceNetworkSlice(CensusReductionSliceSize);
-                        networkStopwatch.Stop();
-                        RecordManagedSlice(networkStopwatch.Elapsed, Math.Max(0, census.ProcessedNetworkEdgeCount - networkBefore));
+                    {
+                        var before = census.ProcessedNetworkEdgeCount;
+                        var stopwatch = Stopwatch.StartNew();
+                        while (!census.NetworkReductionCompleted && stopwatch.Elapsed.TotalMilliseconds < _frameBudgetMs)
+                            census.ReduceNetworkSlice(CensusReductionSliceSize);
+                        stopwatch.Stop();
+                        RecordManagedSlice(stopwatch.Elapsed, Math.Max(0, census.ProcessedNetworkEdgeCount - before));
                         ReportExactProgress(session, census.ProcessedNetworkEdgeCount, census.CapturedNetworkEdgeCount);
                         if (!census.NetworkReductionCompleted)
                             return;
-                        census.ReleaseNetworkCapture();
                         PublishCensus(session, census);
                         return;
+                    }
                 }
             }
             catch (Exception ex)
@@ -770,29 +746,16 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
 
             session.Complete();
             LastDiagnosticCode = null;
-            census.FinishScan();
+            census.Reset();
             _censusReducer = null;
-            _networkCaptureStarted = false;
         }
 
-        private void BeginCensusCancellation()
-        {
-            if (_catalogCaptureActive || _catalog?.HasPendingPublication == true)
-            {
-                _catalog?.CancelCapture();
-                _catalogCaptureActive = false;
-            }
-            _catalogScanRequested = false;
-            _censusAccess?.RequestCancellation();
-            _censusCleanupRequested = true;
-            PollCensusCleanup();
-        }
-
-        private void CancelManagedScan()
+        // Every stage releases its resources synchronously, so a cancelled scan ends in the frame it is observed.
+        private void CancelScan()
         {
             if (CurrentScan == null || CurrentScan.State != ScanState.CancellationRequested)
                 return;
-            if (_catalogCaptureActive)
+            if (_catalogCaptureActive || _catalog?.HasPendingPublication == true)
             {
                 _catalog?.CancelCapture();
                 _catalogCaptureActive = false;
@@ -801,6 +764,8 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
             _assetAuditWaitingForCatalog = false;
             _analysisCollector = null;
             _activeDeepInspectionKey = default;
+            _censusAccess?.Reset();
+            _censusReducer = null;
             if (_interruptedByRuntimeCapture)
                 CurrentScan.MarkInterruptedByRuntimeCapture();
             else
@@ -820,9 +785,8 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
             }
             if (CurrentScan?.State == ScanState.Running || CurrentScan?.State == ScanState.CancellationRequested)
                 CurrentScan.Fail(diagnosticCode);
-            _censusAccess?.RequestCancellation();
-            _censusCleanupRequested = true;
-            PollCensusCleanup();
+            _censusAccess?.Reset();
+            _censusReducer = null;
         }
 
         private void FailAssetAudit(string diagnosticCode, CapabilityId? capability, string capabilityDetail)
@@ -849,29 +813,6 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
             if (CurrentScan?.State == ScanState.Running || CurrentScan?.State == ScanState.CancellationRequested)
                 CurrentScan.Fail(diagnosticCode);
             _activeDeepInspectionKey = default;
-        }
-
-        private void PollCensusCleanup()
-        {
-            if (_censusAccess == null)
-            {
-                _censusCleanupRequested = false;
-                return;
-            }
-            if (_censusAccess.CleanupPending)
-                return;
-            _censusAccess.CompleteCleanup();
-            _censusCleanupRequested = false;
-            _censusReducer = null;
-            _networkCaptureStarted = false;
-            if (CurrentScan?.State == ScanState.CancellationRequested)
-            {
-                if (_interruptedByRuntimeCapture)
-                    CurrentScan.MarkInterruptedByRuntimeCapture();
-                else
-                    CurrentScan.MarkCancelled();
-                _interruptedByRuntimeCapture = false;
-            }
         }
 
         private void StartTelemetry(DateTimeOffset startedAt)

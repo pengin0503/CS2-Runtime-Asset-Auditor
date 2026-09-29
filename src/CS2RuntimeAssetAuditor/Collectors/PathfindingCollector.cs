@@ -42,8 +42,9 @@ namespace CS2RuntimeAssetAuditor.Collectors
         public void Sample(double timestampSeconds)
         {
             var metrics = new List<NamedMetricValue>();
-            var pending = TryReadPendingPathfindActions();
+            ReadPathfindActions(out var pending, out var inFlight);
             metrics.Add(pending);
+            metrics.Add(inFlight);
             metrics.Add(TryReadCollectionCount("actionTypeQueue", _actionTypes));
             metrics.Add(TryReadCollectionCount("workerActionQueue", _workerActions));
             metrics.Add(TryInvokeScalar("graphSize", _getGraphSize));
@@ -79,41 +80,52 @@ namespace CS2RuntimeAssetAuditor.Collectors
             Latest = new NamedMetricSnapshot(timestampSeconds, metrics);
         }
 
-        private NamedMetricValue TryReadPendingPathfindActions()
+        // PathfindQueueSystem.ActionList (Game 1.6.2f1): m_Items is a List. Enqueue appends; dispatching an item to a
+        // worker advances m_NextIndex; PathfindResultSystem removes finished items and moves m_NextIndex back. Items
+        // before m_NextIndex are therefore in flight and items from m_NextIndex on are still waiting.
+        private void ReadPathfindActions(out NamedMetricValue pending, out NamedMetricValue inFlight)
         {
-            const string id = "pendingPathfindActions";
+            const string pendingId = "pendingPathfindActions";
+            const string inFlightId = "inFlightPathfindActions";
+            string reason;
             if (_queueSystem == null || _pathfindActions == null)
-                return NamedMetricValue.Unavailable(id, "m_PathfindActions is not available in this runtime build.");
+            {
+                reason = "m_PathfindActions is not available in this runtime build.";
+                pending = NamedMetricValue.Unavailable(pendingId, reason);
+                inFlight = NamedMetricValue.Unavailable(inFlightId, reason);
+                return;
+            }
 
             try
             {
                 var actionList = _pathfindActions.GetValue(_queueSystem);
-                if (actionList == null)
-                    return NamedMetricValue.Unavailable(id, "m_PathfindActions returned null.");
-
-                var type = actionList.GetType();
-                var itemsField = type.GetField("m_Items", Flags);
-                var nextIndexField = type.GetField("m_NextIndex", Flags);
-                if (itemsField == null || nextIndexField == null)
-                    return NamedMetricValue.Unavailable(id, "ActionList layout is not verified in this runtime build.");
-
-                var items = itemsField.GetValue(actionList);
-                if (items == null || !TryGetCollectionLength(items, out var capacity))
-                    return NamedMetricValue.Unavailable(id, "ActionList m_Items has no verified Count or Length property.");
-
-                var nextIndex = Convert.ToInt32(nextIndexField.GetValue(actionList));
-                // Game.dll's Enqueue increments m_NextIndex as it writes each queued item;
-                // Clear resets it. m_Items is fixed-capacity NativeArray storage in the
-                // supplied game build, so its Length is capacity, not the pending count.
-                if (nextIndex < 0 || nextIndex > capacity)
-                    return NamedMetricValue.Unavailable(id, "ActionList m_NextIndex is outside the verified m_Items bounds.");
-
-                return NamedMetricValue.Available(id, nextIndex, MetricConfidence.Indirect);
+                var type = actionList?.GetType();
+                var items = type?.GetField("m_Items", Flags)?.GetValue(actionList) as ICollection;
+                var nextIndexField = type?.GetField("m_NextIndex", Flags);
+                if (items == null || nextIndexField == null || nextIndexField.FieldType != typeof(int))
+                {
+                    reason = "ActionList layout (List m_Items, int m_NextIndex) is not present in this runtime build.";
+                }
+                else
+                {
+                    var count = items.Count;
+                    var nextIndex = (int)nextIndexField.GetValue(actionList);
+                    if (nextIndex >= 0 && nextIndex <= count)
+                    {
+                        pending = NamedMetricValue.Available(pendingId, count - nextIndex, MetricConfidence.Indirect);
+                        inFlight = NamedMetricValue.Available(inFlightId, nextIndex, MetricConfidence.Indirect);
+                        return;
+                    }
+                    reason = "ActionList m_NextIndex is outside its item list.";
+                }
             }
             catch (Exception ex)
             {
-                return NamedMetricValue.Unavailable(id, $"Reading pathfind action queue failed: {RootMessage(ex)}");
+                reason = $"Reading pathfind action queue failed: {RootMessage(ex)}";
             }
+
+            pending = NamedMetricValue.Unavailable(pendingId, reason);
+            inFlight = NamedMetricValue.Unavailable(inFlightId, reason);
         }
 
         private static bool TryGetCollectionLength(object value, out int length)

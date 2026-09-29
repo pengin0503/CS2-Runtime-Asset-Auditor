@@ -37,7 +37,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
         private readonly Dictionary<RenderAssetKey, IReadOnlyList<SurfaceObservation>> _surfaces = new Dictionary<RenderAssetKey, IReadOnlyList<SurfaceObservation>>();
         private readonly Dictionary<RenderAssetKey, IReadOnlyList<TextureObservation>> _textures = new Dictionary<RenderAssetKey, IReadOnlyList<TextureObservation>>();
         private readonly Dictionary<string, TextureObservation> _textureById = new Dictionary<string, TextureObservation>(StringComparer.Ordinal);
-        private readonly BoundedLruCache<string, SurfaceCacheEntry> _surfaceCache;
+        private readonly BoundedLruCache<string, SurfaceRead> _surfaceCache;
         private readonly bool _enablePeerOutliers;
         private readonly ComparisonPopulation _comparisonPopulation;
         private readonly HashSet<RenderAssetKey> _surfaceReadFailures = new HashSet<RenderAssetKey>();
@@ -87,7 +87,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
             _enablePeerOutliers = enablePeerOutliers;
             _comparisonPopulation = comparisonPopulation;
             // Surface metadata holds references to texture assets; bounding it keeps a large playset from being pinned.
-            _surfaceCache = new BoundedLruCache<string, SurfaceCacheEntry>(Math.Max(1, metadataCacheLimit), StringComparer.Ordinal);
+            _surfaceCache = new BoundedLruCache<string, SurfaceRead>(Math.Max(1, metadataCacheLimit), StringComparer.Ordinal);
             _renderGraphAccumulator = new RenderGraphAccumulator(new IRenderAssetResolver[] { new ObjectGeometryResolver() });
         }
 
@@ -224,9 +224,9 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
                                 continue;
                             try
                             {
-                                var cacheEntry = ReadSurfaceOnce(surface);
-                                surfaceObservations.Add(cacheEntry.Observation);
-                                foreach (var texture in cacheEntry.Textures)
+                                var surfaceRead = ReadSurfaceOnce(surface);
+                                surfaceObservations.Add(surfaceRead.Observation);
+                                foreach (var texture in surfaceRead.Textures)
                                 {
                                     if (texture == null)
                                         continue;
@@ -496,30 +496,14 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
             }
         }
 
-        private SurfaceCacheEntry ReadSurfaceOnce(SurfaceAsset surface)
+        private SurfaceRead ReadSurfaceOnce(SurfaceAsset surface)
         {
-            var id = StableSurfaceId(surface);
+            var id = SurfaceAssetReader.StableId(surface);
             if (_surfaceCache.TryGet(id, out var cached))
                 return cached;
-
-            var loadedHere = !surface.isDataLoaded;
-            try
-            {
-                if (loadedHere)
-                    surface.LoadProperties(false);
-                var observation = _surfaceReader.Read(surface, _analysisGeneration, _capturedAt);
-                var textures = surface.textures == null
-                    ? Array.Empty<TextureAsset>()
-                    : surface.textures.Values.Where(texture => texture != null).ToArray();
-                var entry = new SurfaceCacheEntry(observation, textures);
-                _surfaceCache.Add(id, entry);
-                return entry;
-            }
-            finally
-            {
-                if (loadedHere)
-                    surface.UnloadProperties(false);
-            }
+            var read = _surfaceReader.Read(surface, _capturedAt);
+            _surfaceCache.Add(id, read);
+            return read;
         }
 
         private void AddTextureFailure(RenderAssetKey key, string textureId)
@@ -543,31 +527,12 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
                 throw new InvalidOperationException("The analysis world is no longer available.");
         }
 
-        private static string StableSurfaceId(SurfaceAsset surface)
-        {
-            if (!string.IsNullOrWhiteSpace(surface.identifier)) return surface.identifier;
-            if (!string.IsNullOrWhiteSpace(surface.uniqueName)) return surface.uniqueName;
-            if (!string.IsNullOrWhiteSpace(surface.name)) return surface.name;
-            throw new InvalidOperationException("A stable SurfaceAsset identifier is unavailable.");
-        }
-
         private static string StableTextureIdOrFallback(TextureAsset texture)
         {
             if (!string.IsNullOrWhiteSpace(texture.identifier)) return texture.identifier;
             if (!string.IsNullOrWhiteSpace(texture.uniqueName)) return texture.uniqueName;
             if (!string.IsNullOrWhiteSpace(texture.name)) return texture.name;
             return "texture:unidentified";
-        }
-
-        private sealed class SurfaceCacheEntry
-        {
-            public SurfaceCacheEntry(SurfaceObservation observation, TextureAsset[] textures)
-            {
-                Observation = observation;
-                Textures = textures;
-            }
-            public SurfaceObservation Observation { get; }
-            public TextureAsset[] Textures { get; }
         }
     }
 }

@@ -88,7 +88,7 @@ namespace CS2RuntimeAssetAuditor.Advisor.Settings
             return Apply(settingId, originalValue, confirmed);
         }
 
-        private static IEnumerable<AutomaticSettingAdapter> BuildStandardAdapters()
+        internal static IEnumerable<AutomaticSettingAdapter> BuildStandardAdapters()
         {
             var catalog = new GameSettingCatalogBuilder().GetCatalog().ToDictionary(d => d.SettingId, StringComparer.Ordinal);
             foreach (var root in GameSettingCatalogBuilder.GetBuiltInRoots())

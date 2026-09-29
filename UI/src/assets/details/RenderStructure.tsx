@@ -37,6 +37,7 @@ export function RenderStructure({
               {relation.deepInspection ? (
                 <div className="apa__deep-inspection">
                   <p><strong>{t("render.deepInspection")}</strong> {relation.deepInspection.availability}</p>
+                  {relation.deepInspection.materials.length > 0 ? <p className="apa__muted">{t("render.deepInspectionBasis")}</p> : null}
                   {relation.deepInspection.materials.map((material, materialIndex) => (
                     <p key={`${relation.to}:material:${materialIndex}`} className="apa__muted">
                       {material.materialName || t("render.unnamedMaterial")} · {material.shaderName || t("render.unknownShader")} · {t("render.passes", { count: material.passCount })}

@@ -275,10 +275,14 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Prefabs
             _workingEntityKeys = new Dictionary<Entity, PrefabKey>();
         }
 
+        // Follows the Game.Prefabs hierarchy: StaticObjectPrefab is the base of BuildingPrefab, BuildingExtensionPrefab
+        // and ActivityPropPrefab. Extensions are not buildings in that hierarchy and are classified on their own so
+        // that peer comparison never mixes them with props or with whole buildings.
         private static PrefabTraits Classify(PrefabBase prefab)
         {
             var hasServiceBuildingMarker = false;
             var hasTreeMarker = false;
+            var hasPlantMarker = false;
             if (prefab.components != null)
             {
                 foreach (var component in prefab.components)
@@ -287,20 +291,27 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Prefabs
                         hasServiceBuildingMarker = true;
                     if (component is TreeObject)
                         hasTreeMarker = true;
+                    if (component is PlantObject)
+                        hasPlantMarker = true;
                 }
             }
 
+            var isStaticObject = prefab is StaticObjectPrefab;
             var isBuilding = prefab is BuildingPrefab;
-            var isTree = hasTreeMarker;
-            var isProp = prefab is StaticObjectPrefab && !isBuilding && !isTree;
+            var isBuildingExtension = prefab is BuildingExtensionPrefab;
+            var isTree = isStaticObject && hasTreeMarker;
+            var isPlant = isStaticObject && !isTree && hasPlantMarker;
+            var isProp = isStaticObject && !isBuilding && !isBuildingExtension && !isTree && !isPlant;
             return PrefabClassifier.Classify(
                 isBuilding: isBuilding,
-                isServiceBuilding: hasServiceBuildingMarker,
+                isServiceBuilding: isBuilding && hasServiceBuildingMarker,
                 isProp: isProp,
                 isTree: isTree,
                 isVehicle: prefab is VehiclePrefab,
                 isNetwork: prefab is NetPrefab,
-                isRenderOnly: prefab is RenderPrefab);
+                isRenderOnly: prefab is RenderPrefab,
+                isBuildingExtension: isBuildingExtension,
+                isPlant: isPlant);
         }
 
         private static string GetStablePrefabId(PrefabBase prefab)

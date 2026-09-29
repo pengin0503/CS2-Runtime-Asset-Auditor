@@ -27,6 +27,13 @@ public class PathfindingCollectorTests
             for (var i = 0; i < workers; i++) m_WorkerActions.Enqueue(i);
         }
 
+        public void SetItems(int itemCount, int nextIndex)
+        {
+            m_PathfindActions.m_Items.Clear();
+            for (var i = 0; i < itemCount; i++) m_PathfindActions.m_Items.Add(i);
+            m_PathfindActions.m_NextIndex = nextIndex;
+        }
+
         public int GetGraphSize() => 321;
         public void GetGraphMemory(out uint usedMemory, out uint allocatedMemory)
         {
@@ -82,10 +89,12 @@ public class PathfindingCollectorTests
     [Test]
     public void Verified_queue_structure_exposes_pending_and_memory_metrics()
     {
+        // Game 1.6.2f1: items before m_NextIndex were dispatched to workers; the rest are still waiting.
         var collector = new PathfindingCollector(new FakePathfindQueueSystem(10, 4, 3, 2));
         collector.Sample(1);
 
-        Assert.That(collector.Latest.Get("pendingPathfindActions").Value, Is.EqualTo(4));
+        Assert.That(collector.Latest.Get("pendingPathfindActions").Value, Is.EqualTo(6));
+        Assert.That(collector.Latest.Get("inFlightPathfindActions").Value, Is.EqualTo(4));
         Assert.That(collector.Latest.Get("actionTypeQueue").Value, Is.EqualTo(3));
         Assert.That(collector.Latest.Get("workerActionQueue").Value, Is.EqualTo(2));
         Assert.That(collector.Latest.Get("graphSize").Value, Is.EqualTo(321));
@@ -94,14 +103,35 @@ public class PathfindingCollectorTests
     }
 
     [Test]
-    public void Native_array_queue_uses_next_index_as_pending_count()
+    public void Queue_delta_follows_the_waiting_backlog()
+    {
+        var queue = new FakePathfindQueueSystem(10, 4, 0, 0);
+        var collector = new PathfindingCollector(queue);
+        collector.Sample(1);
+        queue.SetItems(30, 4);
+        collector.Sample(3);
+
+        Assert.That(collector.Latest.Get("pendingPathfindActions").Value, Is.EqualTo(26));
+        Assert.That(collector.Latest.Get("queueDeltaPerSecond").Value, Is.EqualTo(10));
+    }
+
+    [Test]
+    public void Fixed_capacity_item_storage_is_not_read_as_a_backlog()
     {
         var collector = new PathfindingCollector(new NativeArrayPathfindQueueSystem(capacity: 10, nextIndex: 4));
         collector.Sample(1);
 
-        var pending = collector.Latest.Get("pendingPathfindActions");
-        Assert.That(pending.Availability, Is.EqualTo(MetricAvailability.Available));
-        Assert.That(pending.Value, Is.EqualTo(4));
+        Assert.That(collector.Latest.Get("pendingPathfindActions").Availability, Is.EqualTo(MetricAvailability.Unavailable));
+        Assert.That(collector.Latest.Get("inFlightPathfindActions").Availability, Is.EqualTo(MetricAvailability.Unavailable));
+    }
+
+    [Test]
+    public void Next_index_beyond_the_item_list_is_rejected()
+    {
+        var collector = new PathfindingCollector(new FakePathfindQueueSystem(3, 5, 0, 0));
+        collector.Sample(1);
+
+        Assert.That(collector.Latest.Get("pendingPathfindActions").Availability, Is.EqualTo(MetricAvailability.Unavailable));
     }
 
     [Test]

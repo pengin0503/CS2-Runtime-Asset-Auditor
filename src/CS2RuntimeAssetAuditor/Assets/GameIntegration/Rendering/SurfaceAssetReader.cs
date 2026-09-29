@@ -7,36 +7,48 @@ using CS2RuntimeAssetAuditor.Assets.Core.Rendering;
 
 namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
 {
+    public sealed class SurfaceRead
+    {
+        public SurfaceRead(SurfaceObservation observation, TextureAsset[] textures)
+        {
+            Observation = observation ?? throw new ArgumentNullException(nameof(observation));
+            Textures = textures ?? throw new ArgumentNullException(nameof(textures));
+        }
+
+        public SurfaceObservation Observation { get; }
+        public TextureAsset[] Textures { get; }
+    }
+
     public sealed class SurfaceAssetReader
     {
-        private readonly GenerationCache<string, SurfaceObservation> _cache = new GenerationCache<string, SurfaceObservation>();
-
-        public SurfaceObservation Read(SurfaceAsset surface, long analysisGeneration, DateTimeOffset capturedAt)
+        // Reads the SurfaceAsset's serialized properties. When the game has not loaded them, they are loaded and
+        // released here so our reference count stays balanced. LoadProperties(useVT) decides isCurrentlyUsingVT, so the
+        // value is only an observation of the game's state when the game itself holds the properties.
+        public SurfaceRead Read(SurfaceAsset surface, DateTimeOffset capturedAt)
         {
             if (surface == null) throw new ArgumentNullException(nameof(surface));
             var id = StableId(surface);
-            return _cache.GetOrAdd(analysisGeneration, id, () => ReadCore(surface, id, capturedAt));
-        }
-
-        public void ClearCache() => _cache.Clear();
-
-        private static SurfaceObservation ReadCore(SurfaceAsset surface, string id, DateTimeOffset capturedAt)
-        {
             var loadedHere = !surface.isDataLoaded;
             if (loadedHere) surface.LoadProperties(false);
             try
             {
-                var textures = surface.textures ?? new Dictionary<string, TextureAsset>();
-                return new SurfaceObservation(id,
+                var textures = surface.textures == null
+                    ? Array.Empty<TextureAsset>()
+                    : surface.textures.Values.Where(texture => texture != null).ToArray();
+                var usingVt = loadedHere
+                    ? Observation<bool>.Unavailable(Availability.NotApplicable, ObservationOrigin.AssetDatabase, capturedAt)
+                    : Observation<bool>.FromValue(surface.isCurrentlyUsingVT, ObservationOrigin.AssetDatabase, capturedAt);
+                var observation = new SurfaceObservation(id,
                     Observation<int>.FromValue(surface.materialTemplateHash, ObservationOrigin.AssetDatabase, capturedAt),
                     Observation<bool>.FromValue(surface.isVTMaterial, ObservationOrigin.AssetDatabase, capturedAt),
-                    Observation<bool>.FromValue(surface.isCurrentlyUsingVT, ObservationOrigin.AssetDatabase, capturedAt),
+                    usingVt,
                     surface.floats?.Count ?? 0,
                     surface.ints?.Count ?? 0,
                     surface.vectors?.Count ?? 0,
                     surface.colors?.Count ?? 0,
-                    surface.keywords ?? Array.Empty<string>(),
-                    textures.Values.Where(texture => texture != null).Select(StableTextureId));
+                    surface.keywords ?? (IEnumerable<string>)Array.Empty<string>(),
+                    textures.Select(StableTextureId));
+                return new SurfaceRead(observation, textures);
             }
             finally
             {
@@ -44,7 +56,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
             }
         }
 
-        private static string StableId(SurfaceAsset asset)
+        internal static string StableId(SurfaceAsset asset)
         {
             if (!string.IsNullOrWhiteSpace(asset.identifier)) return asset.identifier;
             if (!string.IsNullOrWhiteSpace(asset.uniqueName)) return asset.uniqueName;

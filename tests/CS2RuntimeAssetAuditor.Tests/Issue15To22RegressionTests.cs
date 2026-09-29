@@ -20,20 +20,13 @@ public class Issue15To22RegressionTests
     public void Automatic_capture_policy_blocks_loading_and_paused_states(bool loading, bool paused, bool expected)
         => Assert.That(AutomaticCapturePolicy.IsAllowed(loading, paused), Is.EqualTo(expected));
 
-    [Test]
-    public void Runtime_pause_reader_accepts_the_pause_members_present_in_the_game_runtime()
-    {
-        Assert.Multiple(() =>
-        {
-            Assert.That(RuntimePauseStateReader.TryRead(new PauseMethodRuntime(true), out var methodPaused), Is.True);
-            Assert.That(methodPaused, Is.True);
-            Assert.That(RuntimePauseStateReader.TryRead(new PauseFieldRuntime(true), out var fieldPaused), Is.True);
-            Assert.That(fieldPaused, Is.True);
-            Assert.That(RuntimePauseStateReader.TryRead(new PausePropertyRuntime(false), out var propertyPaused), Is.True);
-            Assert.That(propertyPaused, Is.False);
-            Assert.That(RuntimePauseStateReader.TryRead(new object(), out _), Is.False);
-        });
-    }
+    // Game 1.6.2f1 has no pause flag on SimulationSystem: pausing sets selectedSpeed to 0.
+    [TestCase(0d, true)]
+    [TestCase(-1d, true)]
+    [TestCase(0.5d, false)]
+    [TestCase(1d, false)]
+    public void Simulation_is_paused_when_the_selected_speed_is_zero(double selectedSpeed, bool expected)
+        => Assert.That(AutomaticCapturePolicy.IsPaused(selectedSpeed), Is.EqualTo(expected));
 
     [Test]
     public void Persistent_overhead_breaches_eventually_finalize_the_capture_instead_of_degrading_forever()
@@ -199,25 +192,6 @@ public class Issue15To22RegressionTests
 
     private static GlobalMetricsSnapshot GlobalEfficiency(double timestamp, double efficiency)
         => new(timestamp, 4d, 4d * efficiency, new Dictionary<string, RecorderReading>());
-
-    private sealed class PauseMethodRuntime
-    {
-        private readonly bool _paused;
-        public PauseMethodRuntime(bool paused) => _paused = paused;
-        public bool IsPaused() => _paused;
-    }
-
-    private sealed class PauseFieldRuntime
-    {
-        private readonly bool m_Paused;
-        public PauseFieldRuntime(bool paused) => m_Paused = paused;
-    }
-
-    private sealed class PausePropertyRuntime
-    {
-        public PausePropertyRuntime(bool paused) => this.paused = paused;
-        public bool paused { get; }
-    }
 
     private sealed class Backend : IRecorderBackend
     {

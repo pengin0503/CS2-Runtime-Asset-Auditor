@@ -5,10 +5,15 @@ using Colossal.IO.AssetDatabase;
 using CS2RuntimeAssetAuditor.Assets.Core.Observations;
 using CS2RuntimeAssetAuditor.Assets.Core.Rendering;
 using Game.Prefabs;
-using UnityEngine;
 
 namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
 {
+    // Reads each material slot from the SurfaceAsset's serialized properties and the shared template material the
+    // game's MaterialLibrary resolves for it. No Material is instantiated and no texture is loaded:
+    // RenderPrefab.ObtainMaterials() would call SurfaceAsset.Load (a new Material plus every non-VT texture on the
+    // GPU) and RenderPrefab.ReleaseMaterials() releases nothing in the game, so that path leaked VRAM per inspection.
+    // The game renders through ManagedBatchSystem materials built from the same template and properties; the values
+    // here describe the asset's template and keywords, not that runtime material instance.
     public sealed class DeepInspectionReader
     {
         public DeepInspectionObservation Read(RenderAssetKey selectedKey, RenderPrefab renderPrefab, DateTimeOffset capturedAt)
@@ -19,45 +24,50 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
             if (!Matches(selectedKey, renderPrefab))
                 return DeepInspectionObservation.Unavailable(Availability.Failed, capturedAt, "APA-DEEP-001");
 
-            Material[]? acquiredMaterials = null;
-            var acquired = false;
             try
             {
-                var surfaceIds = (renderPrefab.surfaceAssets ?? Enumerable.Empty<SurfaceAsset>())
-                    .Where(surface => surface != null)
-                    .Select(StableSurfaceId)
-                    .ToArray();
-
-                acquiredMaterials = renderPrefab.ObtainMaterials(false);
-                acquired = true;
-                var copied = new List<MaterialBindingObservation>();
-                if (acquiredMaterials != null)
+                var surfaces = (renderPrefab.surfaceAssets ?? Enumerable.Empty<SurfaceAsset>()).ToArray();
+                var materials = new List<MaterialBindingObservation>(surfaces.Length);
+                var surfaceIds = new List<string>(surfaces.Length);
+                foreach (var surface in surfaces)
                 {
-                    foreach (var material in acquiredMaterials)
-                    {
-                        if (material == null) continue;
-                        var shader = material.shader;
-                        copied.Add(new MaterialBindingObservation(
-                            material.name ?? string.Empty,
-                            shader == null ? string.Empty : shader.name ?? string.Empty,
-                            material.shaderKeywords ?? Array.Empty<string>(),
-                            material.renderQueue,
-                            material.passCount,
-                            material.enableInstancing));
-                    }
+                    if (surface == null)
+                        continue;
+                    var surfaceId = StableSurfaceId(surface);
+                    surfaceIds.Add(surfaceId);
+                    materials.Add(ReadSlot(surface, surfaceId));
                 }
 
-                return DeepInspectionObservation.Available(copied, surfaceIds, capturedAt);
+                return DeepInspectionObservation.Available(materials, surfaceIds, capturedAt);
             }
             catch
             {
                 return DeepInspectionObservation.Unavailable(Availability.Failed, capturedAt, "APA-DEEP-002");
             }
+        }
+
+        private static MaterialBindingObservation ReadSlot(SurfaceAsset surface, string surfaceId)
+        {
+            // Balance our own reference: properties the game already holds stay loaded, ones we load are released.
+            var loadedHere = !surface.isDataLoaded;
+            if (loadedHere)
+                surface.LoadProperties(false);
+            try
+            {
+                var template = surface.GetTemplateMaterial();
+                var shader = template == null ? null : template.shader;
+                return new MaterialBindingObservation(
+                    string.IsNullOrWhiteSpace(surface.name) ? surfaceId : surface.name,
+                    shader == null ? string.Empty : shader.name ?? string.Empty,
+                    surface.keywords ?? (IEnumerable<string>)Array.Empty<string>(),
+                    template == null ? 0 : template.renderQueue,
+                    template == null ? 0 : template.passCount,
+                    template != null && template.enableInstancing);
+            }
             finally
             {
-                acquiredMaterials = null;
-                if (acquired)
-                    renderPrefab.ReleaseMaterials();
+                if (loadedHere)
+                    surface.UnloadProperties(false);
             }
         }
 

@@ -6,5 +6,8 @@ namespace CS2RuntimeAssetAuditor.Core
         {
             return !loading && !simulationPaused;
         }
+
+        // The game pauses the simulation by setting SimulationSystem.selectedSpeed to 0; there is no separate flag.
+        public static bool IsPaused(double selectedSpeed) => selectedSpeed <= 0d;
     }
 }
