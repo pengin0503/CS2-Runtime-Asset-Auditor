@@ -36,6 +36,8 @@ namespace CS2RuntimeAssetAuditor.Export
             };
             foreach (var mod in metadata?.EnabledMods ?? Array.Empty<string>()) if (!string.IsNullOrWhiteSpace(mod)) report.EnabledMods.Add(mod.Trim());
             report.EnabledMods = report.EnabledMods.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(name => name, StringComparer.OrdinalIgnoreCase).ToList();
+            foreach (var failure in metadata?.ModLoadFailures ?? Array.Empty<string>())
+                if (!string.IsNullOrWhiteSpace(failure)) report.Warnings.Add("Mod did not load: " + failure.Trim());
             AddCaptureScope(report, snapshot);
             AddCaptureConfiguration(report, captureConfiguration);
             AddGlobal(report, snapshot.Global);
