@@ -29,6 +29,8 @@ namespace CS2RuntimeAssetAuditor.Localization
                 { _setting.GetOptionDescLocaleID(nameof(Setting.EnableMonitoring)), "低負荷の常時監視と詳細キャプチャを有効にします。無効にするとプロファイラーの収集処理を停止します。" },
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.EnableAutomaticCapture)), "自動キャプチャを有効化" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.EnableAutomaticCapture)), "シミュレーション効率が設定した閾値を一定時間下回ったときに詳細キャプチャを自動開始します。手動キャプチャには影響しません。" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.EnableDiagnosticLog)), "診断ログを記録" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.EnableDiagnosticLog)), "都市を開いている間、フレーム時間、CPU/GPU時間、シミュレーションのステップ、経路探索の値を1秒ごとに1行ずつCSVとして ModsData/CS2RuntimeAssetAuditor に書き出し、このゲームで使えるプロファイラーマーカーの一覧も保存します。実際のプレイを記録して後で分析するための機能です。ファイルは都市ごとに32 MiBまでです。" },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.UiScalePercent)), "UI倍率" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.UiScalePercent)), "診断パネル全体の表示倍率を75～150%で調整します。" },

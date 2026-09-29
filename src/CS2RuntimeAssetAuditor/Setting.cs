@@ -38,6 +38,9 @@ namespace CS2RuntimeAssetAuditor
         [SettingsUISection(MainTab, MonitoringGroup)]
         public bool EnableAutomaticCapture { get; set; }
 
+        [SettingsUISection(MainTab, MonitoringGroup)]
+        public bool EnableDiagnosticLog { get; set; }
+
         [SettingsUISection(MainTab, DisplayGroup)]
         [SettingsUISlider(min = 75, max = 150, step = 5, scalarMultiplier = 1)]
         public int UiScalePercent { get; set; }
@@ -191,6 +194,7 @@ namespace CS2RuntimeAssetAuditor
         {
             EnableMonitoring = true;
             EnableAutomaticCapture = true;
+            EnableDiagnosticLog = false;
             UiScalePercent = 100;
             UiRefreshMilliseconds = 500;
             SamplingIntervalMilliseconds = 500;

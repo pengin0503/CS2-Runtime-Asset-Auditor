@@ -73,6 +73,7 @@ namespace CS2RuntimeAssetAuditor
             updateSystem.UpdateAt<GlobalMetricsCollector>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAt<DomainMetricsSystem>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAt<CaptureRuntimeSystem>(SystemUpdatePhase.UIUpdate);
+            updateSystem.UpdateAt<DiagnosticLogSystem>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAt<AdvisorSystem>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAt<ProfilerUISystem>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAt<AssetAuditUISystem>(SystemUpdatePhase.UIUpdate);

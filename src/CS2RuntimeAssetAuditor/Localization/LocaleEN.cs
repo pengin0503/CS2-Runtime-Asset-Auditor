@@ -71,6 +71,8 @@ namespace CS2RuntimeAssetAuditor.Localization
                 { _setting.GetOptionDescLocaleID(nameof(Setting.EnableMonitoring)), "Collect lightweight runtime metrics and allow Deep Capture." },
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.EnableAutomaticCapture)), "Enable automatic capture" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.EnableAutomaticCapture)), "Start Deep Capture after a sustained simulation slowdown." },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.EnableDiagnosticLog)), "Record diagnostic log" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.EnableDiagnosticLog)), "While a city is open, write one CSV row per second with frame, CPU/GPU, simulation step and pathfinding values to ModsData/CS2RuntimeAssetAuditor, plus a list of the profiler markers this game build provides. Use it to record real play for later analysis; the file is capped at 32 MiB per city." },
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.UiRefreshMilliseconds)), "UI refresh interval (ms)" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.UiRefreshMilliseconds)), "Set the interval between full panel updates." },
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.EfficiencyThresholdPercent)), "Capture efficiency threshold (%)" },

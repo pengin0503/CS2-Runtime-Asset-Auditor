@@ -183,6 +183,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
         private void BeginCaptureWork(CaptureSession capture)
         {
             capture.MarkStarted(Mod.SessionContext?.SessionId, DateTimeOffset.UtcNow);
+            Mod.Log.Info(CaptureCompletionLogFormatter.FormatStarted(capture));
             Mod.WorkCoordinator.Request(DiagnosticWorkKind.RuntimeDeepCapture);
             RefreshSystemCatalogForCapture(capture);
             StartManagedTimingForCapture(capture);

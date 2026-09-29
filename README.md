@@ -50,6 +50,32 @@ Deep Capture は重い Asset スキャンより優先されます。キャプチ
 
 同名ファイルがあれば上書きせず `-1`、`-2` の連番を付けます。絶対パスは `[redacted-path]`、アカウント名とマシン名は独立した単語として現れる場合だけ `[redacted]` に置換します（3文字未満の名前は置換しません）。共有前には内容を確認してください。CSV のテキストセルは表計算ソフトで数式として解釈されないよう保護します。
 
+## 診断ログ
+
+実機のプレイを後から分析するための連続記録です。JSON レポート（操作したときのスナップショット。時系列はキャプチャ 1 回分）や MOD ログ（人が読むイベントの行）とは別に、オプションの「監視」→「診断ログを記録」を有効にしている間、都市を開いているあいだ 1 秒ごとに 1 行を CSV に書きます。初期状態は無効です。
+
+- `ModsData/CS2RuntimeAssetAuditor/CS2RuntimeAssetAuditor-diagnostic-YYYY-MM-DD_HHmmss_fff.csv`: 時系列。都市セッションごとに 1 ファイルで、最大 32 MiB（1 行は数百バイトなので長時間でも上限に達しにくい量です）。上限に達するとその都市では以降の行を書きません。
+- `…-markers.csv`: 記録開始時にこのゲームで利用できるプロファイラーマーカーの一覧（カテゴリ、名前、単位、データ型、通常監視の対象か）。
+
+各行は 1 秒間の集計です。数値は不変カルチャで書き、取得できなかった値は 0 ではなく空欄にします。
+
+| 列 | 内容 |
+| --- | --- |
+| `frameMs*` | `Time.unscaledDeltaTime` による描画フレーム時間の中央値・P95・最大 |
+| `cpuMainMs*` / `cpuRenderMs*` / `gpuMs*` / `presentWaitMs*` | `FrameTimingManager` のメインスレッド・レンダースレッド・GPU・Present 待ち時間。数フレーム遅れた値で、機能が無効なら空欄（開始時の MOD ログに `frameTimingFeature` を出力） |
+| `selectedSpeed` / `actualSpeedMean` / `efficiencyMean` | 選択速度（区間の最後）、`smoothSpeed` と効率の区間平均（一時停止中のフレームは除外、`pausedFrames` に数） |
+| `simSteps` / `simStepsPerSecond` / `simMaxStepsPerFrame` | `frameIndex` の増分から数えた実際のシミュレーションステップ数（60/秒が 1 倍速） |
+| `simFramesAtRenderCap` | 描画 1 フレームあたりの上限（`max(1, min(8, round(選択速度×2)))`）までステップしたフレーム数。多いほど描画フレーム数が速度を制限している |
+| `simFramesWithoutStep` | 実行中なのに 1 ステップも進まなかったフレーム数 |
+| `simStepMs*` | `SimulationSystem.frameDuration`（ジョブ完了までを含む 1 ステップの実時間） |
+| `performancePreference` | 一般設定の性能優先（FrameRate / Balanced / SimulationSpeed） |
+| `pathfindLeadFramesMin` / `pathfindLowLeadFrames` / `pathfindPendingRequestsMax` | 経路探索結果の期限までの残りフレーム（このフレームのステップ後）の最小値、48 未満だったフレーム数、結果待ちの要求数の最大値 |
+| `gcCollections` / `managedHeapMiB` | 前の行からの GC 回数、管理ヒープ量 |
+| `captureState` / `captureTrigger` / `captureId` | Deep Capture の状態。`captureId` で JSON レポートのキャプチャと対応付けられます |
+| `recorder:<名前> [単位]` | 通常監視で有効にしているプロファイラーレコーダーの区間内の最後の値（単位はマーカーの単位のまま） |
+
+記録の開始・停止（理由と行数）、失敗、Deep Capture の開始（トリガーと効率）は MOD ログに出力します。ログにはファイル名だけを書き、絶対パスは書きません。
+
 ## 導入・ビルド
 
 ### 1. 前提条件

@@ -152,6 +152,30 @@ namespace CS2RuntimeAssetAuditor.AdapterTests
             });
         }
 
+        // The diagnostic log reads these members every frame to tell apart why the simulation ran slow.
+        [Test]
+        public void Diagnostic_log_reads_simulation_pathfinding_and_frame_timing_members()
+        {
+            var simulation = ApiType("Game", "Game.Simulation.SimulationSystem");
+            var pathfindResults = ApiType("Game", "Game.Pathfind.PathfindResultSystem");
+            var frameTimingManager = ApiType("UnityEngine.CoreModule", "UnityEngine.FrameTimingManager");
+            var frameTiming = ApiType("UnityEngine.CoreModule", "UnityEngine.FrameTiming");
+            Assert.Multiple(() =>
+            {
+                Assert.That(simulation.GetProperty("smoothSpeed", PublicInstance)?.PropertyType.FullName, Is.EqualTo("System.Single"));
+                Assert.That(simulation.GetProperty("frameIndex", PublicInstance)?.PropertyType.FullName, Is.EqualTo("System.UInt32"));
+                Assert.That(simulation.GetProperty("frameDuration", PublicInstance)?.PropertyType.FullName, Is.EqualTo("System.Single"));
+                Assert.That(simulation.GetProperty("performancePreference", PublicInstance)?.PropertyType.IsEnum, Is.True);
+                Assert.That(pathfindResults.GetProperty("pendingSimulationFrame", PublicInstance)?.PropertyType.FullName, Is.EqualTo("System.UInt32"));
+                Assert.That(pathfindResults.GetProperty("pendingRequestCount", PublicInstance)?.PropertyType.FullName, Is.EqualTo("System.Int32"));
+                Assert.That(frameTimingManager.GetMethod("CaptureFrameTimings", BindingFlags.Public | BindingFlags.Static), Is.Not.Null);
+                Assert.That(frameTimingManager.GetMethod("GetLatestTimings", BindingFlags.Public | BindingFlags.Static), Is.Not.Null);
+                Assert.That(frameTimingManager.GetMethod("IsFeatureEnabled", BindingFlags.Public | BindingFlags.Static), Is.Not.Null);
+                foreach (var field in new[] { "cpuMainThreadFrameTime", "cpuRenderThreadFrameTime", "gpuFrameTime", "cpuMainThreadPresentWaitTime" })
+                    Assert.That(frameTiming.GetField(field)?.FieldType.FullName, Is.EqualTo("System.Double"), field);
+            });
+        }
+
         // The reference set holds only the assemblies the mod compiles against; a base type from another assembly
         // (for example HDRP) cannot be resolved and cannot be a Game prefab either.
         private static string? BaseTypeName(Type type)

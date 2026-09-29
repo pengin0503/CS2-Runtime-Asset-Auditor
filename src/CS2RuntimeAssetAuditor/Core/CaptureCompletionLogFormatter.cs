@@ -7,6 +7,24 @@ namespace CS2RuntimeAssetAuditor.Core
     {
         private const double BytesPerMiB = 1024d * 1024d;
 
+        /// <summary>
+        /// One line when a capture starts, so the continuous diagnostic log (which records the capture id per
+        /// second) and the capture's report can be lined up with the efficiency that triggered it.
+        /// </summary>
+        public static string FormatStarted(CaptureSession capture)
+        {
+            if (capture == null)
+                return "Capture started: capture=unavailable";
+
+            var efficiency = capture.Trigger?.Efficiency;
+            return string.Format(
+                CultureInfo.InvariantCulture,
+                "Capture started: capture={0} trigger={1} efficiency={2}",
+                capture.Id,
+                capture.Trigger?.Kind.ToString() ?? "unknown",
+                efficiency.HasValue ? efficiency.Value.ToString("0.###", CultureInfo.InvariantCulture) : "unavailable");
+        }
+
         public static string Format(CaptureSession capture)
         {
             if (capture == null)
