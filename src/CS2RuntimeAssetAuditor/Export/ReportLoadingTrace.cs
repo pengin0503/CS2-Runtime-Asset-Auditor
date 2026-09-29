@@ -20,7 +20,7 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "registeredAssetCount", Order = 9, EmitDefaultValue = false)] public int? RegisteredAssetCount { get; set; }
         [DataMember(Name = "loadedBytes", Order = 10, EmitDefaultValue = false)] public long? LoadedBytes { get; set; }
         [DataMember(Name = "anyDatabaseCachedAtEnd", Order = 11, EmitDefaultValue = false)] public bool? AnyDatabaseCachedAtEnd { get; set; }
-        [DataMember(Name = "anyDatabaseBecameCached", Order = 12)] public bool AnyDatabaseBecameCached { get; set; }
+        [DataMember(Name = "observedUncachedToCachedTransition", Order = 12)] public bool ObservedUncachedToCachedTransition { get; set; }
         [DataMember(Name = "cacheRebuilt", Order = 13, EmitDefaultValue = false)] public bool? CacheRebuilt { get; set; }
         [DataMember(Name = "cacheFailed", Order = 14, EmitDefaultValue = false)] public bool? CacheFailed { get; set; }
         [DataMember(Name = "limitations", Order = 15)] public List<string> Limitations { get; set; }
@@ -45,7 +45,7 @@ namespace CS2RuntimeAssetAuditor.Export
                 MemoryEnd = snapshot.End == null ? null : ToReportSample(snapshot.End),
                 RegisteredAssetCount = snapshot.End?.RegisteredAssetCount,
                 AnyDatabaseCachedAtEnd = snapshot.End?.AnyDatabaseCached,
-                AnyDatabaseBecameCached = snapshot.AnyDatabaseBecameCached,
+                ObservedUncachedToCachedTransition = snapshot.ObservedUncachedToCachedTransition,
                 Limitations = new List<string>
                 {
                     "Unity allocated memory is not total physical RAM; process working set is a separate RAM indicator.",
@@ -53,8 +53,10 @@ namespace CS2RuntimeAssetAuditor.Export
                     "Registered asset count is an AssetDatabase catalog count, not a count of files read during this load.",
                     "Asset database observed is the first successful sample, not the start or end of database processing.",
                     "The aggregate cache flag is true when at least one registered database is cached; it is not an all-ready state.",
+                    "A false observedUncachedToCachedTransition means no sampled transition was seen, not proof that no cache changed.",
                     "Loaded byte count and cache rebuild/failure events are unavailable without I/O or cache instrumentation.",
                     "Blocked Unity frames may leave gaps between loading memory samples.",
+                    "Memory peaks are peaks of the two-second samples; shorter spikes can be missed.",
                     "Game loading complete is the game callback, not proof that every simulation or UI job is finished."
                 }
             };

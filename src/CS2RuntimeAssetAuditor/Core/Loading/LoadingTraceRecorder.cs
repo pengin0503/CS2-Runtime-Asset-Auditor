@@ -21,7 +21,7 @@ namespace CS2RuntimeAssetAuditor.Core.Loading
         private long? _peakGraphicsDriverBytes;
         private LoadingMemorySample _lastSample;
         private bool? _lastCacheState;
-        private bool _anyDatabaseBecameCached;
+        private bool _observedUncachedToCachedTransition;
         private bool _assetDatabaseObserved;
         private string _purpose;
 
@@ -46,7 +46,7 @@ namespace CS2RuntimeAssetAuditor.Core.Loading
             _peakUnityBytes = _peakRamBytes = _peakGraphicsDriverBytes = null;
             _lastSample = null;
             _lastCacheState = null;
-            _anyDatabaseBecameCached = false;
+            _observedUncachedToCachedTransition = false;
             _assetDatabaseObserved = false;
             Mark("loadStarted", atUtc);
         }
@@ -83,7 +83,7 @@ namespace CS2RuntimeAssetAuditor.Core.Loading
                 _assetDatabaseObserved = true;
             }
             if (_lastCacheState == false && anyDatabaseCached == true)
-                _anyDatabaseBecameCached = true;
+                _observedUncachedToCachedTransition = true;
             if (anyDatabaseCached.HasValue) _lastCacheState = anyDatabaseCached;
 
             var sample = new LoadingMemorySample(atUtc.ToUniversalTime(), Positive(unityBytes),
@@ -117,7 +117,7 @@ namespace CS2RuntimeAssetAuditor.Core.Loading
             if (!_startedAtUtc.HasValue) return null;
             return new LoadingTraceSnapshot(_modStartedAtUtc, _startedAtUtc.Value, _completedAtUtc,
                 _purpose, _milestones.ToArray(), _samples.ToArray(), _lastSample,
-                _peakUnityBytes, _peakRamBytes, _peakGraphicsDriverBytes, _anyDatabaseBecameCached);
+                _peakUnityBytes, _peakRamBytes, _peakGraphicsDriverBytes, _observedUncachedToCachedTransition);
         }
 
         private static long? Positive(long? value) => value >= 0 ? value : null;
@@ -156,7 +156,7 @@ namespace CS2RuntimeAssetAuditor.Core.Loading
         public LoadingTraceSnapshot(DateTimeOffset modStartedAtUtc, DateTimeOffset startedAtUtc,
             DateTimeOffset? completedAtUtc, string purpose, LoadingMilestone[] milestones,
             LoadingMemorySample[] samples, LoadingMemorySample end, long? peakUnityBytes,
-            long? peakRamBytes, long? peakGraphicsDriverBytes, bool anyDatabaseBecameCached)
+            long? peakRamBytes, long? peakGraphicsDriverBytes, bool observedUncachedToCachedTransition)
         {
             ModStartedAtUtc = modStartedAtUtc;
             StartedAtUtc = startedAtUtc;
@@ -168,7 +168,7 @@ namespace CS2RuntimeAssetAuditor.Core.Loading
             PeakUnityAllocatedBytes = peakUnityBytes;
             PeakProcessWorkingSetBytes = peakRamBytes;
             PeakGraphicsDriverAllocatedBytes = peakGraphicsDriverBytes;
-            AnyDatabaseBecameCached = anyDatabaseBecameCached;
+            ObservedUncachedToCachedTransition = observedUncachedToCachedTransition;
         }
         public DateTimeOffset ModStartedAtUtc { get; }
         public DateTimeOffset StartedAtUtc { get; }
@@ -180,6 +180,6 @@ namespace CS2RuntimeAssetAuditor.Core.Loading
         public long? PeakUnityAllocatedBytes { get; }
         public long? PeakProcessWorkingSetBytes { get; }
         public long? PeakGraphicsDriverAllocatedBytes { get; }
-        public bool AnyDatabaseBecameCached { get; }
+        public bool ObservedUncachedToCachedTransition { get; }
     }
 }

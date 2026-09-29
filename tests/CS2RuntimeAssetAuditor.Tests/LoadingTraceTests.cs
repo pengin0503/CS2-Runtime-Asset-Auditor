@@ -27,7 +27,7 @@ public class LoadingTraceTests
         Assert.That(snapshot.PeakUnityAllocatedBytes, Is.EqualTo(150));
         Assert.That(snapshot.PeakProcessWorkingSetBytes, Is.EqualTo(240));
         Assert.That(snapshot.End!.ProcessWorkingSetBytes, Is.EqualTo(220));
-        Assert.That(snapshot.AnyDatabaseBecameCached, Is.True);
+        Assert.That(snapshot.ObservedUncachedToCachedTransition, Is.True);
         Assert.That(snapshot.Milestones, Has.Length.EqualTo(4));
         var json = RuntimeAssetAuditReportSerializer.Serialize(new RuntimeAssetAuditReport
         {
@@ -35,7 +35,7 @@ public class LoadingTraceTests
         });
         Assert.That(json, Does.Contain("\"processWorkingSetBytes\":240"));
         Assert.That(json, Does.Contain("\"graphicsDriverAllocatedBytes\":45"));
-        Assert.That(json, Does.Contain("\"anyDatabaseBecameCached\":true"));
+        Assert.That(json, Does.Contain("\"observedUncachedToCachedTransition\":true"));
         Assert.That(json, Does.Not.Contain("\"vramUsedBytes\":45"));
         Assert.That(json, Does.Not.Contain("\"cacheReady\":"));
         Assert.That(json, Does.Not.Contain("\"loadedBytes\":"));
