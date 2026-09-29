@@ -2,138 +2,145 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Turn the existing Performance Advisor baseline/follow-up comparison into a user-guided, one-setting investigation experiment with explicit capture correlation, contamination detection, Keep/Undo completion, localized UI, and unified export.
+**Goal:** Turn the existing Performance Advisor baseline/follow-up comparison into a user-guided, one-setting investigation experiment with exact follow-up capture correlation, contamination detection, Keep/Undo completion, localization, and unified export.
 
-**Architecture:** Add a pure Advisor experiment state machine that owns no Unity/game objects, then let `AdvisorSystem` orchestrate existing `AdvisorSettingOperations`, `CaptureRuntimeSystem`, and `AdvisorComparison`. Extend the manual-capture API only enough to return the exact capture started by an explicit request, project experiment state through the existing UI snapshot/binding layer, and serialize it through the existing Advisor report path.
+**Architecture:** Keep all deterministic experiment state and eligibility rules in pure `Core/Advisor/Experiment` classes so they are covered by the existing .NET 8 pure-test project. `AdvisorSystem` only bridges those rules to the existing `AdvisorSettingOperations`, `CaptureRuntimeSystem`, session registry, and evidence projector. `CaptureRuntimeSystem.RequestManualCapture()` returns the exact newly-created `CaptureSession` so experiments never infer their follow-up from “latest capture.”
 
-**Tech Stack:** C# / .NET 8 pure tests, CS2 net48 mod project and managed game APIs, NUnit, TypeScript, React 18, Vitest, Colossal UI bindings.
+**Tech Stack:** C#, .NET 8 pure tests, CS2 net48 mod project, NUnit, TypeScript, React 18, Vitest, Colossal UI bindings.
 
 **Spec:** `docs/superpowers/specs/2026-09-29-investigation-experiment-design.md`
 
 ## Global Constraints
 
-- Implementation is performed in ChatGPT Work using Native / `superpowers:executing-plans`.
-- Implement directly against `pengin0503/CS2-Runtime-Asset-Auditor`; use `main` unless Work requires a temporary isolated worktree.
-- Do not wait for user approval between tasks; execute the complete plan continuously.
+- Execute later in ChatGPT Work using Native / `superpowers:executing-plans`.
+- Work directly against `pengin0503/CS2-Runtime-Asset-Auditor`; use `main` unless Work requires a temporary isolated worktree.
+- Do not wait for user approval between tasks; complete the plan continuously.
 - Every task follows RED -> GREEN -> focused verification -> relevant full verification -> commit.
-- One active experiment tests exactly one Advisor-supported game-setting change.
-- All setting writes, confirmation handling, Undo, and conflict handling continue through `AdvisorSettingOperations`; do not create a second writer or change ledger.
-- Follow-up evidence must come from the exact manual capture explicitly requested by the experiment; automatic or unrelated captures never qualify.
-- Baseline and follow-up must belong to the same loaded-city diagnostic session.
-- Comparison must reuse `AdvisorComparison.Compare(...)`; do not add alternate thresholds, metric direction rules, global scores, or causal claims.
-- The initial stabilization guidance is 5 seconds and never auto-starts capture.
-- Active experiments are in-memory only; do not persist them across restarts.
-- Do not add continuous profiler recorders, full-world scans, or expensive per-frame polling.
-- Keep existing Runtime, Advisor, Asset, export, privacy, and localization behavior intact outside the new experiment workflow.
-- If CS2 managed DLLs/toolchain are unavailable, record adapter/Release/manual-game verification as NOT RUN rather than claiming success.
-- Avoid unrelated refactors. If the same structural problem repeats while implementing this feature, fix the local abstraction instead of adding repeated one-off patches.
+- One experiment tests exactly one Advisor-supported game-setting change.
+- All setting writes, confirmation handling, Undo, and conflict handling continue through `AdvisorSettingOperations`; do not add another writer or change ledger.
+- Follow-up evidence must come from the exact manual capture explicitly requested by the experiment. Automatic/unrelated captures never qualify.
+- Baseline and follow-up must share the same loaded-city diagnostic `SessionId`.
+- Reuse `AdvisorComparison.Compare(...)`; do not add alternate thresholds, metric-direction rules, global scores, winners, or causal claims.
+- Stabilization guidance is exactly 5 seconds and never auto-starts capture.
+- Experiments are in-memory only; no restart persistence or migration.
+- No new continuous profiler recorders, full-world scans, or broad per-frame settings scans.
+- If CS2 DLL/toolchain/game runtime is unavailable, mark dependent verification `NOT RUN`; never infer PASS.
+- Avoid unrelated refactors. If the same local structural issue repeats, fix the abstraction rather than layering one-off patches.
 
 ## Review Focus
 
-- A follow-up request made while another capture is active or the runtime rejects the request must leave the experiment waiting and must never adopt a different later capture; Task 2 pins this behavior.
-- A confirmation-required recommendation must not create duplicate change records or advance the experiment until the confirmed Apply actually succeeds; Task 3 pins this behavior.
-- A tested setting changed externally, including a graphics-preset side effect, must invalidate the experiment before a result is presented as valid; Task 3 pins this behavior.
-- A city-session change while waiting for or running the follow-up must prevent cross-session comparison and must not silently revert the global setting; Task 3 pins this behavior.
-- Cancel after Apply must clearly leave the setting in its current value unless the user explicitly chooses Undo; Tasks 1 and 5 pin this behavior.
+- Rejected follow-up request while another capture is active must remain `AwaitingFollowUp` and must not adopt a later unrelated capture — Task 2/3.
+- Confirmation-required Apply must not create duplicate effective changes or advance before confirmed success — Task 3.
+- External modification of the tested value, including preset side effects, must invalidate before comparison is presented as valid — Task 3.
+- City-session change while waiting/running follow-up must prevent cross-session comparison and must not auto-revert the global game setting — Task 3.
+- Cancel after Apply must state that the current setting remains unless Undo is explicitly chosen — Task 1/5.
 
 ---
 
-## File structure
+## File Structure
 
-Create or extend the following focused responsibilities:
-
-- `src/CS2RuntimeAssetAuditor/Core/Advisor/Experiment/InvestigationExperiment.cs` — serializable/pure experiment data only.
-- `src/CS2RuntimeAssetAuditor/Core/Advisor/Experiment/InvestigationExperimentState.cs` — state, validity, invalidation and completion enums.
-- `src/CS2RuntimeAssetAuditor/Core/Advisor/Experiment/InvestigationExperimentCoordinator.cs` — deterministic state transitions and comparison completion.
-- `src/CS2RuntimeAssetAuditor/Advisor/AdvisorSystem.cs` — game/session/settings/capture orchestration only; no duplicated comparison rules.
-- `src/CS2RuntimeAssetAuditor/Profiling/CaptureRuntimeSystem.cs` — narrow exact manual-capture correlation return value.
-- `src/CS2RuntimeAssetAuditor/Core/Advisor/AdvisorState.cs` — exposes the current/latest experiment to projection/export.
-- `src/CS2RuntimeAssetAuditor/UI/ProfilerUISystem.cs` — CS2 trigger bindings and JSON projection for experiment commands/state.
-- `UI/src/profiler/bindings.ts` — typed experiment projection and trigger wrappers.
-- `UI/src/profiler/tabs/PerformanceAdvisorTab.tsx` — `Test change`, progress card, result card, Keep/Undo/Cancel controls.
-- `UI/src/i18n/messages.ts` — English/Japanese visible strings.
-- `src/CS2RuntimeAssetAuditor/Export/PerformanceReport.cs` and `src/CS2RuntimeAssetAuditor/Export/ProfilerReportBuilder.cs` — additive Advisor experiment report DTO/projection.
-- `docs/validation/2026-09-29-investigation-experiment-validation.md` — executed verification and remaining real-game checks.
+- `src/CS2RuntimeAssetAuditor/Core/Advisor/Experiment/InvestigationExperimentState.cs` — state/validity/reason/outcome enums.
+- `src/CS2RuntimeAssetAuditor/Core/Advisor/Experiment/InvestigationExperiment.cs` — pure experiment snapshot/data.
+- `src/CS2RuntimeAssetAuditor/Core/Advisor/Experiment/InvestigationExperimentCoordinator.cs` — deterministic state transitions and `AdvisorComparison` completion.
+- `src/CS2RuntimeAssetAuditor/Core/Advisor/Experiment/InvestigationExperimentGuard.cs` — pure contamination/session/follow-up eligibility rules used by `AdvisorSystem`.
+- `src/CS2RuntimeAssetAuditor/Advisor/AdvisorSystem.cs` — game-facing orchestration only.
+- `src/CS2RuntimeAssetAuditor/Profiling/CaptureRuntimeSystem.cs` — exact manual capture return/correlation.
+- `src/CS2RuntimeAssetAuditor/Core/Advisor/AdvisorState.cs` — exposes experiment state.
+- `src/CS2RuntimeAssetAuditor/UI/ProfilerUISystem.cs` and `UI/src/profiler/bindings.ts` — commands/projection.
+- `UI/src/profiler/tabs/PerformanceAdvisorTab.tsx` and localization/style files — workflow UX.
+- `src/CS2RuntimeAssetAuditor/Export/PerformanceReport.cs` and `ProfilerReportBuilder.cs` — additive export.
+- `docs/validation/2026-09-29-investigation-experiment-validation.md` — executed/not-run evidence.
 
 ---
 
-### Task 1: Pure experiment domain and state machine
+### Task 1: Pure experiment model and state machine
 
 **Files:**
 - Create: `src/CS2RuntimeAssetAuditor/Core/Advisor/Experiment/InvestigationExperimentState.cs`
 - Create: `src/CS2RuntimeAssetAuditor/Core/Advisor/Experiment/InvestigationExperiment.cs`
 - Create: `src/CS2RuntimeAssetAuditor/Core/Advisor/Experiment/InvestigationExperimentCoordinator.cs`
-- Create: `tests/CS2RuntimeAssetAuditor.Tests/InvestigationExperimentTests.cs`
+- Test: `tests/CS2RuntimeAssetAuditor.Tests/InvestigationExperimentTests.cs`
 
 **Interfaces:**
-- Consumes: existing `AdvisorEvidenceSnapshot`, `SettingRecommendation`, `SettingChange`, and `AdvisorComparison.Compare(...)`.
+- Consumes: `AdvisorEvidenceSnapshot`, `SettingRecommendation`, `SettingChange`, `AdvisorComparison.Compare(...)`.
 - Produces:
-  - `enum InvestigationExperimentState { BaselineReady, AwaitingApplyConfirmation, AwaitingFollowUp, FollowUpCapturing, Completed, Cancelled, Invalidated }`
-  - `enum InvestigationExperimentValidity { Valid, Invalidated }`
-  - `enum InvestigationInvalidationReason { None, SessionChanged, AdditionalAdvisorSettingChanged, TestedSettingExternallyModified, TestedSettingNoLongerMatchesExpectedValue, RecommendationBecameStaleBeforeApply, FollowUpCaptureInvalid, FollowUpCaptureInterrupted, FollowUpCaptureWrongSession }`
-  - `enum InvestigationCompletionOutcome { None, Kept, Undone, Cancelled }`
-  - `sealed class InvestigationExperiment` with the spec fields and `DateTimeOffset? StabilizationReadyAtUtc`, `string LastFailureReason`.
-  - `sealed class InvestigationExperimentCoordinator` with `Current` and the methods defined below.
-
-- [ ] **Step 1: Write the failing state-machine tests**
-
-Add tests named:
 
 ```csharp
-Start_freezes_baseline_and_rejects_a_second_active_experiment()
-Confirmation_required_does_not_advance_until_apply_succeeds()
-Applied_change_sets_five_second_stabilization_boundary()
-Follow_up_completion_reuses_AdvisorComparison()
-Multiple_qualifying_changes_invalidate_single_setting_experiment()
-Cancel_before_apply_has_no_completion_side_effect()
-Cancel_after_apply_records_cancelled_without_claiming_undo()
-Invalidated_experiment_rejects_further_progress()
+public enum InvestigationExperimentState
+{
+    BaselineReady,
+    AwaitingApplyConfirmation,
+    AwaitingFollowUp,
+    FollowUpCapturing,
+    Completed,
+    Cancelled,
+    Invalidated
+}
+
+public enum InvestigationExperimentValidity { Valid, Invalidated }
+public enum InvestigationInvalidationReason
+{
+    None,
+    SessionChanged,
+    AdditionalAdvisorSettingChanged,
+    TestedSettingExternallyModified,
+    TestedSettingNoLongerMatchesExpectedValue,
+    RecommendationBecameStaleBeforeApply,
+    FollowUpCaptureInvalid,
+    FollowUpCaptureInterrupted,
+    FollowUpCaptureWrongSession
+}
+public enum InvestigationCompletionOutcome { None, Kept, Undone, Cancelled }
 ```
 
-Assert exact state/validity/outcome transitions and assert that `BaselineEvidence` remains available without looking up the source capture again.
+`InvestigationExperiment` contains the spec fields plus `DateTimeOffset? StabilizationReadyAtUtc` and `string LastFailureReason` and retains copied `BaselineEvidence`/optional `FollowUpEvidence`; it retains no Unity/game objects.
 
-- [ ] **Step 2: Run the focused tests and verify RED**
-
-Run:
-
-```bash
-dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationExperimentTests
-```
-
-Expected: FAIL because the experiment types do not exist.
-
-- [ ] **Step 3: Implement the pure domain types and coordinator**
-
-Implement these coordinator methods with deterministic validation and no game/Unity references:
+`InvestigationExperimentCoordinator` exposes:
 
 ```csharp
-public InvestigationExperiment Start(
-    string experimentId,
-    string sessionId,
-    string baselineCaptureId,
-    AdvisorEvidenceSnapshot baselineEvidence,
-    SettingRecommendation recommendation,
-    DateTimeOffset startedAtUtc);
-
+public InvestigationExperiment Current { get; }
+public InvestigationExperiment Start(string experimentId, string sessionId, string baselineCaptureId,
+    AdvisorEvidenceSnapshot baselineEvidence, SettingRecommendation recommendation, DateTimeOffset startedAtUtc);
 public void AwaitApplyConfirmation();
 public void RecordApplied(DateTimeOffset appliedAtUtc);
 public void RecordApplyFailure(string machineReason);
 public void RecordFollowUpStarted(string captureId);
-public void CompleteFollowUp(
-    string captureId,
-    AdvisorEvidenceSnapshot followUpEvidence,
-    IReadOnlyList<SettingChange> qualifyingChanges,
-    DateTimeOffset completedAtUtc);
+public void CompleteFollowUp(string captureId, AdvisorEvidenceSnapshot followUpEvidence,
+    IReadOnlyList<SettingChange> qualifyingChanges, DateTimeOffset completedAtUtc);
 public void Invalidate(InvestigationInvalidationReason reason);
 public void Cancel(DateTimeOffset completedAtUtc);
 public void Complete(InvestigationCompletionOutcome outcome, DateTimeOffset completedAtUtc);
 ```
 
-`RecordApplied` sets `StabilizationReadyAtUtc = appliedAtUtc + TimeSpan.FromSeconds(5)`. `CompleteFollowUp` must call the existing `AdvisorComparison.Compare(Current.BaselineEvidence, followUpEvidence, qualifyingChanges)` and invalidate instead of completing when the authoritative qualifying-change set contains more than one effective mutation or a different setting ID.
+- [ ] **Step 1: Write failing tests**
 
-- [ ] **Step 4: Run focused and full pure tests**
+Add tests:
 
-Run:
+```text
+Start_freezes_baseline_and_rejects_second_active_experiment
+Confirmation_required_does_not_advance_until_success
+Applied_change_sets_stabilization_ready_exactly_five_seconds_later
+Follow_up_completion_reuses_AdvisorComparison_states
+Multiple_qualifying_changes_invalidate_single_setting_experiment
+Cancel_before_apply_has_no_setting_outcome
+Cancel_after_apply_records_cancelled_without_claiming_undo
+Invalidated_experiment_rejects_progress
+Baseline_evidence_survives_source_capture_eviction
+```
+
+- [ ] **Step 2: Run RED**
+
+```bash
+dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationExperimentTests
+```
+
+Expected: FAIL because types are missing.
+
+- [ ] **Step 3: Implement minimal domain/state logic**
+
+`RecordApplied(at)` must set `StabilizationReadyAtUtc = at + TimeSpan.FromSeconds(5)`. `CompleteFollowUp(...)` must call `AdvisorComparison.Compare(Current.BaselineEvidence, followUpEvidence, qualifyingChanges)` and invalidate instead of completing if effective changes include more than one mutation or another setting ID. `RecordApplyFailure(...)` leaves the experiment before follow-up and records only a machine reason.
+
+- [ ] **Step 4: Verify GREEN and full pure suite**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationExperimentTests
@@ -151,58 +158,45 @@ git commit -m "feat: add investigation experiment state machine"
 
 ---
 
-### Task 2: Exact manual-capture correlation
+### Task 2: Exact explicit-manual-capture correlation
 
 **Files:**
 - Modify: `src/CS2RuntimeAssetAuditor/Profiling/CaptureRuntimeSystem.cs`
 - Create: `tests/CS2RuntimeAssetAuditor.AdapterTests/InvestigationCaptureContractTests.cs`
-- Modify if needed for source compilation only: `tests/CS2RuntimeAssetAuditor.AdapterTests/CS2RuntimeAssetAuditor.AdapterTests.csproj`
+- Modify only if needed: `tests/CS2RuntimeAssetAuditor.AdapterTests/CS2RuntimeAssetAuditor.AdapterTests.csproj`
 
 **Interfaces:**
-- Consumes: existing `CaptureRuntimeSystem.CurrentSession`, `DeepCaptureController.RequestManualCapture(...)`, `CaptureSession.Id`, and existing session lifecycle.
-- Produces: `public CaptureSession RequestManualCapture()` returning the exact newly-created manual `CaptureSession`, or `null` when the explicit request did not start a new capture.
-
-- [ ] **Step 1: Add a failing adapter/contract test for the return contract**
-
-Add tests that verify the compiled/source contract exposes:
+- Produces:
 
 ```csharp
-CaptureSession CaptureRuntimeSystem.RequestManualCapture()
+public CaptureSession RequestManualCapture();
 ```
 
-and that the implementation determines success from the before/after `CurrentSession` transition rather than returning an arbitrary entry from `CompletedSessions`.
+Return the exact `CaptureSession` newly created by this request; return `null` when the request does not start a new capture.
 
-- [ ] **Step 2: Run the focused adapter test and verify RED**
+- [ ] **Step 1: Add failing contract test**
 
-Run when CS2 managed DLLs are available:
+Verify the signature and that the implementation correlates by the before/after `CurrentSession` transition, not by reading `CompletedSessions.Last()` or another “latest capture” heuristic.
+
+- [ ] **Step 2: Run RED when adapter dependencies are available**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.AdapterTests/CS2RuntimeAssetAuditor.AdapterTests.csproj -c Release --filter InvestigationCaptureContractTests
 ```
 
-If the environment lacks required game assemblies, the source-level contract test may run if supported; otherwise record the exact missing dependency and continue without weakening the contract.
+If CS2 assemblies are unavailable, record the exact dependency failure and continue without weakening the contract.
 
-- [ ] **Step 3: Change `CaptureRuntimeSystem.RequestManualCapture()` to return the exact started session**
+- [ ] **Step 3: Implement return contract**
 
-Preserve all existing monitoring/session/configuration behavior. Capture `before = _controller?.CurrentSession`, issue the existing manual request, run the existing `BeginCaptureWork`/configuration setup, and return the new current session only when `before` was different/null and the request actually entered a new manual Deep Capture. Return `null` when monitoring is disabled, no city session is active, the request is rejected by current capture/cooldown state, or no new session was created.
-
-Existing callers may ignore the return value; do not change ordinary manual-capture UX.
+Preserve existing monitoring/session checks and configuration. Capture `before = _controller?.CurrentSession`, issue the existing request, perform current `BeginCaptureWork`/configuration work, and return the new current session only if this request actually created it. Return `null` for disabled monitoring, inactive city session, already-active/cooldown/rejected request, or any no-new-session result. Existing callers may ignore the return value.
 
 - [ ] **Step 4: Verify runtime regressions**
-
-Run:
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release
 ```
 
-and, when available:
-
-```bash
-dotnet test tests/CS2RuntimeAssetAuditor.AdapterTests/CS2RuntimeAssetAuditor.AdapterTests.csproj -c Release --filter InvestigationCaptureContractTests
-```
-
-Expected: PASS; ordinary capture tests remain green.
+and adapter test when available. Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
@@ -213,17 +207,35 @@ git commit -m "feat: correlate explicit manual capture requests"
 
 ---
 
-### Task 3: Advisor orchestration, setting integrity, and lifecycle
+### Task 3: Pure guard rules and AdvisorSystem orchestration
 
 **Files:**
+- Create: `src/CS2RuntimeAssetAuditor/Core/Advisor/Experiment/InvestigationExperimentGuard.cs`
 - Modify: `src/CS2RuntimeAssetAuditor/Advisor/AdvisorSystem.cs`
 - Modify: `src/CS2RuntimeAssetAuditor/Core/Advisor/AdvisorState.cs`
-- Modify only if a narrow reusable observation helper is required: `src/CS2RuntimeAssetAuditor/Advisor/Settings/AdvisorSettingOperations.cs`
-- Create: `tests/CS2RuntimeAssetAuditor.Tests/InvestigationAdvisorPolicyTests.cs`
+- Modify only if a narrow reusable hook is required: `src/CS2RuntimeAssetAuditor/Advisor/Settings/AdvisorSettingOperations.cs`
+- Test: `tests/CS2RuntimeAssetAuditor.Tests/InvestigationExperimentGuardTests.cs`
+- Test where assemblies permit: `tests/CS2RuntimeAssetAuditor.AdapterTests/InvestigationAdvisorIntegrationContractTests.cs`
 
 **Interfaces:**
-- Consumes: Task 1 `InvestigationExperimentCoordinator`, Task 2 `CaptureRuntimeSystem.RequestManualCapture()`, existing `Operations.Apply/Undo/ResolveConflict`, `SettingChangeSession`, `CaptureAdvisorEvidenceProjector`, `Mod.Sessions.Generation`, and `Mod.SessionContext.SessionId`.
-- Produces on `AdvisorSystem`:
+- `InvestigationExperimentGuard` produces pure rules:
+
+```csharp
+public static InvestigationInvalidationReason? EvaluateAdvisorApply(
+    InvestigationExperiment experiment, string changedSettingId, bool applySucceeded);
+public static InvestigationInvalidationReason? EvaluateObservedSetting(
+    InvestigationExperiment experiment, string observedValue);
+public static InvestigationInvalidationReason? EvaluateSession(
+    InvestigationExperiment experiment, string currentSessionId);
+public static bool IsExpectedFollowUp(
+    InvestigationExperiment experiment, string captureId, string captureSessionId, DateTimeOffset? captureStartedAtUtc);
+public static IReadOnlyList<SettingChange> SelectQualifyingChanges(
+    InvestigationExperiment experiment, IReadOnlyList<SettingChange> changes);
+```
+
+`SelectQualifyingChanges` uses `AppliedAt >= experiment.StartedAtUtc.UtcDateTime` and excludes `Pending`/`ApplyFailed`; Task 1 then enforces one effective setting mutation.
+
+- `AdvisorSystem` produces:
 
 ```csharp
 public InvestigationExperiment CurrentExperiment { get; }
@@ -235,90 +247,79 @@ public bool KeepExperimentChange();
 public SettingApplyResult UndoExperimentChange(bool confirmed = false);
 ```
 
-`AdvisorState` gains `public InvestigationExperiment Experiment { get; set; }`.
+`AdvisorState` gains:
 
-- [ ] **Step 1: Write failing orchestration/policy tests**
-
-Cover at least these cases with pure seams/fakes rather than requiring a live game world:
-
-```text
-- start rejects missing/currently stale recommendation and inactive session;
-- confirmation-required Apply leaves state awaiting confirmation and creates no duplicate effective change;
-- failed Apply does not advance;
-- successful Apply advances and uses the existing change ledger;
-- successful normal Advisor Apply for a different setting invalidates the experiment;
-- failed normal Advisor Apply for a different setting does not falsely contaminate it;
-- external read of tested setting differing from TestedValue invalidates it;
-- explicit follow-up request stores exactly the CaptureSession ID returned by Task 2;
-- rejected follow-up request leaves AwaitingFollowUp and stores no ID;
-- automatic/unrelated completed capture cannot satisfy the stored ID;
-- wrong-session candidate invalidates/rejects comparison;
-- session generation change invalidates without calling Undo;
-- baseline evidence still compares after the source baseline capture is evicted;
-- Keep completes without another setting write;
-- Undo delegates to existing safe Undo and preserves conflict behavior.
+```csharp
+public InvestigationExperiment Experiment { get; set; }
 ```
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [ ] **Step 1: Write RED pure guard tests**
 
-Run:
+Cover successful/failed different-setting Apply, expected tested value vs external mismatch, same/different session, exact/mismatched follow-up ID, follow-up started before Apply, and filtering of pre-experiment/pending/failed changes.
+
+- [ ] **Step 2: Run RED**
 
 ```bash
-dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationAdvisorPolicyTests
+dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationExperimentGuardTests
 ```
 
-Expected: FAIL because orchestration APIs are missing.
+Expected: FAIL because guard is missing.
 
-- [ ] **Step 3: Integrate the experiment into `AdvisorSystem`**
-
-Keep the state machine in Task 1. `AdvisorSystem` performs only game-facing work:
-
-- locate the diagnosed baseline capture and matching recommendation;
-- freeze projected baseline evidence into `Start(...)`;
-- route test Apply through `Operations.Apply(...)`;
-- after a successful test Apply, pass the authoritative successful `SettingChange` to experiment state;
-- wrap normal `ApplySetting(...)` so a successful different-setting change invalidates an active experiment;
-- use Task 2's returned `CaptureSession` to record the exact follow-up ID;
-- on `OnUpdate`, if `FollowUpCapturing`, locate completion only by the recorded ID and same session, project evidence, then call `CompleteFollowUp(...)`;
-- on city-session generation change, invalidate the experiment and keep the existing global setting/change ledger untouched.
-
-For tested-setting external modification, perform at most one `Gateway.Read(CurrentExperiment.SettingId)` every **500 ms**, only while an experiment has successfully applied its test change and is not terminal. Compare to `TestedValue`; invalidate with `TestedSettingExternallyModified` on mismatch. Do not scan the whole settings catalog every frame.
-
-- [ ] **Step 4: Preserve ordinary Advisor comparison and change behavior**
-
-Do not remove `SelectBaseline`, `DiagnoseCompletedCapture`, ordinary `ApplySetting`, `UndoSetting`, `UndoSession`, or current comparison output. An experiment may set `AdvisorState.Experiment`; existing `AdvisorState.Comparison` remains the ordinary manual baseline/follow-up comparison field.
-
-- [ ] **Step 5: Run focused and full pure tests**
-
-Run:
+- [ ] **Step 3: Implement guard and make pure tests GREEN**
 
 ```bash
-dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationAdvisorPolicyTests
-dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release
+dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationExperimentGuardTests
 ```
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 4: Integrate `AdvisorSystem`**
+
+Implement only game-facing orchestration:
+
+- start only from the current diagnosed capture/recommendation and active `Mod.SessionContext.SessionId`;
+- freeze projected baseline evidence with Task 1 coordinator;
+- test Apply always delegates to `Operations.Apply(...)`; confirmation failure `ConfirmationRequired` moves/keeps the experiment in confirmation state without duplicate effective change;
+- a successful ordinary `ApplySetting(...)` for another setting uses `EvaluateAdvisorApply(...)` and invalidates; failed writes do not contaminate;
+- exact follow-up capture comes only from Task 2's returned `CaptureSession`; a rejected request leaves `AwaitingFollowUp` and stores no ID;
+- while `FollowUpCapturing`, completion lookup matches only stored capture ID and session; automatic/unrelated completed captures are ignored;
+- `SelectQualifyingChanges(...)` feeds Task 1 comparison completion;
+- city-session generation change invalidates without calling Undo;
+- Keep performs no setting write; Undo delegates to existing `Operations.Undo(...)` and marks `Undone` only on success; conflict/confirmation keeps result visible and incomplete until resolved.
+
+For tested-setting integrity, read only the single tested setting through `Gateway.Read(...)` at most once every **500 ms**, only after successful Apply and before terminal state. On mismatch invalidate with `TestedSettingExternallyModified`. Do not scan the settings catalog each frame.
+
+- [ ] **Step 5: Add adapter/source contract assertions for orchestration wiring**
+
+Pin that `AdvisorSystem` calls the existing `AdvisorSettingOperations`, Task 2 return contract, and pure guard/coordinator rather than adding a direct settings writer or second comparison implementation.
+
+- [ ] **Step 6: Verify**
 
 ```bash
-git add src/CS2RuntimeAssetAuditor/Advisor src/CS2RuntimeAssetAuditor/Core/Advisor/AdvisorState.cs tests/CS2RuntimeAssetAuditor.Tests/InvestigationAdvisorPolicyTests.cs
+dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release
+```
+
+Run adapter test if dependencies exist. Expected: PASS / otherwise documented NOT RUN.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/CS2RuntimeAssetAuditor/Core/Advisor/Experiment src/CS2RuntimeAssetAuditor/Advisor src/CS2RuntimeAssetAuditor/Core/Advisor/AdvisorState.cs tests/CS2RuntimeAssetAuditor.Tests/InvestigationExperimentGuardTests.cs tests/CS2RuntimeAssetAuditor.AdapterTests
 git commit -m "feat: orchestrate advisor investigation experiments"
 ```
 
 ---
 
-### Task 4: CS2 bindings and serializable UI projection
+### Task 4: Backend UI projection and command bindings
 
 **Files:**
 - Modify: `src/CS2RuntimeAssetAuditor/UI/ProfilerUISystem.cs`
 - Modify: `UI/src/profiler/bindings.ts`
-- Create: `tests/CS2RuntimeAssetAuditor.Tests/InvestigationUiProjectionTests.cs`
-- Create or modify: `UI/src/profiler/investigationBindings.test.ts`
+- Test: `tests/CS2RuntimeAssetAuditor.Tests/InvestigationUiProjectionTests.cs`
+- Test: `UI/src/profiler/investigationBindings.test.ts`
 
 **Interfaces:**
-- Consumes: Task 3 `AdvisorSystem` experiment methods/state.
-- Produces CS2 trigger names exactly:
+- Add CS2 triggers exactly:
 
 ```text
 advisorStartExperiment(captureId, settingId, proposedValue)
@@ -329,7 +330,7 @@ advisorKeepExperiment()
 advisorUndoExperiment(confirmed)
 ```
 
-- Produces TypeScript wrappers:
+- Add TS wrappers exactly:
 
 ```ts
 startAdvisorExperiment(captureId: string, settingId: string, proposedValue: string): void
@@ -340,52 +341,28 @@ keepAdvisorExperiment(): void
 undoAdvisorExperiment(confirmed?: boolean): void
 ```
 
-- [ ] **Step 1: Add failing projection/binding tests**
+- Add `AdvisorExperiment` projection with: `experimentId`, `state`, `validity`, `invalidationReason`, `baselineCaptureId`, `followUpCaptureId`, `settingId`, `settingDisplayName`, `originalValue`, `testedValue`, `changeAppliedAtUtc`, `stabilizationReadyAtUtc`, `completionOutcome`, `lastFailureReason`, `comparison`.
 
-Assert that `AdvisorUiState` gains `experiment?: AdvisorExperiment | null`, and `AdvisorExperiment` contains:
+- [ ] **Step 1: Write RED C#/TS projection tests**
 
-```ts
-experimentId: string;
-state: string;
-validity: string;
-invalidationReason: string;
-baselineCaptureId: string;
-followUpCaptureId: string;
-settingId: string;
-settingDisplayName: string;
-originalValue: string;
-testedValue: string;
-changeAppliedAtUtc: string;
-stabilizationReadyAtUtc: string;
-completionOutcome: string;
-lastFailureReason: string;
-comparison: AdvisorComparison | null;
-```
+Assert no experiment projects `null`, never a default-looking observed object.
 
-The backend JSON writer must output null for no experiment, not a default object that looks observed.
-
-- [ ] **Step 2: Run focused tests and verify RED**
-
-Run:
+- [ ] **Step 2: Run RED**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationUiProjectionTests
 cd UI && npm test -- investigationBindings.test.ts
 ```
 
-Expected: FAIL on missing projection/triggers.
+- [ ] **Step 3: Add backend triggers and `WriteAdvisorExperiment(...)`**
 
-- [ ] **Step 3: Add backend trigger bindings and `WriteAdvisorExperiment(...)`**
+Each trigger delegates to Task 3 and refreshes visible snapshot using existing Advisor-command patterns.
 
-Each trigger delegates to the Task 3 method and refreshes the visible snapshot with the same pattern as existing Advisor commands. Keep the frontend free of live game objects.
+- [ ] **Step 4: Add TS types/wrappers; set `EMPTY_ADVISOR.experiment = null`**
 
-- [ ] **Step 4: Add TypeScript contracts and wrappers**
+Do not rename any existing binding.
 
-Extend `EMPTY_ADVISOR` with `experiment: null`; keep all existing binding names unchanged.
-
-- [ ] **Step 5: Verify C# and UI type/tests**
-
-Run:
+- [ ] **Step 5: Verify**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationUiProjectionTests
@@ -403,66 +380,45 @@ git commit -m "feat: expose investigation experiment bindings"
 
 ---
 
-### Task 5: Performance Advisor experiment UX and localization
+### Task 5: Performance Advisor experiment UI and localization
 
 **Files:**
 - Modify: `UI/src/profiler/tabs/PerformanceAdvisorTab.tsx`
 - Modify: `UI/src/profiler/profiler.module.scss`
 - Modify: `UI/src/i18n/messages.ts`
-- Modify as needed: `UI/src/shell/RuntimeAssetAuditorRoot.tsx`
-- Create: `UI/src/profiler/investigationExperiment.test.tsx`
+- Modify if wiring requires: `UI/src/shell/RuntimeAssetAuditorRoot.tsx`
+- Test: `UI/src/profiler/investigationExperiment.test.tsx`
 
 **Interfaces:**
-- Consumes: Task 4 `AdvisorExperiment` and trigger wrappers.
-- Produces: recommendation-level `Test change`, active experiment progress card, stabilization guidance, explicit follow-up action, neutral completed-result summary, metric rows, Keep/Undo, invalidation/cancel states, and English/Japanese copy.
+- Consumes Task 4 bindings/projection.
+- Produces recommendation `Test change`, active progress card, explicit Apply, stabilization guidance, explicit follow-up capture, invalidation/result card, Keep/Undo/Cancel, English/Japanese strings.
 
-- [ ] **Step 1: Write failing UI tests for eligibility and workflow**
+- [ ] **Step 1: Write RED UI tests**
 
-Cover:
+Cover eligibility, confirmation state, 5-second guidance, explicit follow-up action, follow-up-in-progress state, localized invalidation reason, neutral state counts, metric rows, always-visible non-causality notice, Keep/Undo calls, cancel-after-Apply wording, conflict compatibility, and English/Japanese key coverage.
 
-```text
-- Test change appears only for writable, non-no-op applicable recommendations when no experiment is active;
-- active experiment disables/prevents accidental Test change on another recommendation;
-- BaselineReady/AwaitingApplyConfirmation show Apply test change with existing confirmation behavior;
-- AwaitingFollowUp shows the 5-second stabilization guidance and explicit Start follow-up capture action;
-- FollowUpCapturing shows the correlated capture ID/status and no second follow-up request action;
-- Invalidated renders the localized machine reason and never presents a valid result;
-- Completed renders improved/regressed/unchanged/not-comparable counts and metric-level rows;
-- completed result always renders the non-causality notice;
-- Keep and Undo controls call the dedicated experiment triggers;
-- Cancel after Apply uses copy that explicitly says the setting is kept unless Undo is chosen;
-- conflict-compatible Undo UI remains available when ordinary change state is `ExternallyModified`;
-- English and Japanese keys exist for every new visible string.
-```
-
-- [ ] **Step 2: Run the focused UI test and verify RED**
-
-Run:
+- [ ] **Step 2: Run RED**
 
 ```bash
 cd UI
 npm test -- investigationExperiment.test.tsx
 ```
 
-Expected: FAIL because the experiment UI does not exist.
+- [ ] **Step 3: Implement UI inside existing Performance Advisor tab**
 
-- [ ] **Step 3: Implement `Test change` and the experiment card inside `PerformanceAdvisorTab`**
+Do not add a new top-level tab. While a valid experiment is active, keep recommendations readable but disable normal Apply for other recommendations with a localized explanation; backend Task 3 remains authoritative if another path changes a setting.
 
-Do not add a top-level tab. Keep ordinary diagnosis/recommendation/change controls readable. Prefer disabling the normal Apply button for *other* recommendations while a valid experiment is active, with a short localized explanation; Task 3 still enforces backend contamination if another path performs a change.
+The UI may derive readiness from `stabilizationReadyAtUtc`, but reaching it only enables/displays the explicit follow-up button and never triggers capture.
 
-Use timestamp-derived readiness only for presentation. A 5-second timer ending must never trigger capture automatically.
+- [ ] **Step 4: Implement result summary without verdict**
 
-- [ ] **Step 4: Add neutral result summary and causal disclaimer**
+Count `Improved`, `Regressed`, `NoMaterialChange`, `NotComparable` from existing comparison rows. No weighted result, winner, success percentage, or automatic Keep/Undo suggestion.
 
-Count comparison states directly from `experiment.comparison.metrics`. Do not add a weighted result, winner, score, or automatic Keep/Undo recommendation.
+- [ ] **Step 5: Add English/Japanese strings and responsive styling**
 
-- [ ] **Step 5: Add English/Japanese localization and responsive styling**
+Map machine invalidation/outcome IDs to localized copy. Cancel after Apply must explicitly say cancellation keeps the current setting; Undo is a separate action.
 
-Add machine-ID-to-localized-reason mapping for all Task 1 invalidation reasons and completion outcomes. Verify at supported UI scales without introducing fixed widths that clip the current panel.
-
-- [ ] **Step 6: Run UI tests, type check and production build**
-
-Run:
+- [ ] **Step 6: Verify all UI**
 
 ```bash
 cd UI
@@ -482,50 +438,35 @@ git commit -m "feat: add guided investigation advisor workflow"
 
 ---
 
-### Task 6: Unified export and privacy coverage
+### Task 6: Unified Advisor experiment export and privacy
 
 **Files:**
 - Modify: `src/CS2RuntimeAssetAuditor/Export/PerformanceReport.cs`
 - Modify: `src/CS2RuntimeAssetAuditor/Export/ProfilerReportBuilder.cs`
-- Modify if required by additive unified projection: `src/CS2RuntimeAssetAuditor/Export/RuntimeAssetAuditReport.cs`
-- Create: `tests/CS2RuntimeAssetAuditor.Tests/InvestigationExperimentExportTests.cs`
+- Modify only if needed for additive unified envelope: `src/CS2RuntimeAssetAuditor/Export/RuntimeAssetAuditReport.cs`
+- Test: `tests/CS2RuntimeAssetAuditor.Tests/InvestigationExperimentExportTests.cs`
 
 **Interfaces:**
-- Consumes: Task 3/4 projected `InvestigationExperiment` and existing `ReportAdvisorComparison` mapping/privacy sanitizer.
-- Produces: optional `ReportAdvisorExperiment Experiment` on `ReportAdvisor`, with sanitized scalar identifiers/values and reused `ReportAdvisorComparison`.
+- Add optional `ReportAdvisorExperiment Experiment` to existing `ReportAdvisor`.
+- `ReportAdvisorExperiment` contains the machine-readable experiment fields plus reused `ReportAdvisorComparison Comparison`; implement `SanitizedCopy()` using existing `ReportPrivacy.Sanitize` for all strings.
 
-- [ ] **Step 1: Write failing export tests**
+- [ ] **Step 1: Write RED export tests**
 
-Cover:
+Cover valid completed serialization, invalidated serialization/reason, missing experiment absent/null, comparison equality with existing Advisor export, privacy sanitization, and absence of live/private implementation objects.
 
-```text
-- completed valid experiment serializes experimentId/state/validity/baseline/follow-up/setting/original/tested/outcome/comparison;
-- invalidated experiment serializes the machine-readable invalidation reason;
-- no experiment serializes as absent/null according to the existing DataContract convention;
-- comparison metric states/values exactly match existing Advisor comparison export;
-- home/account-like strings injected into experiment string fields are sanitized by the same report privacy path;
-- no live game objects or hidden setting implementation values are present.
-```
+Also pin current `RuntimeAssetAuditReport.SchemaVersion`; change it only if an existing repository versioning test/policy explicitly requires an increment for this additive nullable field, and document the reason.
 
-Also assert the existing `RuntimeAssetAuditReport.SchemaVersion` remains unchanged **unless** the current project versioning tests/policy explicitly require an increment for this additive nullable field. If an increment is required, update that expectation and document why in the validation file rather than changing it mechanically.
-
-- [ ] **Step 2: Run focused tests and verify RED**
-
-Run:
+- [ ] **Step 2: Run RED**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationExperimentExportTests
 ```
 
-Expected: FAIL on missing report field/mapping.
+- [ ] **Step 3: Implement DTO/mapping and sanitizer**
 
-- [ ] **Step 3: Implement additive report DTO/mapping**
+Reuse the existing comparison-to-report mapping; do not duplicate comparison logic.
 
-Add `ReportAdvisorExperiment` beside existing Advisor report DTOs and reuse the existing comparison mapping rather than copying comparison thresholds or state logic.
-
-- [ ] **Step 4: Verify focused and full pure tests**
-
-Run:
+- [ ] **Step 4: Verify focused/full pure tests**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationExperimentExportTests
@@ -543,33 +484,22 @@ git commit -m "feat: export investigation experiment results"
 
 ---
 
-### Task 7: Regression hardening and user documentation
+### Task 7: Regression coverage, README, and validation matrix
 
 **Files:**
 - Modify: `README.md`
-- Modify or extend existing Advisor regression tests: `tests/CS2RuntimeAssetAuditor.Tests/AdvisorComparisonTests.cs`
-- Modify or extend: `UI/src/profiler/performanceAdvisorRegression.test.tsx`
+- Modify: `tests/CS2RuntimeAssetAuditor.Tests/AdvisorComparisonTests.cs`
+- Modify: `UI/src/profiler/performanceAdvisorRegression.test.tsx`
 - Create: `docs/validation/2026-09-29-investigation-experiment-validation.md`
 
 **Interfaces:**
-- Consumes: completed feature from Tasks 1-6.
-- Produces: regression coverage showing ordinary Advisor behavior remains intact and a concise user-facing description of the new workflow.
+- Produces evidence that the new orchestration is additive and ordinary Advisor remains intact.
 
-- [ ] **Step 1: Add regression tests before documentation changes**
+- [ ] **Step 1: Add regression tests**
 
-Pin these existing behaviors:
+Pin: ordinary manual baseline/follow-up comparison without experiment; ordinary Apply/Undo/UndoSession/conflict; automatic capture unchanged with no experiment; absent experiment does not affect Asset/unified export; ordinary Advisor `MultipleChanges` comparison remains allowed outside experiment mode.
 
-```text
-- manual baseline/follow-up comparison still works with no experiment;
-- ordinary Apply/Undo/UndoSession/conflict controls remain functional with no experiment;
-- automatic capture behavior is unchanged when no experiment is active;
-- Asset UI/export remains unaffected by absent experiment data;
-- normal Advisor comparison still shows MultipleChanges rather than inheriting the experiment single-change restriction.
-```
-
-- [ ] **Step 2: Run regression tests**
-
-Run:
+- [ ] **Step 2: Run regression suites**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release
@@ -580,11 +510,11 @@ Expected: PASS.
 
 - [ ] **Step 3: Update README user-facing Advisor description**
 
-Document the concise workflow: diagnose -> `Test change` -> explicit Apply -> wait/stabilize -> explicit follow-up capture -> observed comparison -> Keep/Undo. State that the comparison is observational and does not prove causality. Do not add implementation-internal details to the README.
+Document: diagnose -> `Test change` -> explicit Apply -> wait/stabilize -> explicit follow-up capture -> observed comparison -> Keep/Undo. State that results are observational and do not prove causality. Keep implementation details out of README.
 
-- [ ] **Step 4: Create the validation record**
+- [ ] **Step 4: Create validation record**
 
-Create `docs/validation/2026-09-29-investigation-experiment-validation.md` with separate tables for automated tests and the 14 manual scenarios from the spec. Mark every unexecuted game scenario `NOT RUN`; never infer PASS from unit tests.
+Create separate automated/manual tables. Include all 14 manual scenarios from spec section 22. Every unexecuted scenario is `NOT RUN`, never inferred PASS.
 
 - [ ] **Step 5: Commit**
 
@@ -595,16 +525,12 @@ git commit -m "docs: document investigation experiment workflow"
 
 ---
 
-### Task 8: Full verification and repository completion
+### Task 8: Full verification and completion
 
 **Files:**
-- Modify only if results need recording: `docs/validation/2026-09-29-investigation-experiment-validation.md`
+- Modify only if results change: `docs/validation/2026-09-29-investigation-experiment-validation.md`
 
-**Interfaces:**
-- Consumes: all prior tasks.
-- Produces: verified main-branch implementation and an evidence-backed validation record.
-
-- [ ] **Step 1: Run all game-independent .NET verification**
+- [ ] **Step 1: Run all pure .NET tests**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release
@@ -622,7 +548,7 @@ npm run build
 cd ..
 ```
 
-Expected: all tests PASS, type check PASS, webpack compiled successfully.
+Expected: tests PASS, type check PASS, production build PASS.
 
 - [ ] **Step 3: Run adapter tests when CS2 managed assemblies are available**
 
@@ -630,42 +556,29 @@ Expected: all tests PASS, type check PASS, webpack compiled successfully.
 dotnet test tests/CS2RuntimeAssetAuditor.AdapterTests/CS2RuntimeAssetAuditor.AdapterTests.csproj -c Release
 ```
 
-Expected: PASS. If assemblies are unavailable, record NOT RUN plus the exact dependency/environment reason.
+Expected: PASS; otherwise record exact environment cause as `NOT RUN`.
 
-- [ ] **Step 4: Run the mod Release build when the official CS2 toolchain is available**
+- [ ] **Step 4: Run mod Release build when official CS2 toolchain is available**
 
-Use the repository's documented Release build command/toolchain. Expected: zero compile errors and UI bundle included in the mod output. If unavailable, record NOT RUN.
+Use the repository-documented Release build path. Expected: zero compile errors and UI bundle included. Otherwise record `NOT RUN`.
 
-- [ ] **Step 5: Execute the spec's manual in-game validation when a runnable CS2 environment is available**
+- [ ] **Step 5: Execute spec section 22 manual in-game validation when runnable CS2 is available**
 
-Run all 14 scenarios from `docs/superpowers/specs/2026-09-29-investigation-experiment-design.md` section 22, including confirmation-free/confirmation-required Apply, unrelated automatic capture, Keep, Undo, external Options change/conflict, second-recommendation contamination, city reload, export privacy, localization/layout, and ordinary Advisor regression.
+Run all 14 scenarios, including confirmation-free/required Apply, unrelated automatic capture, Keep, Undo, Options conflict, second-setting contamination defense, city reload, export privacy, Japanese/English layout, and ordinary Advisor regression. Record actual evidence; leave unexecuted rows `NOT RUN`.
 
-Record actual observed evidence for every executed scenario. Leave the rest `NOT RUN`.
+- [ ] **Step 6: Final diff/architecture review**
 
-- [ ] **Step 6: Inspect the final diff for scope and architecture**
+Confirm no alternate comparison engine, second settings writer/ledger, automatic Apply/Keep/Undo/capture sequencing, cross-session comparison, unbounded experiment history, unrelated Asset/runtime refactor, causal wording/global verdict, or falsely-passed validation row.
 
-Confirm:
-
-```text
-- no alternate comparison thresholds/direction table;
-- no second settings writer/change ledger;
-- no automatic setting Apply/Keep/Undo/capture sequencing;
-- no cross-session comparison path;
-- no unbounded experiment history;
-- no unrelated Asset/runtime refactor;
-- no user-facing causal claim or overall verdict;
-- no falsely completed validation row.
-```
-
-- [ ] **Step 7: Commit final validation updates if needed**
+- [ ] **Step 7: Commit validation updates if changed**
 
 ```bash
 git add docs/validation/2026-09-29-investigation-experiment-validation.md
 git commit -m "test: verify investigation experiment workflow"
 ```
 
-If the validation file did not change after Task 7, do not create an empty commit.
+Do not create an empty commit.
 
-- [ ] **Step 8: Confirm repository state**
+- [ ] **Step 8: Finish on repository `main`**
 
-Ensure all intended commits are on `main` (or merge the temporary Work worktree branch back to `main` if the Work environment required one), working tree is clean, and report the final commit SHA plus executed/not-run verification summary.
+If Work used a temporary isolated branch/worktree, integrate the completed commits back to `main`. Confirm a clean working tree and report final commit SHA plus PASS/NOT RUN verification summary. Do not open a PR unless the Work environment specifically requires one.
