@@ -48,6 +48,12 @@ namespace CS2RuntimeAssetAuditor.Localization
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.UiScalePercent)), "Diagnostic panel scale (%)" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.UiScalePercent)), "Scale the in-game diagnostic panel from 75% to 150%." },
 
+                { _setting.GetOptionGroupLocaleID(Setting.KeyBindingGroup), "Key binding" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.TogglePanelBinding)), "Open/close diagnostic panel" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.TogglePanelBinding)), "Key that opens or closes the diagnostic panel during gameplay. No key is assigned by default; the top-left launcher icon always works." },
+                { _setting.GetBindingKeyLocaleID(Setting.TogglePanelActionName), "Open/close diagnostic panel" },
+                { _setting.GetBindingMapLocaleID(), "CS2 Runtime Asset Auditor" },
+
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.PageSize)), "Asset page size" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.PageSize)), "Number of assets requested per bounded UI page." },
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.MetadataCacheLimit)), "Metadata cache limit" },

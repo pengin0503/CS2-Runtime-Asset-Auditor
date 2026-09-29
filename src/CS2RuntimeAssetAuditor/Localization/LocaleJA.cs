@@ -32,6 +32,13 @@ namespace CS2RuntimeAssetAuditor.Localization
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.UiScalePercent)), "UI倍率" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.UiScalePercent)), "診断パネル全体の表示倍率を75～150%で調整します。" },
+
+                { _setting.GetOptionGroupLocaleID(Setting.KeyBindingGroup), "キー割り当て" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.TogglePanelBinding)), "診断パネルの開閉" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.TogglePanelBinding)), "プレイ中に診断パネルを開閉するキーです。初期状態ではキーを割り当てていません。左上のランチャーアイコンはキーの設定に関係なく使えます。" },
+                { _setting.GetBindingKeyLocaleID(Setting.TogglePanelActionName), "診断パネルの開閉" },
+                { _setting.GetBindingMapLocaleID(), "CS2 Runtime Asset Auditor" },
+
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.UiRefreshMilliseconds)), "UI更新間隔（ミリ秒）" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.UiRefreshMilliseconds)), "プロファイラーUIの更新頻度を調整します。大きい値ほどUI更新の負荷が下がります。" },
 

@@ -55,6 +55,10 @@ namespace CS2RuntimeAssetAuditor
                 localizationManager.AddSource("en-US", new LocaleEN(Settings));
             }
 
+            // Key bindings must be registered before the settings load so the saved binding is applied to the action.
+            try { Settings.RegisterKeyBindings(); }
+            catch (System.Exception ex) { ReportFailure("Registering the panel key binding failed; the launcher still opens the panel.", ex); }
+
             AssetDatabase.global.LoadSettings(Id, Settings, new Setting(this));
             Settings.RegisterInOptionsUI();
 

@@ -1,5 +1,6 @@
 using System;
 using Colossal.IO.AssetDatabase;
+using Game.Input;
 using Game.Modding;
 using Game.Settings;
 
@@ -7,7 +8,8 @@ namespace CS2RuntimeAssetAuditor
 {
     [FileLocation(Mod.Id)]
     [SettingsUITabOrder(MainTab)]
-    [SettingsUIGroupOrder(MonitoringGroup, CaptureGroup, ScanningGroup, AnalysisGroup, DisplayGroup, AdvancedGroup)]
+    [SettingsUIGroupOrder(MonitoringGroup, CaptureGroup, ScanningGroup, AnalysisGroup, DisplayGroup, KeyBindingGroup, AdvancedGroup)]
+    [SettingsUIKeyboardAction(TogglePanelActionName)]
     public sealed class Setting : ModSetting
     {
         internal const string MainTab = "Main";
@@ -17,6 +19,11 @@ namespace CS2RuntimeAssetAuditor
         internal const string AdvancedGroup = "Advanced";
         internal const string ScanningGroup = "Scanning";
         internal const string AnalysisGroup = "Analysis";
+        internal const string KeyBindingGroup = "KeyBinding";
+
+        // Opens or closes the diagnostic panel. It has no default key so the mod never takes a key another
+        // mod or the game already uses; the player assigns one in the options.
+        internal const string TogglePanelActionName = "TogglePanel";
 
         public enum ComparisonPopulationChoice { SameCategory, BuiltinDlc, Custom, SameSourcePack }
 
@@ -38,6 +45,10 @@ namespace CS2RuntimeAssetAuditor
         [SettingsUISection(MainTab, DisplayGroup)]
         [SettingsUISlider(min = 250, max = 2000, step = 250, scalarMultiplier = 1)]
         public int UiRefreshMilliseconds { get; set; }
+
+        [SettingsUISection(MainTab, KeyBindingGroup)]
+        [SettingsUIKeyboardBinding(TogglePanelActionName)]
+        public ProxyBinding TogglePanelBinding { get; set; }
 
         [SettingsUISection(MainTab, CaptureGroup)]
         [SettingsUISlider(min = 50, max = 100, step = 5, scalarMultiplier = 1)]

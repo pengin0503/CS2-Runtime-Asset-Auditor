@@ -11,6 +11,8 @@ Cities: Skylines II の実行時パフォーマンスとアセットの静的な
 
 パネルはドラッグで移動、右下の角でサイズを変更できます。Esc またはゲームパッドの B で閉じます。位置・サイズは保存され、ヘッダーからリセットできます。
 
+オプションの「キー割り当て」→「診断パネルの開閉」で、パネルを開閉するキーを設定できます。初期状態ではキーを割り当てていません（他の MOD やゲームのキーと衝突させないため）。キーはプレイ中の都市で有効で、テキスト入力欄にフォーカスがある間は反応しません。割り当ての解除・初期化はゲーム標準のキー設定欄から行えます。左上のランチャーアイコンはキー設定に関係なく使えます。
+
 表示言語はゲームの言語設定に従います。日本語（`ja-*`）では日本語、それ以外の言語では英語で表示します。エクスポートするレポートの文言は英語で統一しています。
 
 ## 根拠の読み方
@@ -107,18 +109,20 @@ dotnet test .\tests\CS2RuntimeAssetAuditor.AdapterTests\CS2RuntimeAssetAuditor.A
 dotnet build .\src\CS2RuntimeAssetAuditor\CS2RuntimeAssetAuditor.csproj -c Release
 ```
 
-`CS2RuntimeAssetAuditor.csproj` はビルド後に `UI` の本番ビルドも実行します。そのため、事前に `npm ci` で UI の依存関係をインストールしておく必要があります。
+`CS2RuntimeAssetAuditor.csproj` はビルド時に `UI` の本番ビルドも実行し、UI バンドルを DLL と同じ出力フォルダーに作成します。ソリューション経由でもプロジェクト単体のビルドでも同じです。事前に `npm ci` で UI の依存関係をインストールしておく必要があり、未インストールの場合や UI ファイルが生成されなかった場合はビルドがエラーで止まります。
 
-ビルド成果物には `CS2RuntimeAssetAuditor.dll`、必要な `0Harmony.dll`、UI バンドルが含まれます。公式 Toolchain の `Mod.props` / `Mod.targets` がローカル Mod への配置を管理します。
+ビルド成果物には `CS2RuntimeAssetAuditor.dll`、必要な `0Harmony.dll`、UI バンドル（`CS2RuntimeAssetAuditor.mjs`、`CS2RuntimeAssetAuditor.css`、`cs2-runtime-asset-auditor-images/profiler-icon.svg`）が含まれます。公式 Toolchain の `Mod.props` / `Mod.targets` がローカル Mod への配置を管理します。
 
 ### 6. ゲームで有効化
 
 ビルド後に Cities: Skylines II を起動し、使用するプレイセットで **CS2 Runtime Asset Auditor** を有効にしてください。ゲーム画面左上のランチャーアイコンからパネルを開ければ導入完了です。
 
+アイコンが表示されない場合は、ローカル Mod フォルダー（`%USERPROFILE%\AppData\LocalLow\Colossal Order\Cities Skylines II\Mods\CS2RuntimeAssetAuditor`）に `CS2RuntimeAssetAuditor.mjs` があるか確認してください。DLL だけがある場合は UI バンドルが配置されていないため、`npm ci` の後に Mod を再ビルドしてください。
+
 設定の保存 ID は `CS2RuntimeAssetAuditor` です。旧 Runtime Profiler / Asset Performance Auditor の保存設定は新しい ID には自動移行されないため、必要な値を設定画面で再指定してください。
 
 ## 開発と検証
 
-GitHub Actions はゲームなしで動く .NET 純粋テストと UI テスト・本番ビルドを実行します。Adapter テスト、Mod の Release ビルド、ゲーム内での動作確認にはゲームの管理 DLL と公式ツールチェーンが必要です。結果と未実施項目は [検証状況](docs/validation/2026-09-28-integration-validation.md)と [レビュー指摘の修正の検証状況](docs/validation/2026-09-29-review-fixes-validation.md)に記録しています。
+GitHub Actions はゲームなしで動く .NET 純粋テストと UI テスト・本番ビルドを実行します。Adapter テスト、Mod の Release ビルド、ゲーム内での動作確認にはゲームの管理 DLL と公式ツールチェーンが必要です。結果と未実施項目は [検証状況](docs/validation/2026-09-28-integration-validation.md)と [レビュー指摘の修正の検証状況](docs/validation/2026-09-29-review-fixes-validation.md)、[ランチャー非表示の修正とパネル開閉キーの検証状況](docs/validation/2026-09-29-launcher-and-keybinding-validation.md)に記録しています。
 
 MIT License。

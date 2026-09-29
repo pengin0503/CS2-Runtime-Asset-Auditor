@@ -15,6 +15,7 @@ using CS2RuntimeAssetAuditor.Assets.Export;
 using CS2RuntimeAssetAuditor.Assets.UI;
 using CS2RuntimeAssetAuditor.Coordination;
 using Game;
+using Game.Input;
 using Game.UI;
 
 namespace CS2RuntimeAssetAuditor.UI
@@ -39,6 +40,7 @@ namespace CS2RuntimeAssetAuditor.UI
         private ValueBinding<string> _selectedCaptureBinding;
         private ValueBinding<string> _exportResultBinding;
         private RawValueBinding _panelLayoutBinding;
+        private ProxyAction? _togglePanelAction;
         private double _nextRefreshAt;
         private bool _panelVisible;
         private string _selectedCaptureId = string.Empty;
@@ -84,12 +86,30 @@ namespace CS2RuntimeAssetAuditor.UI
             AddBinding(new TriggerBinding<string, bool>(Group, "advisorResolveConflict", AdvisorResolveConflict));
             AddBinding(new TriggerBinding(Group, "exportReport", ExportReport));
 
+            _togglePanelAction = EnableTogglePanelAction();
             RefreshSnapshot();
+        }
+
+        protected override void OnDestroy()
+        {
+            if (_togglePanelAction != null)
+            {
+                try { _togglePanelAction.shouldBeEnabled = false; }
+                catch (Exception ex) { Mod.ReportFailure("Disabling the panel key binding failed.", ex); }
+                _togglePanelAction = null;
+            }
+
+            base.OnDestroy();
         }
 
         protected override void OnUpdate()
         {
             base.OnUpdate();
+
+            // Polled every frame, ahead of the refresh throttle, so a key press is never missed. The game masks
+            // keyboard actions while a text field has focus, so typing in the panel's search box does not toggle it.
+            if (_togglePanelAction != null && _togglePanelAction.WasPerformedThisFrame())
+                TogglePanel();
 
             var now = _clock.Elapsed.TotalSeconds;
             if (now < _nextRefreshAt)
@@ -108,6 +128,27 @@ namespace CS2RuntimeAssetAuditor.UI
         }
 
         private void TogglePanel() => SetPanelVisible(!_panelVisible);
+
+        // The action exists only when the settings registered their key bindings; an unassigned binding never performs.
+        private static ProxyAction? EnableTogglePanelAction()
+        {
+            var settings = Mod.Settings;
+            if (settings == null || !settings.keyBindingRegistered)
+                return null;
+
+            try
+            {
+                var action = settings.GetAction(Setting.TogglePanelActionName);
+                if (action != null)
+                    action.shouldBeEnabled = true;
+                return action;
+            }
+            catch (Exception ex)
+            {
+                Mod.ReportFailure("Enabling the panel key binding failed; the launcher still opens the panel.", ex);
+                return null;
+            }
+        }
 
         // Idempotent so that a close request (for example the game's Back/Escape input action)
         // can never reopen the panel if it is delivered twice.

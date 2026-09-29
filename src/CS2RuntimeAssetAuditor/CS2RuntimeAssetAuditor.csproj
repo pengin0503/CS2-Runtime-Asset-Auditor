@@ -44,7 +44,30 @@
            Text="The required private 0Harmony.dll runtime was not copied to the mod output." />
   </Target>
 
-  <Target Name="BuildUI" AfterTargets="AfterBuild" Condition="Exists('$(SolutionDir)UI\package.json')">
-    <Exec Command="npm run build" WorkingDirectory="$(SolutionDir)UI" />
+  <!--
+    The UI bundle is part of the mod: without CS2RuntimeAssetAuditor.mjs the game loads the DLL but shows no
+    launcher. Resolve the UI project from this file (SolutionDir is "*Undefined*" when the project is built
+    directly), build the bundle into the mod output before the toolchain's DeployWIP copies that output to the
+    local Mods folder, and fail the build when any shipped UI file is missing.
+  -->
+  <PropertyGroup>
+    <ModUiProjectDir>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', '..', 'UI'))</ModUiProjectDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ModUiRequiredFile Include="$(AssemblyName).mjs" />
+    <ModUiRequiredFile Include="$(AssemblyName).css" />
+    <ModUiRequiredFile Include="cs2-runtime-asset-auditor-images\profiler-icon.svg" />
+  </ItemGroup>
+
+  <Target Name="BuildUI" BeforeTargets="DeployWIP" Condition="'$(NeedBuild)' == 'true'">
+    <Error Condition="!Exists('$(ModUiProjectDir)package.json')"
+           Text="The UI project was not found at $(ModUiProjectDir)." />
+    <Error Condition="!Exists('$(ModUiProjectDir)node_modules')"
+           Text="UI dependencies are not installed. Run 'npm ci' in $(ModUiProjectDir) before building the mod." />
+    <Exec Command="npm run build" WorkingDirectory="$(ModUiProjectDir)"
+          EnvironmentVariables="CS2_MOD_UI_OUTPUT_DIR=$(TargetDir)" />
+    <Error Condition="!Exists('$(TargetDir)%(ModUiRequiredFile.Identity)')"
+           Text="The UI build did not produce %(ModUiRequiredFile.Identity) in the mod output $(TargetDir)." />
   </Target>
 </Project>

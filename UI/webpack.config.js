@@ -3,12 +3,20 @@ const MOD = require("./mod.json");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 
-const CSII_USERDATAPATH = process.env.CSII_USERDATAPATH;
-if (!CSII_USERDATAPATH) {
-  throw new Error("CSII_USERDATAPATH environment variable is not set; install the CS2 Modding Toolchain or set it explicitly.");
+// The mod build passes its output folder so the bundle ships beside the DLL and is deployed and published
+// with it. A standalone `npm run build` / `npm run dev` writes straight into the local Mods folder.
+function resolveOutputDir() {
+  const modOutputDir = process.env.CS2_MOD_UI_OUTPUT_DIR;
+  if (modOutputDir) return path.resolve(modOutputDir);
+
+  const userDataPath = process.env.CSII_USERDATAPATH;
+  if (!userDataPath) {
+    throw new Error("CSII_USERDATAPATH environment variable is not set; install the CS2 Modding Toolchain or set it explicitly.");
+  }
+  return path.resolve(userDataPath, "Mods", MOD.id);
 }
 
-const outputDir = path.resolve(CSII_USERDATAPATH, "Mods", MOD.id);
+const outputDir = resolveOutputDir();
 const banner = `\n * Cities: Skylines II UI Module\n *\n * Id: ${MOD.id}\n * Author: ${MOD.author}\n * Version: ${MOD.version}\n * Dependencies: ${MOD.dependencies.join(",")}\n`;
 
 module.exports = {
