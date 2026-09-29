@@ -38,9 +38,9 @@ Windows で Cities: Skylines II と公式 Modding Toolchain をセットアッ�
 
 ```powershell
 cd UI
-npm ci
-npm test
-npm run build
+npm.cmd ci
+npm.cmd test
+npm.cmd run build
 cd ..
 dotnet test .\tests\CS2RuntimeAssetAuditor.Tests\CS2RuntimeAssetAuditor.Tests.csproj -c Release
 dotnet test .\tests\CS2RuntimeAssetAuditor.AdapterTests\CS2RuntimeAssetAuditor.AdapterTests.csproj -c Release
