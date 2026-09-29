@@ -112,7 +112,7 @@ public void Cancel(DateTimeOffset completedAtUtc);
 public void Complete(InvestigationCompletionOutcome outcome, DateTimeOffset completedAtUtc);
 ```
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add tests:
 
@@ -128,7 +128,7 @@ Invalidated_experiment_rejects_progress
 Baseline_evidence_survives_source_capture_eviction
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationExperimentTests
@@ -136,11 +136,11 @@ dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.cspr
 
 Expected: FAIL because types are missing.
 
-- [ ] **Step 3: Implement minimal domain/state logic**
+- [x] **Step 3: Implement minimal domain/state logic**
 
 `RecordApplied(at)` must set `StabilizationReadyAtUtc = at + TimeSpan.FromSeconds(5)`. `CompleteFollowUp(...)` must call `AdvisorComparison.Compare(Current.BaselineEvidence, followUpEvidence, qualifyingChanges)` and invalidate instead of completing if effective changes include more than one mutation or another setting ID. `RecordApplyFailure(...)` leaves the experiment before follow-up and records only a machine reason.
 
-- [ ] **Step 4: Verify GREEN and full pure suite**
+- [x] **Step 4: Verify GREEN and full pure suite**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationExperimentTests
@@ -149,7 +149,7 @@ dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.cspr
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/CS2RuntimeAssetAuditor/Core/Advisor/Experiment tests/CS2RuntimeAssetAuditor.Tests/InvestigationExperimentTests.cs
