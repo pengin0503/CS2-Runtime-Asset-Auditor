@@ -90,6 +90,41 @@ namespace CS2RuntimeAssetAuditor.Tests
             Assert.That(coordinator.Current.State, Is.EqualTo(InvestigationExperimentState.Invalidated));
         }
 
+        [Test]
+        public void Follow_up_cut_short_by_a_city_change_is_never_compared()
+        {
+            Assert.That(InvestigationExperimentGuard.EvaluateFollowUpInterruption(null), Is.Null);
+            Assert.That(InvestigationExperimentGuard.EvaluateFollowUpInterruption(CaptureInterruptionReason.SafetyLimit), Is.Null);
+            Assert.That(InvestigationExperimentGuard.EvaluateFollowUpInterruption(CaptureInterruptionReason.MonitoringDisabled), Is.Null);
+            Assert.That(InvestigationExperimentGuard.EvaluateFollowUpInterruption(CaptureInterruptionReason.SessionChanged),
+                Is.EqualTo(InvestigationInvalidationReason.FollowUpCaptureInterrupted));
+        }
+
+        [Test]
+        public void Unusable_follow_up_reports_interruption_when_the_capture_ended_early()
+        {
+            Assert.That(InvestigationExperimentGuard.EvaluateUnusableFollowUp(null),
+                Is.EqualTo(InvestigationInvalidationReason.FollowUpCaptureInvalid));
+            Assert.That(InvestigationExperimentGuard.EvaluateUnusableFollowUp(CaptureInterruptionReason.SafetyLimit),
+                Is.EqualTo(InvestigationInvalidationReason.FollowUpCaptureInterrupted));
+        }
+
+        [Test]
+        public void Advisor_passes_the_capture_interruption_into_the_experiment()
+        {
+            var directory = new System.IO.DirectoryInfo(TestContext.CurrentContext.TestDirectory);
+            while (directory != null && !System.IO.File.Exists(System.IO.Path.Combine(directory.FullName, "CS2RuntimeAssetAuditor.sln")))
+                directory = directory.Parent;
+            Assert.That(directory, Is.Not.Null);
+            var source = System.IO.File.ReadAllText(System.IO.Path.Combine(directory!.FullName, "src/CS2RuntimeAssetAuditor/Advisor/AdvisorSystem.cs"));
+            var start = source.IndexOf("private void ObserveExperimentFollowUp()", StringComparison.Ordinal);
+            Assert.That(start, Is.GreaterThanOrEqualTo(0));
+            var method = source.Substring(start);
+            Assert.That(method, Does.Contain("InvestigationExperimentGuard.EvaluateFollowUpInterruption(capture.InterruptionReason)"));
+            Assert.That(method, Does.Contain("InvestigationExperimentGuard.EvaluateUnusableFollowUp(capture.InterruptionReason)"));
+            Assert.That(method, Does.Contain("DateTimeOffset.UtcNow, capture.InterruptionReason)"));
+        }
+
         private static InvestigationExperimentCoordinator Started()
         {
             var coordinator = new InvestigationExperimentCoordinator();

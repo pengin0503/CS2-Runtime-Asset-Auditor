@@ -322,7 +322,13 @@ namespace CS2RuntimeAssetAuditor.Advisor
             if (capture == null) return; // Automatic and unrelated captures never match the stored request ID.
             if (!capture.CompletedAtUtc.HasValue)
             {
-                _experiment.Invalidate(InvestigationInvalidationReason.FollowUpCaptureInvalid);
+                _experiment.Invalidate(InvestigationExperimentGuard.EvaluateUnusableFollowUp(capture.InterruptionReason));
+                return;
+            }
+            var interrupted = InvestigationExperimentGuard.EvaluateFollowUpInterruption(capture.InterruptionReason);
+            if (interrupted.HasValue)
+            {
+                _experiment.Invalidate(interrupted.Value);
                 return;
             }
             if (!InvestigationExperimentGuard.IsExpectedFollowUp(current, capture.Id, capture.SessionId, capture.StartedAtUtc))
@@ -337,11 +343,11 @@ namespace CS2RuntimeAssetAuditor.Advisor
                 var evidence = new CaptureAdvisorEvidenceProjector().Project(capture);
                 if (evidence == null)
                 {
-                    _experiment.Invalidate(InvestigationInvalidationReason.FollowUpCaptureInvalid);
+                    _experiment.Invalidate(InvestigationExperimentGuard.EvaluateUnusableFollowUp(capture.InterruptionReason));
                     return;
                 }
                 var changes = InvestigationExperimentGuard.SelectQualifyingChanges(current, _changeSession.Changes);
-                _experiment.CompleteFollowUp(capture.Id, evidence, changes, DateTimeOffset.UtcNow);
+                _experiment.CompleteFollowUp(capture.Id, evidence, changes, DateTimeOffset.UtcNow, capture.InterruptionReason);
                 if (current.State == InvestigationExperimentState.Completed)
                     _experiment.RecordFollowUpWarnings(capture.Warnings);
             }

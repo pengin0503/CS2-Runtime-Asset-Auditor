@@ -78,7 +78,8 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "sessionId", Order = 23, EmitDefaultValue = false)] public string SessionId { get; set; }
         [DataMember(Name = "startedAtUtc", Order = 24, EmitDefaultValue = false)] public string StartedAtUtc { get; set; }
         [DataMember(Name = "completedAtUtc", Order = 25, EmitDefaultValue = false)] public string CompletedAtUtc { get; set; }
-        internal ReportCapture SanitizedCopy() => new ReportCapture { Id = ReportPrivacy.Sanitize(Id), TriggerKind = ReportPrivacy.Sanitize(TriggerKind), TriggeredAtSeconds = TriggeredAtSeconds, DurationSeconds = DurationSeconds, DiscoveredMarkers = DiscoveredMarkers, CapturedMarkers = CapturedMarkers, CoverageRatio = CoverageRatio, Batched = Batched, ProfilerOverheadShare = ProfilerOverheadShare, Warnings = (Warnings ?? new List<string>()).Select(ReportPrivacy.Sanitize).ToList(), AttemptedMarkers = AttemptedMarkers, ActivatedMarkers = ActivatedMarkers, SampledMarkers = SampledMarkers, AttemptedRatio = AttemptedRatio, ActivatedRatio = ActivatedRatio, SampledRatio = SampledRatio, TriggerSelectedSpeed = TriggerSelectedSpeed, TriggerActualSpeed = TriggerActualSpeed, TriggerEfficiency = TriggerEfficiency, ProfilerMemoryBaselineBytes = ProfilerMemoryBaselineBytes, ProfilerMemoryPeakBytes = ProfilerMemoryPeakBytes, ProfilerMemoryDeltaBytes = ProfilerMemoryDeltaBytes, SessionId = ReportPrivacy.Sanitize(SessionId), StartedAtUtc = StartedAtUtc, CompletedAtUtc = CompletedAtUtc };
+        [DataMember(Name = "interruptionReason", Order = 26, EmitDefaultValue = false)] public string InterruptionReason { get; set; }
+        internal ReportCapture SanitizedCopy() => new ReportCapture { Id = ReportPrivacy.Sanitize(Id), TriggerKind = ReportPrivacy.Sanitize(TriggerKind), TriggeredAtSeconds = TriggeredAtSeconds, DurationSeconds = DurationSeconds, DiscoveredMarkers = DiscoveredMarkers, CapturedMarkers = CapturedMarkers, CoverageRatio = CoverageRatio, Batched = Batched, ProfilerOverheadShare = ProfilerOverheadShare, Warnings = (Warnings ?? new List<string>()).Select(ReportPrivacy.Sanitize).ToList(), AttemptedMarkers = AttemptedMarkers, ActivatedMarkers = ActivatedMarkers, SampledMarkers = SampledMarkers, AttemptedRatio = AttemptedRatio, ActivatedRatio = ActivatedRatio, SampledRatio = SampledRatio, TriggerSelectedSpeed = TriggerSelectedSpeed, TriggerActualSpeed = TriggerActualSpeed, TriggerEfficiency = TriggerEfficiency, ProfilerMemoryBaselineBytes = ProfilerMemoryBaselineBytes, ProfilerMemoryPeakBytes = ProfilerMemoryPeakBytes, ProfilerMemoryDeltaBytes = ProfilerMemoryDeltaBytes, SessionId = ReportPrivacy.Sanitize(SessionId), StartedAtUtc = StartedAtUtc, CompletedAtUtc = CompletedAtUtc, InterruptionReason = ReportPrivacy.Sanitize(InterruptionReason) };
     }
 
     [DataContract]
@@ -188,6 +189,8 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "lastFailureReason", Order = 17, EmitDefaultValue = false)] public string LastFailureReason { get; set; }
         [DataMember(Name = "followUpWarnings", Order = 18)] public List<string> FollowUpWarnings { get; set; } = new List<string>();
         [DataMember(Name = "comparison", Order = 19, EmitDefaultValue = false)] public ReportAdvisorComparison Comparison { get; set; }
+        /// <summary>Why the compared follow-up capture ended early; absent when it ran its full course.</summary>
+        [DataMember(Name = "followUpInterruption", Order = 20, EmitDefaultValue = false)] public string FollowUpInterruption { get; set; }
 
         internal ReportAdvisorExperiment SanitizedCopy() => new ReportAdvisorExperiment
         {
@@ -201,7 +204,8 @@ namespace CS2RuntimeAssetAuditor.Export
             InvalidationReason = ReportPrivacy.Sanitize(InvalidationReason),
             CompletionOutcome = ReportPrivacy.Sanitize(CompletionOutcome), LastFailureReason = ReportPrivacy.Sanitize(LastFailureReason),
             FollowUpWarnings = (FollowUpWarnings ?? new List<string>()).Select(ReportPrivacy.Sanitize).ToList(),
-            Comparison = Comparison?.SanitizedCopy()
+            Comparison = Comparison?.SanitizedCopy(),
+            FollowUpInterruption = ReportPrivacy.Sanitize(FollowUpInterruption)
         };
     }
 

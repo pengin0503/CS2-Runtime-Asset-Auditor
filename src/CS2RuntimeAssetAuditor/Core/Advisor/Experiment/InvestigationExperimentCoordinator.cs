@@ -56,7 +56,8 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor.Experiment
         }
 
         public void CompleteFollowUp(string captureId, AdvisorEvidenceSnapshot followUpEvidence,
-            IReadOnlyList<SettingChange> qualifyingChanges, DateTimeOffset completedAtUtc)
+            IReadOnlyList<SettingChange> qualifyingChanges, DateTimeOffset completedAtUtc,
+            CaptureInterruptionReason? followUpInterruption = null)
         {
             Require(InvestigationExperimentState.FollowUpCapturing);
             if (!string.Equals(captureId, Current.FollowUpCaptureId, StringComparison.Ordinal) || followUpEvidence == null)
@@ -79,6 +80,7 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor.Experiment
                 return;
             }
             Current.FollowUpEvidence = Copy(followUpEvidence);
+            Current.FollowUpInterruption = followUpInterruption;
             Current.Comparison = comparison;
             Current.CompletedAtUtc = completedAtUtc;
             Current.State = InvestigationExperimentState.Completed;

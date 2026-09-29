@@ -106,6 +106,8 @@ namespace CS2RuntimeAssetAuditor.UI
         public string SessionId { get; set; }
         public string StartedAtUtc { get; set; }
         public string CompletedAtUtc { get; set; }
+        /// <summary>Why the capture ended early (a <see cref="Core.CaptureInterruptionReason"/> name); null when it ran its full course.</summary>
+        public string InterruptionReason { get; set; }
         public string TriggerKind { get; set; } = string.Empty;
         public double TriggeredAtSeconds { get; set; }
         public double? TriggerSelectedSpeed { get; set; }

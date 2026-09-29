@@ -60,6 +60,56 @@ namespace CS2RuntimeAssetAuditor.Tests
         }
 
         [Test]
+        public void Interrupted_follow_up_is_exported_with_its_comparison_and_reason()
+        {
+            var state = State();
+            var coordinator = Started();
+            coordinator.RecordApplied(Now.AddSeconds(1));
+            coordinator.RecordFollowUpStarted("follow-up");
+            var changes = new SettingChangeSession();
+            changes.RecordApplied("graphics.shadow", "High", "Low", Now.AddSeconds(1).UtcDateTime);
+            coordinator.CompleteFollowUp("follow-up", Evidence(20), changes.Changes, Now.AddSeconds(10),
+                CaptureInterruptionReason.SafetyLimit);
+            state.Experiment = coordinator.Current;
+
+            using var json = JsonDocument.Parse(PerformanceReportSerializer.Serialize(
+                ProfilerReportBuilder.Build(new UiSnapshot { Advisor = state })));
+            var experiment = json.RootElement.GetProperty("advisor").GetProperty("experiment");
+            Assert.That(experiment.GetProperty("state").GetString(), Is.EqualTo("Completed"));
+            Assert.That(experiment.GetProperty("followUpInterruption").GetString(), Is.EqualTo("SafetyLimit"));
+            Assert.That(experiment.GetProperty("comparison").GetProperty("metrics")[0].GetProperty("state").GetString(),
+                Is.EqualTo("Improved"));
+        }
+
+        [Test]
+        public void Uninterrupted_follow_up_and_capture_omit_the_interruption_fields()
+        {
+            var state = State();
+            var coordinator = Started();
+            coordinator.RecordApplied(Now.AddSeconds(1));
+            coordinator.RecordFollowUpStarted("follow-up");
+            var changes = new SettingChangeSession();
+            changes.RecordApplied("graphics.shadow", "High", "Low", Now.AddSeconds(1).UtcDateTime);
+            coordinator.CompleteFollowUp("follow-up", Evidence(20), changes.Changes, Now.AddSeconds(10));
+            state.Experiment = coordinator.Current;
+            var snapshot = new UiSnapshot
+            {
+                Advisor = state,
+                Captures = new[]
+                {
+                    new CaptureSummaryUi { Id = "full" },
+                    new CaptureSummaryUi { Id = "stopped", InterruptionReason = "SafetyLimit" }
+                }
+            };
+
+            using var json = JsonDocument.Parse(PerformanceReportSerializer.Serialize(ProfilerReportBuilder.Build(snapshot)));
+            Assert.That(json.RootElement.GetProperty("advisor").GetProperty("experiment").TryGetProperty("followUpInterruption", out _), Is.False);
+            var captures = json.RootElement.GetProperty("captures");
+            Assert.That(captures[0].TryGetProperty("interruptionReason", out _), Is.False);
+            Assert.That(captures[1].GetProperty("interruptionReason").GetString(), Is.EqualTo("SafetyLimit"));
+        }
+
+        [Test]
         public void No_experiment_has_no_default_looking_observation()
         {
             using var json = JsonDocument.Parse(PerformanceReportSerializer.Serialize(

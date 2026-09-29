@@ -592,6 +592,7 @@ namespace CS2RuntimeAssetAuditor.UI
             writer.PropertyName("completionOutcome"); writer.Write(experiment.CompletionOutcome.ToString());
             writer.PropertyName("lastFailureReason"); writer.Write(experiment.LastFailureReason ?? string.Empty);
             writer.PropertyName("followUpWarnings"); WriteStrings(writer, experiment.FollowUpWarnings);
+            writer.PropertyName("followUpInterruption"); writer.Write(experiment.FollowUpInterruption?.ToString() ?? string.Empty);
             writer.PropertyName("comparison"); WriteAdvisorComparison(writer, experiment.Comparison);
             writer.TypeEnd();
         }

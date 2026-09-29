@@ -87,6 +87,31 @@ public class SafetyStopCooldownTests
         Assert.That(controller.CompletedSessions, Is.Empty);
     }
 
+    [Test]
+    public void Finalized_capture_records_why_it_ended_early()
+    {
+        using var controller = CreateController();
+        StartAutomaticCapture(controller, at: 0);
+        TripOverheadSafetyStop(controller);
+        Assert.That(controller.CompletedSessions[^1].InterruptionReason, Is.EqualTo(CaptureInterruptionReason.SafetyLimit));
+
+        controller.RequestManualCapture(30);
+        controller.InterruptActiveCapture("disabled", CaptureInterruptionReason.MonitoringDisabled);
+        Assert.That(controller.CompletedSessions[^1].InterruptionReason, Is.EqualTo(CaptureInterruptionReason.MonitoringDisabled));
+        Assert.That(controller.CompletedSessions[^1].WasInterrupted, Is.True);
+
+        controller.RequestManualCapture(40);
+        controller.Observe(46, global: null); // deep phase (5 s) ends
+        controller.Observe(48, global: null); // post-buffer (1 s) ends and the capture completes normally
+        Assert.That(controller.CompletedSessions[^1].InterruptionReason, Is.Null);
+        Assert.That(controller.CompletedSessions[^1].WasInterrupted, Is.False);
+
+        var captures = CS2RuntimeAssetAuditor.UI.UiSnapshotBuilder.Build(
+            new CS2RuntimeAssetAuditor.UI.UiSnapshotInput { Captures = controller.CompletedSessions }).Captures;
+        Assert.That(captures.Select(capture => capture.InterruptionReason),
+            Is.EquivalentTo(new[] { "SafetyLimit", "MonitoringDisabled", null }));
+    }
+
     private static void StartAutomaticCapture(DeepCaptureController controller, double at)
     {
         controller.Observe(at, LowEfficiencySample(at));

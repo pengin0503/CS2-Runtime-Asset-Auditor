@@ -42,6 +42,19 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor.Experiment
                experiment.ChangeAppliedAtUtc.HasValue && captureStartedAtUtc.HasValue &&
                captureStartedAtUtc.Value > experiment.ChangeAppliedAtUtc.Value;
 
+        /// <summary>
+        /// A follow-up capture that a city-session change cut short belongs to a city that is no longer loaded and
+        /// is never compared. Captures stopped for other reasons (a safety limit, monitoring disabled) are compared
+        /// with their interruption shown; <see cref="EvaluateUnusableFollowUp"/> covers those without evidence.
+        /// </summary>
+        public static InvestigationInvalidationReason? EvaluateFollowUpInterruption(CaptureInterruptionReason? interruption)
+            => interruption == CaptureInterruptionReason.SessionChanged
+                ? InvestigationInvalidationReason.FollowUpCaptureInterrupted : (InvestigationInvalidationReason?)null;
+
+        public static InvestigationInvalidationReason EvaluateUnusableFollowUp(CaptureInterruptionReason? interruption)
+            => interruption.HasValue
+                ? InvestigationInvalidationReason.FollowUpCaptureInterrupted : InvestigationInvalidationReason.FollowUpCaptureInvalid;
+
         public static IReadOnlyList<SettingChange> SelectQualifyingChanges(
             InvestigationExperiment experiment, IReadOnlyList<SettingChange> changes)
         {

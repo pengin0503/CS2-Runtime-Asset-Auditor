@@ -156,6 +156,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
 
             if (CurrentSession != null)
             {
+                CurrentSession.MarkInterrupted(reason);
                 CurrentSession.AddWarning(warning);
                 if (cooldown.HasValue)
                     CurrentSession.AddWarning(

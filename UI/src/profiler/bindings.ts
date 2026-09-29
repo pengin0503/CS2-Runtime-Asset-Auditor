@@ -157,6 +157,8 @@ export interface AdvisorExperiment {
   completionOutcome: "None" | "Kept" | "Undone" | "Cancelled";
   lastFailureReason: string;
   followUpWarnings: string[];
+  /** Why the compared follow-up capture ended early; empty when it ran its full course. */
+  followUpInterruption?: string;
   comparison: AdvisorComparison | null;
 }
 

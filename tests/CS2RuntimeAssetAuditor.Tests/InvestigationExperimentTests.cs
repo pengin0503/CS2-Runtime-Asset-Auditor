@@ -59,6 +59,30 @@ namespace CS2RuntimeAssetAuditor.Tests
         }
 
         [Test]
+        public void Interrupted_follow_up_is_compared_with_its_interruption_shown()
+        {
+            var coordinator = Started();
+            coordinator.RecordApplied(Now);
+            coordinator.RecordFollowUpStarted("follow-up");
+            coordinator.CompleteFollowUp("follow-up", Evidence(20), Changes("shadow").Changes, Now.AddSeconds(10),
+                CaptureInterruptionReason.SafetyLimit);
+            Assert.That(coordinator.Current.State, Is.EqualTo(InvestigationExperimentState.Completed));
+            Assert.That(coordinator.Current.Validity, Is.EqualTo(InvestigationExperimentValidity.Valid));
+            Assert.That(coordinator.Current.Comparison.Metrics.Single().State, Is.EqualTo(ComparisonState.Improved));
+            Assert.That(coordinator.Current.FollowUpInterruption, Is.EqualTo(CaptureInterruptionReason.SafetyLimit));
+        }
+
+        [Test]
+        public void Follow_up_that_ran_its_full_course_has_no_interruption()
+        {
+            var coordinator = Started();
+            coordinator.RecordApplied(Now);
+            coordinator.RecordFollowUpStarted("follow-up");
+            coordinator.CompleteFollowUp("follow-up", Evidence(20), Changes("shadow").Changes, Now.AddSeconds(10));
+            Assert.That(coordinator.Current.FollowUpInterruption, Is.Null);
+        }
+
+        [Test]
         public void Multiple_qualifying_changes_invalidate_single_setting_experiment()
         {
             var coordinator = Started();

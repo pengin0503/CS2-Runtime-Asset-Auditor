@@ -107,6 +107,22 @@ describe("guided investigation experiment", () => {
     expect(rendered).not.toContain("総合スコア");
   });
 
+  it("shows that an interrupted follow-up was still compared, and why it stopped", () => {
+    const comparison = { multipleChanges: false, changedSettingIds: ["shadow"], metrics: [
+      { id: "frame.p95.ms", baselineValue: 25, followUpValue: 20, state: "Improved" as const, reason: "" }] };
+    const interrupted = experiment("Completed", { followUpCaptureId: "follow-up", comparison,
+      followUpInterruption: "SafetyLimit" });
+    const rendered = content(TestRenderer.create(<PerformanceAdvisorTab advisor={advisor(interrupted)}
+      onKeepExperiment={() => {}} />).toJSON());
+    expect(rendered).toContain("計測の安全上限により途中で停止しました");
+    expect(rendered).toContain("改善 1");
+    expect(rendered).toContain("変更を維持");
+
+    const full = experiment("Completed", { followUpCaptureId: "follow-up", comparison, followUpInterruption: "" });
+    expect(content(TestRenderer.create(<PerformanceAdvisorTab advisor={advisor(full)} />).toJSON()))
+      .not.toContain("途中で");
+  });
+
   it("uses explicit Keep, Undo and Cancel, preserving conflict controls", () => {
     const onKeepExperiment = vi.fn();
     const onUndoExperiment = vi.fn();
@@ -135,7 +151,9 @@ describe("guided investigation experiment", () => {
       "advisor.experiment.capturing", "advisor.experiment.keep", "advisor.experiment.undo",
       "advisor.experiment.cancelAfterApply", "advisor.experiment.disclaimer", "advisor.experiment.state.Invalidated",
       "advisor.experiment.reason.SessionChanged", "advisor.experiment.reason.AdditionalAdvisorSettingChanged",
-      "advisor.experiment.reason.TestedSettingExternallyModified", "advisor.experiment.reason.FollowUpCaptureWrongSession"] as const;
+      "advisor.experiment.reason.TestedSettingExternallyModified", "advisor.experiment.reason.FollowUpCaptureWrongSession",
+      "advisor.experiment.interrupted.Unknown", "advisor.experiment.interrupted.SafetyLimit",
+      "advisor.experiment.interrupted.MonitoringDisabled", "advisor.experiment.interrupted.Requested"] as const;
     for (const key of keys) {
       expect(en[key]).toBeTruthy();
       expect(ja[key]).toBeTruthy();

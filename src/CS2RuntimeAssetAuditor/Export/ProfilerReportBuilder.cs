@@ -47,6 +47,7 @@ namespace CS2RuntimeAssetAuditor.Export
                 {
                     Id = capture.Id, TriggerKind = capture.TriggerKind, TriggeredAtSeconds = capture.TriggeredAtSeconds,
                     SessionId = capture.SessionId, StartedAtUtc = capture.StartedAtUtc, CompletedAtUtc = capture.CompletedAtUtc,
+                    InterruptionReason = capture.InterruptionReason,
                     TriggerSelectedSpeed = capture.TriggerSelectedSpeed, TriggerActualSpeed = capture.TriggerActualSpeed, TriggerEfficiency = capture.TriggerEfficiency,
                     DurationSeconds = capture.DurationSeconds, DiscoveredMarkers = capture.DiscoveredMarkers, AttemptedMarkers = capture.AttemptedMarkers,
                     ActivatedMarkers = capture.ActivatedMarkers, SampledMarkers = capture.SampledMarkers, CapturedMarkers = capture.CapturedMarkers,
@@ -180,6 +181,7 @@ namespace CS2RuntimeAssetAuditor.Export
                 CompletionOutcome = experiment.CompletionOutcome.ToString(),
                 LastFailureReason = experiment.LastFailureReason,
                 FollowUpWarnings = experiment.FollowUpWarnings.ToList(),
+                FollowUpInterruption = experiment.FollowUpInterruption?.ToString(),
                 Comparison = ToReportComparison(experiment.Comparison, publicIds)
             };
         }

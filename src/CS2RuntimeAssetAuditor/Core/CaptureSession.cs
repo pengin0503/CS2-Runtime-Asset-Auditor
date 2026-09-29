@@ -64,6 +64,13 @@ namespace CS2RuntimeAssetAuditor.Core
                 CompletedAtUtc = completedAtUtc.ToUniversalTime();
         }
         public CaptureTrigger Trigger { get; }
+        /// <summary>Why the capture was finalized before its normal end; null when it ran its full course.</summary>
+        public CaptureInterruptionReason? InterruptionReason { get; private set; }
+        public bool WasInterrupted => InterruptionReason.HasValue;
+        public void MarkInterrupted(CaptureInterruptionReason reason)
+        {
+            if (!InterruptionReason.HasValue) InterruptionReason = reason;
+        }
         public MarkerCoverageInfo MarkerCoverage { get; private set; }
         public SystemTimingSnapshot SystemTiming { get; private set; }
         public NamedMetricSnapshot PathfindingSnapshot { get; private set; }

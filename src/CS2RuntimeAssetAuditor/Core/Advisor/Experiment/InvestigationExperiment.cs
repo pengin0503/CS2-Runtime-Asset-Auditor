@@ -37,6 +37,11 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor.Experiment
         public string FollowUpCaptureId { get; internal set; }
         public AdvisorEvidenceSnapshot FollowUpEvidence { get; internal set; }
         public IReadOnlyList<string> FollowUpWarnings { get; internal set; } = Array.Empty<string>();
+        /// <summary>
+        /// Why the follow-up capture ended early, when it did. The comparison is still shown, but it covers only
+        /// what was measured before the interruption.
+        /// </summary>
+        public CaptureInterruptionReason? FollowUpInterruption { get; internal set; }
         public InvestigationExperimentState State { get; internal set; }
         public InvestigationExperimentValidity Validity { get; internal set; } = InvestigationExperimentValidity.Valid;
         public InvestigationInvalidationReason InvalidationReason { get; internal set; }

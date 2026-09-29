@@ -151,6 +151,9 @@ function ExperimentCard({ experiment, locale, t, onApply, onFollowUp, onCancel, 
         onSelect={onFollowUp}>{t("advisor.experiment.followUp")}</Button>}
     </>}
     {experiment.state === "FollowUpCapturing" && <p>{t("advisor.experiment.capturing")}</p>}
+    {compared && experiment.followUpInterruption && <p role="status" className={styles.experimentWarning}>
+      {lookup(t, "advisor.experiment.interrupted", experiment.followUpInterruption, "advisor.experiment.interrupted.Unknown")}
+    </p>}
     {compared && <>
       <p>{t("advisor.experiment.observed")}</p>
       <div className={styles.experimentCounts}>

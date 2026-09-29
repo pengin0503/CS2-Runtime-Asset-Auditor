@@ -23,7 +23,7 @@ namespace CS2RuntimeAssetAuditor.Tests
             Assert.That(method, Does.Contain("writer.WriteNull()"));
             foreach (var field in new[] { "experimentId", "state", "validity", "invalidationReason", "baselineCaptureId",
                 "followUpCaptureId", "settingId", "settingDisplayName", "originalValue", "testedValue",
-                "changeAppliedAtUtc", "stabilizationReadyAtUtc", "completionOutcome", "lastFailureReason", "comparison" })
+                "changeAppliedAtUtc", "stabilizationReadyAtUtc", "completionOutcome", "lastFailureReason", "followUpInterruption", "comparison" })
                 Assert.That(method, Does.Contain("\"" + field + "\""), field);
         }
     }
