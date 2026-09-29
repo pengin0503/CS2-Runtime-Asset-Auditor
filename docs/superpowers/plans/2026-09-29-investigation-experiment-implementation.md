@@ -450,23 +450,23 @@ git commit -m "feat: add guided investigation advisor workflow"
 - Add optional `ReportAdvisorExperiment Experiment` to existing `ReportAdvisor`.
 - `ReportAdvisorExperiment` contains the machine-readable experiment fields plus reused `ReportAdvisorComparison Comparison`; implement `SanitizedCopy()` using existing `ReportPrivacy.Sanitize` for all strings.
 
-- [ ] **Step 1: Write RED export tests**
+- [x] **Step 1: Write RED export tests**
 
 Cover valid completed serialization, invalidated serialization/reason, missing experiment absent/null, comparison equality with existing Advisor export, privacy sanitization, and absence of live/private implementation objects.
 
 Also pin current `RuntimeAssetAuditReport.SchemaVersion`; change it only if an existing repository versioning test/policy explicitly requires an increment for this additive nullable field, and document the reason.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationExperimentExportTests
 ```
 
-- [ ] **Step 3: Implement DTO/mapping and sanitizer**
+- [x] **Step 3: Implement DTO/mapping and sanitizer**
 
 Reuse the existing comparison-to-report mapping; do not duplicate comparison logic.
 
-- [ ] **Step 4: Verify focused/full pure tests**
+- [x] **Step 4: Verify focused/full pure tests**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationExperimentExportTests
@@ -475,7 +475,7 @@ dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.cspr
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/CS2RuntimeAssetAuditor/Export tests/CS2RuntimeAssetAuditor.Tests/InvestigationExperimentExportTests.cs

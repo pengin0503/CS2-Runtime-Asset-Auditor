@@ -167,6 +167,45 @@ namespace CS2RuntimeAssetAuditor.Export
     }
 
     [DataContract]
+    public sealed class ReportAdvisorExperiment
+    {
+        [DataMember(Name = "experimentId", Order = 1)] public string ExperimentId { get; set; }
+        [DataMember(Name = "sessionId", Order = 2)] public string SessionId { get; set; }
+        [DataMember(Name = "startedAtUtc", Order = 3)] public string StartedAtUtc { get; set; }
+        [DataMember(Name = "completedAtUtc", Order = 4, EmitDefaultValue = false)] public string CompletedAtUtc { get; set; }
+        [DataMember(Name = "baselineCaptureId", Order = 5)] public string BaselineCaptureId { get; set; }
+        [DataMember(Name = "followUpCaptureId", Order = 6, EmitDefaultValue = false)] public string FollowUpCaptureId { get; set; }
+        [DataMember(Name = "settingId", Order = 7)] public string SettingId { get; set; }
+        [DataMember(Name = "settingDisplayName", Order = 8)] public string SettingDisplayName { get; set; }
+        [DataMember(Name = "originalValue", Order = 9)] public string OriginalValue { get; set; }
+        [DataMember(Name = "testedValue", Order = 10)] public string TestedValue { get; set; }
+        [DataMember(Name = "applyBehavior", Order = 11)] public string ApplyBehavior { get; set; }
+        [DataMember(Name = "changeAppliedAtUtc", Order = 12, EmitDefaultValue = false)] public string ChangeAppliedAtUtc { get; set; }
+        [DataMember(Name = "state", Order = 13)] public string State { get; set; }
+        [DataMember(Name = "validity", Order = 14)] public string Validity { get; set; }
+        [DataMember(Name = "invalidationReason", Order = 15)] public string InvalidationReason { get; set; }
+        [DataMember(Name = "completionOutcome", Order = 16)] public string CompletionOutcome { get; set; }
+        [DataMember(Name = "lastFailureReason", Order = 17, EmitDefaultValue = false)] public string LastFailureReason { get; set; }
+        [DataMember(Name = "followUpWarnings", Order = 18)] public List<string> FollowUpWarnings { get; set; } = new List<string>();
+        [DataMember(Name = "comparison", Order = 19, EmitDefaultValue = false)] public ReportAdvisorComparison Comparison { get; set; }
+
+        internal ReportAdvisorExperiment SanitizedCopy() => new ReportAdvisorExperiment
+        {
+            ExperimentId = ReportPrivacy.Sanitize(ExperimentId), SessionId = ReportPrivacy.Sanitize(SessionId),
+            StartedAtUtc = ReportPrivacy.Sanitize(StartedAtUtc), CompletedAtUtc = ReportPrivacy.Sanitize(CompletedAtUtc),
+            BaselineCaptureId = ReportPrivacy.Sanitize(BaselineCaptureId), FollowUpCaptureId = ReportPrivacy.Sanitize(FollowUpCaptureId),
+            SettingId = ReportPrivacy.Sanitize(SettingId), SettingDisplayName = ReportPrivacy.Sanitize(SettingDisplayName),
+            OriginalValue = ReportPrivacy.Sanitize(OriginalValue), TestedValue = ReportPrivacy.Sanitize(TestedValue),
+            ApplyBehavior = ReportPrivacy.Sanitize(ApplyBehavior), ChangeAppliedAtUtc = ReportPrivacy.Sanitize(ChangeAppliedAtUtc),
+            State = ReportPrivacy.Sanitize(State), Validity = ReportPrivacy.Sanitize(Validity),
+            InvalidationReason = ReportPrivacy.Sanitize(InvalidationReason),
+            CompletionOutcome = ReportPrivacy.Sanitize(CompletionOutcome), LastFailureReason = ReportPrivacy.Sanitize(LastFailureReason),
+            FollowUpWarnings = (FollowUpWarnings ?? new List<string>()).Select(ReportPrivacy.Sanitize).ToList(),
+            Comparison = Comparison?.SanitizedCopy()
+        };
+    }
+
+    [DataContract]
     public sealed class ReportAdvisor
     {
         [DataMember(Name = "selectedCaptureId", Order = 1)] public string SelectedCaptureId { get; set; }
@@ -178,7 +217,8 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "catalog", Order = 7)] public List<ReportAdvisorSetting> Catalog { get; set; } = new List<ReportAdvisorSetting>();
         [DataMember(Name = "changes", Order = 8)] public List<ReportAdvisorChange> Changes { get; set; } = new List<ReportAdvisorChange>();
         [DataMember(Name = "comparison", Order = 9, EmitDefaultValue = false)] public ReportAdvisorComparison Comparison { get; set; }
-        internal ReportAdvisor SanitizedCopy() => new ReportAdvisor { SelectedCaptureId = ReportPrivacy.Sanitize(SelectedCaptureId), BaselineCaptureId = ReportPrivacy.Sanitize(BaselineCaptureId), UnavailableReason = ReportPrivacy.Sanitize(UnavailableReason), Evidence = (Evidence ?? new List<ReportMetric>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Diagnosis = (Diagnosis ?? new List<ReportAdvisorObservation>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Recommendations = (Recommendations ?? new List<ReportAdvisorRecommendation>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Catalog = (Catalog ?? new List<ReportAdvisorSetting>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Changes = (Changes ?? new List<ReportAdvisorChange>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Comparison = Comparison?.SanitizedCopy() };
+        [DataMember(Name = "experiment", Order = 10, EmitDefaultValue = false)] public ReportAdvisorExperiment Experiment { get; set; }
+        internal ReportAdvisor SanitizedCopy() => new ReportAdvisor { SelectedCaptureId = ReportPrivacy.Sanitize(SelectedCaptureId), BaselineCaptureId = ReportPrivacy.Sanitize(BaselineCaptureId), UnavailableReason = ReportPrivacy.Sanitize(UnavailableReason), Evidence = (Evidence ?? new List<ReportMetric>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Diagnosis = (Diagnosis ?? new List<ReportAdvisorObservation>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Recommendations = (Recommendations ?? new List<ReportAdvisorRecommendation>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Catalog = (Catalog ?? new List<ReportAdvisorSetting>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Changes = (Changes ?? new List<ReportAdvisorChange>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Comparison = Comparison?.SanitizedCopy(), Experiment = Experiment?.SanitizedCopy() };
     }
 
     [DataContract]

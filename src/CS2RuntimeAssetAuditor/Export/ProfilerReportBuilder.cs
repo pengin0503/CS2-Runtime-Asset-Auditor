@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using CS2RuntimeAssetAuditor.Core;
 using CS2RuntimeAssetAuditor.Core.Advisor;
+using CS2RuntimeAssetAuditor.Core.Advisor.Experiment;
 using CS2RuntimeAssetAuditor.UI;
 
 namespace CS2RuntimeAssetAuditor.Export
@@ -151,18 +152,49 @@ namespace CS2RuntimeAssetAuditor.Export
                         CurrentObservedValue = x.CurrentObservedValue, Status = x.Status.ToString(),
                         AppliedAtUtc = x.AppliedAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture)
                     }).ToList(),
-                Comparison = state.Comparison == null ? null : new ReportAdvisorComparison
-                {
-                    MultipleChanges = state.Comparison.MultipleChanges,
-                    ChangedSettingIds = state.Comparison.ChangedSettingIds.Where(publicIds.Contains).ToList(),
-                    Metrics = state.Comparison.Metrics.Select(x => new ReportAdvisorMetricComparison
-                    {
-                        Id = x.Id, BaselineValue = x.BaselineValue, FollowUpValue = x.FollowUpValue,
-                        State = x.State.ToString(), Reason = x.Reason
-                    }).ToList()
-                }
+                Comparison = ToReportComparison(state.Comparison, publicIds),
+                Experiment = ToReportExperiment(state.Experiment, publicIds)
             };
         }
+
+        private static ReportAdvisorExperiment ToReportExperiment(InvestigationExperiment experiment, HashSet<string> publicIds)
+        {
+            if (experiment == null || !publicIds.Contains(experiment.SettingId)) return null;
+            return new ReportAdvisorExperiment
+            {
+                ExperimentId = experiment.ExperimentId,
+                SessionId = experiment.SessionId,
+                StartedAtUtc = experiment.StartedAtUtc.ToString("O", CultureInfo.InvariantCulture),
+                CompletedAtUtc = experiment.CompletedAtUtc?.ToString("O", CultureInfo.InvariantCulture),
+                BaselineCaptureId = experiment.BaselineCaptureId,
+                FollowUpCaptureId = experiment.FollowUpCaptureId,
+                SettingId = experiment.SettingId,
+                SettingDisplayName = experiment.SettingDisplayName,
+                OriginalValue = experiment.OriginalValue,
+                TestedValue = experiment.TestedValue,
+                ApplyBehavior = experiment.ApplyBehavior.ToString(),
+                ChangeAppliedAtUtc = experiment.ChangeAppliedAtUtc?.ToString("O", CultureInfo.InvariantCulture),
+                State = experiment.State.ToString(),
+                Validity = experiment.Validity.ToString(),
+                InvalidationReason = experiment.InvalidationReason.ToString(),
+                CompletionOutcome = experiment.CompletionOutcome.ToString(),
+                LastFailureReason = experiment.LastFailureReason,
+                FollowUpWarnings = experiment.FollowUpWarnings.ToList(),
+                Comparison = ToReportComparison(experiment.Comparison, publicIds)
+            };
+        }
+
+        private static ReportAdvisorComparison ToReportComparison(AdvisorComparison comparison, HashSet<string> publicIds)
+            => comparison == null ? null : new ReportAdvisorComparison
+            {
+                MultipleChanges = comparison.MultipleChanges,
+                ChangedSettingIds = comparison.ChangedSettingIds.Where(publicIds.Contains).ToList(),
+                Metrics = comparison.Metrics.Select(x => new ReportAdvisorMetricComparison
+                {
+                    Id = x.Id, BaselineValue = x.BaselineValue, FollowUpValue = x.FollowUpValue,
+                    State = x.State.ToString(), Reason = x.Reason
+                }).ToList()
+            };
 
         private static bool HasAvailableMetric(IEnumerable<ReportMetric> metrics) => (metrics ?? Array.Empty<ReportMetric>()).Any(metric => metric != null && string.Equals(metric.Availability, "Available", StringComparison.Ordinal));
         private static RuntimeReportMetadata ResolveRuntimeMetadata() { var provider = RuntimeMetadataProvider; if (provider == null) return null; try { return provider(); } catch { return null; } }
