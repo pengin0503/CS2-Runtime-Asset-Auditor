@@ -17,16 +17,26 @@ namespace CS2RuntimeAssetAuditor.Advisor.Settings
             "input", "userState", "keybinding", "benchmark", "modding"
         };
 
+        private const string PlatformAttributeName = "SettingsUIPlatformAttribute";
+
         private readonly Func<IEnumerable<SettingCategoryRoot>> _roots;
         private readonly SettingUiMetadataReader _reader;
+        private readonly Func<Attribute, bool?> _isPlatformSet;
 
         public GameSettingCatalogBuilder()
             : this(GetBuiltInRoots, new SettingUiMetadataReader()) { }
 
-        public GameSettingCatalogBuilder(Func<IEnumerable<SettingCategoryRoot>> roots, SettingUiMetadataReader reader)
+        /// <param name="isPlatformSet">
+        /// Evaluates a <c>SettingsUIPlatformAttribute</c> for the running platform; null means it could not be
+        /// evaluated. Defaults to the attribute's own <c>IsPlatformSet(Application.platform)</c>, the condition the
+        /// game's Options screen uses.
+        /// </param>
+        public GameSettingCatalogBuilder(Func<IEnumerable<SettingCategoryRoot>> roots, SettingUiMetadataReader reader,
+            Func<Attribute, bool?>? isPlatformSet = null)
         {
             _roots = roots ?? throw new ArgumentNullException(nameof(roots));
             _reader = reader ?? throw new ArgumentNullException(nameof(reader));
+            _isPlatformSet = isPlatformSet ?? IsPlatformSetForRunningPlatform;
         }
 
         public IReadOnlyList<GameSettingDescriptor> GetCatalog()
@@ -116,7 +126,7 @@ namespace CS2RuntimeAssetAuditor.Advisor.Settings
                     IsReadable = true,
                     IsCurrentlyVisible = hasHide ? (bool?)null : true,
                     IsCurrentlyEnabled = hasDisable ? (bool?)null : true,
-                    IsPlatformSupported = !attrs.Contains("SettingsUIPlatformAttribute") && !ownerAttrs.Contains("SettingsUIPlatformAttribute"),
+                    IsPlatformSupported = IsPlatformSupported(property) && (!sectionOnOwner || IsPlatformSupported(owner.GetType())),
                     HasStandardValueControl = control || sectionOnOwner || !builtIn,
                     IsKeybinding = root.Category == "keybinding",
                     HasHideByCondition = hasHide,
@@ -136,6 +146,37 @@ namespace CS2RuntimeAssetAuditor.Advisor.Settings
                     entries.Add(descriptor.SettingId, descriptor);
             }
             catch (Exception) { /* Fail closed per value control; other Options controls remain readable. */ }
+        }
+
+        // The game shows a setting when its SettingsUIPlatformAttribute includes the running platform (1.6.2f1
+        // AutomaticSettings.IsSupportedOnPlatform); on PC that covers vSync, displayMode, dlssQuality and others.
+        // The game reads only the property's attribute; a section class's attribute (ExtraQualitySettings is
+        // Consoles-only) is evaluated the same way here so a console-only section is not reported as supported.
+        // An attribute that cannot be evaluated keeps the setting unsupported.
+        private bool IsPlatformSupported(MemberInfo member)
+        {
+            object[] attributes;
+            try { attributes = member.GetCustomAttributes(inherit: false); }
+            catch (Exception) { return false; }
+            foreach (var attribute in attributes.OfType<Attribute>())
+            {
+                if (attribute.GetType().Name != PlatformAttributeName) continue;
+                bool? supported;
+                try { supported = _isPlatformSet(attribute); }
+                catch (Exception) { supported = null; }
+                if (supported != true) return false;
+            }
+            return true;
+        }
+
+        private static bool? IsPlatformSetForRunningPlatform(Attribute attribute)
+        {
+            var application = Type.GetType("UnityEngine.Application, UnityEngine.CoreModule", throwOnError: false);
+            var platform = application?.GetProperty("platform", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
+            if (platform == null) return null;
+            var method = attribute.GetType().GetMethod("IsPlatformSet", BindingFlags.Public | BindingFlags.Instance,
+                null, new[] { platform.GetType() }, null);
+            return method?.Invoke(attribute, new[] { platform }) as bool?;
         }
 
         private static double? SliderLimit(CustomAttributeData? slider, string name)

@@ -113,6 +113,22 @@ namespace CS2RuntimeAssetAuditor.AdapterTests
         }
 
         [Test]
+        public void Platform_attribute_is_evaluated_for_the_running_platform_as_the_catalog_calls_it()
+        {
+            // GameSettingCatalogBuilder calls IsPlatformSet(RuntimePlatform) with UnityEngine.Application.platform.
+            var attribute = GameType("Game.Settings.SettingsUIPlatformAttribute");
+            var runtimePlatform = _metadata!.LoadFromAssemblyName("UnityEngine.CoreModule").GetType("UnityEngine.RuntimePlatform");
+            Assert.That(runtimePlatform, Is.Not.Null);
+            var method = attribute.GetMethod("IsPlatformSet", PublicInstance, null, new[] { runtimePlatform! }, null);
+            Assert.That(method, Is.Not.Null, "SettingsUIPlatformAttribute.IsPlatformSet(RuntimePlatform) is the game's own check.");
+            Assert.That(method!.ReturnType.FullName, Is.EqualTo("System.Boolean"));
+
+            var application = _metadata.LoadFromAssemblyName("UnityEngine.CoreModule").GetType("UnityEngine.Application");
+            var platform = application?.GetProperty("platform", BindingFlags.Public | BindingFlags.Static);
+            Assert.That(platform?.PropertyType.FullName, Is.EqualTo("UnityEngine.RuntimePlatform"));
+        }
+
+        [Test]
         public void Public_options_members_distinguish_value_controls_from_action_buttons()
         {
             var members = GetStandardOptionsRootTypes()
