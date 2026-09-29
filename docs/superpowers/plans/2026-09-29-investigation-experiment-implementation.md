@@ -530,7 +530,7 @@ git commit -m "docs: document investigation experiment workflow"
 **Files:**
 - Modify only if results change: `docs/validation/2026-09-29-investigation-experiment-validation.md`
 
-- [ ] **Step 1: Run all pure .NET tests**
+- [x] **Step 1: Run all pure .NET tests**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release
@@ -538,7 +538,7 @@ dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.cspr
 
 Expected: PASS.
 
-- [ ] **Step 2: Run all UI verification**
+- [x] **Step 2: Run all UI verification**
 
 ```bash
 cd UI
@@ -550,7 +550,7 @@ cd ..
 
 Expected: tests PASS, type check PASS, production build PASS.
 
-- [ ] **Step 3: Run adapter tests when CS2 managed assemblies are available**
+- [x] **Step 3: Run adapter tests when CS2 managed assemblies are available**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.AdapterTests/CS2RuntimeAssetAuditor.AdapterTests.csproj -c Release
@@ -558,19 +558,19 @@ dotnet test tests/CS2RuntimeAssetAuditor.AdapterTests/CS2RuntimeAssetAuditor.Ada
 
 Expected: PASS; otherwise record exact environment cause as `NOT RUN`.
 
-- [ ] **Step 4: Run mod Release build when official CS2 toolchain is available**
+- [x] **Step 4: Run mod Release build when official CS2 toolchain is available**
 
 Use the repository-documented Release build path. Expected: zero compile errors and UI bundle included. Otherwise record `NOT RUN`.
 
-- [ ] **Step 5: Execute spec section 22 manual in-game validation when runnable CS2 is available**
+- [x] **Step 5: Execute spec section 22 manual in-game validation when runnable CS2 is available**
 
 Run all 14 scenarios, including confirmation-free/required Apply, unrelated automatic capture, Keep, Undo, Options conflict, second-setting contamination defense, city reload, export privacy, Japanese/English layout, and ordinary Advisor regression. Record actual evidence; leave unexecuted rows `NOT RUN`.
 
-- [ ] **Step 6: Final diff/architecture review**
+- [x] **Step 6: Final diff/architecture review**
 
 Confirm no alternate comparison engine, second settings writer/ledger, automatic Apply/Keep/Undo/capture sequencing, cross-session comparison, unbounded experiment history, unrelated Asset/runtime refactor, causal wording/global verdict, or falsely-passed validation row.
 
-- [ ] **Step 7: Commit validation updates if changed**
+- [x] **Step 7: Commit validation updates if changed**
 
 ```bash
 git add docs/validation/2026-09-29-investigation-experiment-validation.md
@@ -579,6 +579,6 @@ git commit -m "test: verify investigation experiment workflow"
 
 Do not create an empty commit.
 
-- [ ] **Step 8: Finish on repository `main`**
+- [x] **Step 8: Finish on repository `main`**
 
 If Work used a temporary isolated branch/worktree, integrate the completed commits back to `main`. Confirm a clean working tree and report final commit SHA plus PASS/NOT RUN verification summary. Do not open a PR unless the Work environment specifically requires one.

@@ -9,10 +9,10 @@
 | Pure .NET tests（Investigation focused / Advisor・Runtime regression を含む） | PASS | .NET 8 SDK の C# コンパイラで純粋テストプロジェクトの271ソースをコンパイルし、NUnitLite で451/451件実行。通常の `dotnet test` / MSBuild はこの Work 環境の `/proc` とプロセス識別の不整合で `Process.GetStat` / `DebugUtils` に失敗するため、標準 VSTest 経路は NOT RUN。 |
 | Adapter のゲーム非依存のソース契約テスト | PASS | net8 NUnitLite にリンクして3/3件。正確な手動 Capture の返却、Advisor の既存操作の利用、都市変更時の取り扱いを確認。 |
 | 完全な Adapter tests | NOT RUN | CS2 managed DLL と .NET Framework の実行ホストがこの環境にない。ソース契約テストは代替の全 API 検証ではない。 |
-| UI TypeScript type check | PENDING | Task 8 で実行。 |
+| UI TypeScript type check | PASS | `npx tsc --noEmit -p .`、終了コード0。 |
 | UI tests | PASS | `npm test`、30ファイル・112/112件。 |
-| UI production build | PENDING | Task 8 で実行。 |
-| Mod Release build | NOT RUN | 公式 CS2 Modding Toolchain、managed DLL、ゲーム配置先がこの環境にない。ゲーム側の型結合は未検証。 |
+| UI production build | PASS | `CS2_MOD_UI_OUTPUT_DIR` を一時出力先に設定した `npm run build`、webpack compiled successfully。ゲームへの配置は未検証。 |
+| Mod Release build | NOT RUN | `CSII_TOOLPATH` / `CSII_MANAGEDPATH` / `CSII_USERDATAPATH` / `CSII_LOCALMODSPATH` が未設定で、公式 CS2 Modding Toolchain と managed DLL がこの環境にない。ゲーム側の型結合は未検証。 |
 
 ## 実ゲーム検証（仕様 §22）
 
