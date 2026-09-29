@@ -34,20 +34,86 @@ Deep Capture は重い Asset スキャンより優先されます。キャプチ
 
 ## 導入・ビルド
 
-Windows で Cities: Skylines II と公式 Modding Toolchain をセットアップし、`.NET SDK`、Node.js 20 以上（20・22・24 系）/npm を用意してください。公式ツールチェーンが設定する `CSII_TOOLPATH`、`CSII_MANAGEDPATH`、`CSII_USERDATAPATH`、`CSII_LOCALMODSPATH` などが必要です。対応基準のゲームバージョンは Asset コレクター側の `1.6.2f1` です。実ゲームでの最新互換性と Release ビルドは [検証状況](docs/validation/2026-09-28-integration-validation.md)を参照してください。
+### 1. 前提条件
+
+Windows 環境で、次を準備してください。
+
+- Git
+- Cities: Skylines II
+- Cities: Skylines II 公式 Modding Toolchain
+- .NET 8 SDK
+- Node.js 20 / 22 / 24 系と npm
+
+公式 Modding Toolchain が使用する `CSII_TOOLPATH`、`CSII_MANAGEDPATH`、`CSII_USERDATAPATH`、`CSII_LOCALMODSPATH` などの環境変数が設定されている必要があります。Mod の Release ビルドと Adapter テストは、対応するゲーム管理 DLL と公式 Toolchain が利用できる環境で実行してください。
+
+対応基準のゲームバージョンは Asset コレクター側の `1.6.2f1` です。実ゲームでの最新互換性と Release ビルドの検証状況は [検証状況](docs/validation/2026-09-28-integration-validation.md)を参照してください。
+
+### 2. リポジトリを取得
+
+PowerShell を開き、作業したいディレクトリでリポジトリを clone します。
+
+```powershell
+git clone https://github.com/pengin0503/CS2-Runtime-Asset-Auditor.git
+cd CS2-Runtime-Asset-Auditor
+```
+
+必要に応じてツールが利用できることを確認できます。
+
+```powershell
+git --version
+dotnet --version
+node --version
+npm --version
+```
+
+### 3. UI の依存関係をインストール
 
 ```powershell
 cd UI
 npm.cmd ci
+cd ..
+```
+
+`npm ci` は `UI/package-lock.json` に固定された依存関係をインストールします。初回 clone 後や lockfile が更新された場合は、Mod をビルドする前に実行してください。
+
+### 4. テストと UI ビルド
+
+UI のテストと本番バンドルを確認します。
+
+```powershell
+cd UI
 npm.cmd test
 npm.cmd run build
 cd ..
+```
+
+ゲームに依存しない .NET テストは次で実行できます。
+
+```powershell
 dotnet test .\tests\CS2RuntimeAssetAuditor.Tests\CS2RuntimeAssetAuditor.Tests.csproj -c Release
+```
+
+対応する CS2 管理 DLL と公式 Modding Toolchain が揃っている環境では、Adapter テストも実行します。
+
+```powershell
 dotnet test .\tests\CS2RuntimeAssetAuditor.AdapterTests\CS2RuntimeAssetAuditor.AdapterTests.csproj -c Release
+```
+
+### 5. Mod を Release ビルド
+
+リポジトリのルートで次を実行します。
+
+```powershell
 dotnet build .\src\CS2RuntimeAssetAuditor\CS2RuntimeAssetAuditor.csproj -c Release
 ```
 
-ビルド成果物は `CS2RuntimeAssetAuditor.dll`、必要な `0Harmony.dll`、ひとつの UI バンドルです。公式 `Mod.props` / `Mod.targets` がローカル Mod 配置を管理します。ビルド後、ゲームのプレイセットで **CS2 Runtime Asset Auditor** を有効にしてください。
+`CS2RuntimeAssetAuditor.csproj` はビルド後に `UI` の本番ビルドも実行します。そのため、事前に `npm ci` で UI の依存関係をインストールしておく必要があります。
+
+ビルド成果物には `CS2RuntimeAssetAuditor.dll`、必要な `0Harmony.dll`、UI バンドルが含まれます。公式 Toolchain の `Mod.props` / `Mod.targets` がローカル Mod への配置を管理します。
+
+### 6. ゲームで有効化
+
+ビルド後に Cities: Skylines II を起動し、使用するプレイセットで **CS2 Runtime Asset Auditor** を有効にしてください。ゲーム画面左上のランチャーアイコンからパネルを開ければ導入完了です。
 
 設定の保存 ID は `CS2RuntimeAssetAuditor` です。旧 Runtime Profiler / Asset Performance Auditor の保存設定は新しい ID には自動移行されないため、必要な値を設定画面で再指定してください。
 
