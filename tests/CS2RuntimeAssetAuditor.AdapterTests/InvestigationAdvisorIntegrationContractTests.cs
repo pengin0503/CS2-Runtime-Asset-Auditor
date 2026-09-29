@@ -36,6 +36,9 @@ namespace CS2RuntimeAssetAuditor.AdapterTests
                 Does.Contain("Gateway.Read(current.SettingId)"));
             Assert.That(Section(source, "private void ObserveSessionChange", "public bool DiagnoseCompletedCapture"),
                 Does.Not.Contain("Operations.Undo("));
+            Assert.That(Section(source, "private void ObserveSessionChange", "public bool DiagnoseCompletedCapture"),
+                Does.Contain("_experiment.Clear()"),
+                "A terminal experiment from the previous city must not be projected into the new city.");
         }
 
         private static string Section(string source, string first, string last)

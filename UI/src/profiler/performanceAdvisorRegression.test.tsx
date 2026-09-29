@@ -29,6 +29,7 @@ describe("Performance Advisor explicit settings actions", () => {
     expect(html).toContain("セッションの変更を元に戻す");
     expect(html).not.toContain("Apply All");
     expect(html).not.toContain("すべて適用");
+    expect(html).not.toContain("フォローアップのCaptureを開始");
   });
 
   it("exposes both explicit conflict choices without silently restoring an external change", () => {

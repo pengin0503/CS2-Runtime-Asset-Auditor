@@ -55,6 +55,7 @@ namespace CS2RuntimeAssetAuditor.Tests
             var json = PerformanceReportSerializer.Serialize(report);
             using var document = JsonDocument.Parse(json);
             var advisor = document.RootElement.GetProperty("advisor");
+            Assert.That(advisor.TryGetProperty("experiment", out _), Is.False);
             Assert.That(advisor.GetProperty("selectedCaptureId").GetString(), Is.EqualTo("follow-up"));
             Assert.That(advisor.GetProperty("baselineCaptureId").GetString(), Is.EqualTo("baseline"));
             Assert.That(advisor.GetProperty("diagnosis")[0].GetProperty("evidenceIds")[0].GetString(), Is.EqualTo("gpu.frame.ms"));

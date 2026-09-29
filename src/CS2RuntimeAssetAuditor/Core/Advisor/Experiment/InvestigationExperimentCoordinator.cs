@@ -8,6 +8,8 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor.Experiment
     {
         public InvestigationExperiment Current { get; private set; }
 
+        public void Clear() => Current = null;
+
         public InvestigationExperiment Start(string experimentId, string sessionId, string baselineCaptureId,
             AdvisorEvidenceSnapshot baselineEvidence, SettingRecommendation recommendation, DateTimeOffset startedAtUtc)
         {

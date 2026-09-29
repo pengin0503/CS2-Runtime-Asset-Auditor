@@ -495,11 +495,11 @@ git commit -m "feat: export investigation experiment results"
 **Interfaces:**
 - Produces evidence that the new orchestration is additive and ordinary Advisor remains intact.
 
-- [ ] **Step 1: Add regression tests**
+- [x] **Step 1: Add regression tests**
 
 Pin: ordinary manual baseline/follow-up comparison without experiment; ordinary Apply/Undo/UndoSession/conflict; automatic capture unchanged with no experiment; absent experiment does not affect Asset/unified export; ordinary Advisor `MultipleChanges` comparison remains allowed outside experiment mode.
 
-- [ ] **Step 2: Run regression suites**
+- [x] **Step 2: Run regression suites**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release
@@ -508,15 +508,15 @@ cd UI && npm test
 
 Expected: PASS.
 
-- [ ] **Step 3: Update README user-facing Advisor description**
+- [x] **Step 3: Update README user-facing Advisor description**
 
 Document: diagnose -> `Test change` -> explicit Apply -> wait/stabilize -> explicit follow-up capture -> observed comparison -> Keep/Undo. State that results are observational and do not prove causality. Keep implementation details out of README.
 
-- [ ] **Step 4: Create validation record**
+- [x] **Step 4: Create validation record**
 
 Create separate automated/manual tables. Include all 14 manual scenarios from spec section 22. Every unexecuted scenario is `NOT RUN`, never inferred PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add README.md tests/CS2RuntimeAssetAuditor.Tests/AdvisorComparisonTests.cs UI/src/profiler/performanceAdvisorRegression.test.tsx docs/validation/2026-09-29-investigation-experiment-validation.md

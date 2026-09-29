@@ -124,6 +124,20 @@ namespace CS2RuntimeAssetAuditor.Tests
             Assert.That(coordinator.Current.FollowUpWarnings, Is.EqualTo(new[] { "Capture finalized early after a safety stop." }));
         }
 
+        [Test]
+        public void Completed_experiment_can_be_cleared_when_its_city_session_ends()
+        {
+            var coordinator = Started();
+            coordinator.RecordApplied(Now);
+            coordinator.RecordFollowUpStarted("follow-up");
+            coordinator.CompleteFollowUp("follow-up", Evidence(20), Changes("shadow").Changes, Now.AddSeconds(10));
+            coordinator.Complete(InvestigationCompletionOutcome.Kept, Now.AddSeconds(11));
+
+            coordinator.Clear();
+
+            Assert.That(coordinator.Current, Is.Null);
+        }
+
         private static InvestigationExperimentCoordinator Started()
         {
             var coordinator = new InvestigationExperimentCoordinator();

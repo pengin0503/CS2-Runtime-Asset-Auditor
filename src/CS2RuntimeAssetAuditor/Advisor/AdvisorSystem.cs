@@ -76,7 +76,10 @@ namespace CS2RuntimeAssetAuditor.Advisor
             _observedSessionGeneration = generation;
             if (firstObservation)
                 return;
-            _experiment.Invalidate(InvestigationInvalidationReason.SessionChanged);
+            if (_experiment.Current?.IsActive == true)
+                _experiment.Invalidate(InvestigationInvalidationReason.SessionChanged);
+            else
+                _experiment.Clear();
             _coordinator?.Reset();
             _baselineEvidence = null;
         }

@@ -54,6 +54,20 @@ namespace CS2RuntimeAssetAuditor.Tests
             Assert.That(result.Metrics.Single().State, Is.EqualTo(ComparisonState.Improved));
         }
 
+        [Test]
+        public void Ordinary_manual_baseline_and_follow_up_work_without_an_experiment()
+        {
+            var baseline = Evidence(NamedMetricValue.Available("frame.p95.ms", 25,
+                MetricConfidence.Full, "Milliseconds"));
+            var followUp = Evidence(NamedMetricValue.Available("frame.p95.ms", 20,
+                MetricConfidence.Full, "Milliseconds"));
+            var result = AdvisorComparison.Compare(baseline, followUp, Array.Empty<SettingChange>());
+
+            Assert.That(result.MultipleChanges, Is.False);
+            Assert.That(result.ChangedSettingIds, Is.Empty);
+            Assert.That(result.Metrics.Single().State, Is.EqualTo(ComparisonState.Improved));
+        }
+
         private static AdvisorComparison Compare(string id, double before, double after)
             => AdvisorComparison.Compare(Evidence(NamedMetricValue.Available(id, before,
                     MetricConfidence.Full, id == "simulation.efficiency" ? "" : "Milliseconds")),
