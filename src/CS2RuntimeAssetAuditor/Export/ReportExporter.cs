@@ -45,7 +45,7 @@ namespace CS2RuntimeAssetAuditor.Export
             catch (Exception ex)
             {
                 Mod.Log.Error(ex, "Failed to export CS2 Runtime Asset Auditor report");
-                return ReportExportResult.Failed(PrivacySanitizer.Sanitize(ex.Message));
+                return ReportExportResult.Failed(ReportPrivacy.Sanitize(ex.Message));
             }
         }
     }

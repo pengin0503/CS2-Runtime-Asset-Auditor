@@ -12,7 +12,7 @@ namespace CS2RuntimeAssetAuditor.Export
         public ReportNamedValue(string name, string value) { Name = name; Value = value; }
         [DataMember(Name = "name", Order = 1)] public string Name { get; set; }
         [DataMember(Name = "value", Order = 2, EmitDefaultValue = false)] public string Value { get; set; }
-        internal ReportNamedValue SanitizedCopy() => new ReportNamedValue(PrivacySanitizer.Sanitize(Name), PrivacySanitizer.Sanitize(Value));
+        internal ReportNamedValue SanitizedCopy() => new ReportNamedValue(ReportPrivacy.Sanitize(Name), ReportPrivacy.Sanitize(Value));
     }
 
     [DataContract]
@@ -24,7 +24,7 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "confidence", Order = 4, EmitDefaultValue = false)] public string Confidence { get; set; }
         [DataMember(Name = "availability", Order = 5, EmitDefaultValue = false)] public string Availability { get; set; }
         [DataMember(Name = "note", Order = 6, EmitDefaultValue = false)] public string Note { get; set; }
-        internal ReportMetric SanitizedCopy() => new ReportMetric { Name = PrivacySanitizer.Sanitize(Name), Value = Value, Unit = PrivacySanitizer.Sanitize(Unit), Confidence = PrivacySanitizer.Sanitize(Confidence), Availability = PrivacySanitizer.Sanitize(Availability), Note = PrivacySanitizer.Sanitize(Note) };
+        internal ReportMetric SanitizedCopy() => new ReportMetric { Name = ReportPrivacy.Sanitize(Name), Value = Value, Unit = ReportPrivacy.Sanitize(Unit), Confidence = ReportPrivacy.Sanitize(Confidence), Availability = ReportPrivacy.Sanitize(Availability), Note = ReportPrivacy.Sanitize(Note) };
     }
 
     [DataContract]
@@ -46,7 +46,7 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "patchOwners", Order = 13)] public List<string> PatchOwners { get; set; }
         [DataMember(Name = "isAggregateContainer", Order = 14, EmitDefaultValue = false)] public bool IsAggregateContainer { get; set; }
         [DataMember(Name = "millisecondsPerFrame", Order = 15, EmitDefaultValue = false)] public double? MillisecondsPerFrame { get; set; }
-        internal ReportSystem SanitizedCopy() => new ReportSystem { MillisecondsPerFrame = MillisecondsPerFrame, SystemId = PrivacySanitizer.Sanitize(SystemId), OwnerAssembly = PrivacySanitizer.Sanitize(OwnerAssembly), ModName = PrivacySanitizer.Sanitize(ModName), Confidence = PrivacySanitizer.Sanitize(Confidence), CurrentMilliseconds = CurrentMilliseconds, MeanMilliseconds = MeanMilliseconds, MedianMilliseconds = MedianMilliseconds, P95Milliseconds = P95Milliseconds, P99Milliseconds = P99Milliseconds, MaxMilliseconds = MaxMilliseconds, TotalMilliseconds = TotalMilliseconds, Calls = Calls, PatchOwners = (PatchOwners ?? new List<string>()).Select(PrivacySanitizer.Sanitize).ToList(), IsAggregateContainer = IsAggregateContainer };
+        internal ReportSystem SanitizedCopy() => new ReportSystem { MillisecondsPerFrame = MillisecondsPerFrame, SystemId = ReportPrivacy.Sanitize(SystemId), OwnerAssembly = ReportPrivacy.Sanitize(OwnerAssembly), ModName = ReportPrivacy.Sanitize(ModName), Confidence = ReportPrivacy.Sanitize(Confidence), CurrentMilliseconds = CurrentMilliseconds, MeanMilliseconds = MeanMilliseconds, MedianMilliseconds = MedianMilliseconds, P95Milliseconds = P95Milliseconds, P99Milliseconds = P99Milliseconds, MaxMilliseconds = MaxMilliseconds, TotalMilliseconds = TotalMilliseconds, Calls = Calls, PatchOwners = (PatchOwners ?? new List<string>()).Select(ReportPrivacy.Sanitize).ToList(), IsAggregateContainer = IsAggregateContainer };
     }
 
     [DataContract]
@@ -78,7 +78,7 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "sessionId", Order = 23, EmitDefaultValue = false)] public string SessionId { get; set; }
         [DataMember(Name = "startedAtUtc", Order = 24, EmitDefaultValue = false)] public string StartedAtUtc { get; set; }
         [DataMember(Name = "completedAtUtc", Order = 25, EmitDefaultValue = false)] public string CompletedAtUtc { get; set; }
-        internal ReportCapture SanitizedCopy() => new ReportCapture { Id = PrivacySanitizer.Sanitize(Id), TriggerKind = PrivacySanitizer.Sanitize(TriggerKind), TriggeredAtSeconds = TriggeredAtSeconds, DurationSeconds = DurationSeconds, DiscoveredMarkers = DiscoveredMarkers, CapturedMarkers = CapturedMarkers, CoverageRatio = CoverageRatio, Batched = Batched, ProfilerOverheadShare = ProfilerOverheadShare, Warnings = (Warnings ?? new List<string>()).Select(PrivacySanitizer.Sanitize).ToList(), AttemptedMarkers = AttemptedMarkers, ActivatedMarkers = ActivatedMarkers, SampledMarkers = SampledMarkers, AttemptedRatio = AttemptedRatio, ActivatedRatio = ActivatedRatio, SampledRatio = SampledRatio, TriggerSelectedSpeed = TriggerSelectedSpeed, TriggerActualSpeed = TriggerActualSpeed, TriggerEfficiency = TriggerEfficiency, ProfilerMemoryBaselineBytes = ProfilerMemoryBaselineBytes, ProfilerMemoryPeakBytes = ProfilerMemoryPeakBytes, ProfilerMemoryDeltaBytes = ProfilerMemoryDeltaBytes, SessionId = PrivacySanitizer.Sanitize(SessionId), StartedAtUtc = StartedAtUtc, CompletedAtUtc = CompletedAtUtc };
+        internal ReportCapture SanitizedCopy() => new ReportCapture { Id = ReportPrivacy.Sanitize(Id), TriggerKind = ReportPrivacy.Sanitize(TriggerKind), TriggeredAtSeconds = TriggeredAtSeconds, DurationSeconds = DurationSeconds, DiscoveredMarkers = DiscoveredMarkers, CapturedMarkers = CapturedMarkers, CoverageRatio = CoverageRatio, Batched = Batched, ProfilerOverheadShare = ProfilerOverheadShare, Warnings = (Warnings ?? new List<string>()).Select(ReportPrivacy.Sanitize).ToList(), AttemptedMarkers = AttemptedMarkers, ActivatedMarkers = ActivatedMarkers, SampledMarkers = SampledMarkers, AttemptedRatio = AttemptedRatio, ActivatedRatio = ActivatedRatio, SampledRatio = SampledRatio, TriggerSelectedSpeed = TriggerSelectedSpeed, TriggerActualSpeed = TriggerActualSpeed, TriggerEfficiency = TriggerEfficiency, ProfilerMemoryBaselineBytes = ProfilerMemoryBaselineBytes, ProfilerMemoryPeakBytes = ProfilerMemoryPeakBytes, ProfilerMemoryDeltaBytes = ProfilerMemoryDeltaBytes, SessionId = ReportPrivacy.Sanitize(SessionId), StartedAtUtc = StartedAtUtc, CompletedAtUtc = CompletedAtUtc };
     }
 
     [DataContract]
@@ -89,7 +89,7 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "value", Order = 3)] public double Value { get; set; }
         [DataMember(Name = "confidence", Order = 4, EmitDefaultValue = false)] public string Confidence { get; set; }
         [DataMember(Name = "unit", Order = 5, EmitDefaultValue = false)] public string Unit { get; set; }
-        internal ReportTimelinePoint SanitizedCopy() => new ReportTimelinePoint { Unit = PrivacySanitizer.Sanitize(Unit), TimestampSeconds = TimestampSeconds, Metric = PrivacySanitizer.Sanitize(Metric), Value = Value, Confidence = PrivacySanitizer.Sanitize(Confidence) };
+        internal ReportTimelinePoint SanitizedCopy() => new ReportTimelinePoint { Unit = ReportPrivacy.Sanitize(Unit), TimestampSeconds = TimestampSeconds, Metric = ReportPrivacy.Sanitize(Metric), Value = Value, Confidence = ReportPrivacy.Sanitize(Confidence) };
     }
 
     [DataContract]
@@ -100,7 +100,7 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "confidence", Order = 3)] public string Confidence { get; set; }
         [DataMember(Name = "evidenceIds", Order = 4)] public List<string> EvidenceIds { get; set; } = new List<string>();
         [DataMember(Name = "rationale", Order = 5)] public string Rationale { get; set; }
-        internal ReportAdvisorObservation SanitizedCopy() => new ReportAdvisorObservation { Category = PrivacySanitizer.Sanitize(Category), Severity = PrivacySanitizer.Sanitize(Severity), Confidence = PrivacySanitizer.Sanitize(Confidence), EvidenceIds = (EvidenceIds ?? new List<string>()).Select(PrivacySanitizer.Sanitize).ToList(), Rationale = PrivacySanitizer.Sanitize(Rationale) };
+        internal ReportAdvisorObservation SanitizedCopy() => new ReportAdvisorObservation { Category = ReportPrivacy.Sanitize(Category), Severity = ReportPrivacy.Sanitize(Severity), Confidence = ReportPrivacy.Sanitize(Confidence), EvidenceIds = (EvidenceIds ?? new List<string>()).Select(ReportPrivacy.Sanitize).ToList(), Rationale = ReportPrivacy.Sanitize(Rationale) };
     }
 
     [DataContract]
@@ -116,7 +116,7 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "rationale", Order = 8)] public string Rationale { get; set; }
         [DataMember(Name = "capability", Order = 9)] public string Capability { get; set; }
         [DataMember(Name = "applyBehavior", Order = 10)] public string ApplyBehavior { get; set; }
-        internal ReportAdvisorRecommendation SanitizedCopy() => new ReportAdvisorRecommendation { SettingId = PrivacySanitizer.Sanitize(SettingId), CurrentValue = PrivacySanitizer.Sanitize(CurrentValue), RecommendedValue = PrivacySanitizer.Sanitize(RecommendedValue), Direction = PrivacySanitizer.Sanitize(Direction), Priority = PrivacySanitizer.Sanitize(Priority), Confidence = PrivacySanitizer.Sanitize(Confidence), EvidenceIds = (EvidenceIds ?? new List<string>()).Select(PrivacySanitizer.Sanitize).ToList(), Rationale = PrivacySanitizer.Sanitize(Rationale), Capability = PrivacySanitizer.Sanitize(Capability), ApplyBehavior = PrivacySanitizer.Sanitize(ApplyBehavior) };
+        internal ReportAdvisorRecommendation SanitizedCopy() => new ReportAdvisorRecommendation { SettingId = ReportPrivacy.Sanitize(SettingId), CurrentValue = ReportPrivacy.Sanitize(CurrentValue), RecommendedValue = ReportPrivacy.Sanitize(RecommendedValue), Direction = ReportPrivacy.Sanitize(Direction), Priority = ReportPrivacy.Sanitize(Priority), Confidence = ReportPrivacy.Sanitize(Confidence), EvidenceIds = (EvidenceIds ?? new List<string>()).Select(ReportPrivacy.Sanitize).ToList(), Rationale = ReportPrivacy.Sanitize(Rationale), Capability = ReportPrivacy.Sanitize(Capability), ApplyBehavior = ReportPrivacy.Sanitize(ApplyBehavior) };
     }
 
     [DataContract]
@@ -131,7 +131,7 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "writable", Order = 7)] public bool Writable { get; set; }
         [DataMember(Name = "currentlyVisible", Order = 8, EmitDefaultValue = false)] public bool? CurrentlyVisible { get; set; }
         [DataMember(Name = "currentlyEnabled", Order = 9, EmitDefaultValue = false)] public bool? CurrentlyEnabled { get; set; }
-        internal ReportAdvisorSetting SanitizedCopy() => new ReportAdvisorSetting { SettingId = PrivacySanitizer.Sanitize(SettingId), Category = PrivacySanitizer.Sanitize(Category), CurrentValue = PrivacySanitizer.Sanitize(CurrentValue), ValueKind = PrivacySanitizer.Sanitize(ValueKind), Capability = PrivacySanitizer.Sanitize(Capability), ApplyBehavior = PrivacySanitizer.Sanitize(ApplyBehavior), Writable = Writable, CurrentlyVisible = CurrentlyVisible, CurrentlyEnabled = CurrentlyEnabled };
+        internal ReportAdvisorSetting SanitizedCopy() => new ReportAdvisorSetting { SettingId = ReportPrivacy.Sanitize(SettingId), Category = ReportPrivacy.Sanitize(Category), CurrentValue = ReportPrivacy.Sanitize(CurrentValue), ValueKind = ReportPrivacy.Sanitize(ValueKind), Capability = ReportPrivacy.Sanitize(Capability), ApplyBehavior = ReportPrivacy.Sanitize(ApplyBehavior), Writable = Writable, CurrentlyVisible = CurrentlyVisible, CurrentlyEnabled = CurrentlyEnabled };
     }
 
     [DataContract]
@@ -143,7 +143,7 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "currentObservedValue", Order = 4)] public string CurrentObservedValue { get; set; }
         [DataMember(Name = "status", Order = 5)] public string Status { get; set; }
         [DataMember(Name = "appliedAtUtc", Order = 6)] public string AppliedAtUtc { get; set; }
-        internal ReportAdvisorChange SanitizedCopy() => new ReportAdvisorChange { SettingId = PrivacySanitizer.Sanitize(SettingId), OriginalValue = PrivacySanitizer.Sanitize(OriginalValue), AppliedValue = PrivacySanitizer.Sanitize(AppliedValue), CurrentObservedValue = PrivacySanitizer.Sanitize(CurrentObservedValue), Status = PrivacySanitizer.Sanitize(Status), AppliedAtUtc = PrivacySanitizer.Sanitize(AppliedAtUtc) };
+        internal ReportAdvisorChange SanitizedCopy() => new ReportAdvisorChange { SettingId = ReportPrivacy.Sanitize(SettingId), OriginalValue = ReportPrivacy.Sanitize(OriginalValue), AppliedValue = ReportPrivacy.Sanitize(AppliedValue), CurrentObservedValue = ReportPrivacy.Sanitize(CurrentObservedValue), Status = ReportPrivacy.Sanitize(Status), AppliedAtUtc = ReportPrivacy.Sanitize(AppliedAtUtc) };
     }
 
     [DataContract]
@@ -154,7 +154,7 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "followUpValue", Order = 3, EmitDefaultValue = false)] public double? FollowUpValue { get; set; }
         [DataMember(Name = "state", Order = 4)] public string State { get; set; }
         [DataMember(Name = "reason", Order = 5, EmitDefaultValue = false)] public string Reason { get; set; }
-        internal ReportAdvisorMetricComparison SanitizedCopy() => new ReportAdvisorMetricComparison { Id = PrivacySanitizer.Sanitize(Id), BaselineValue = BaselineValue, FollowUpValue = FollowUpValue, State = PrivacySanitizer.Sanitize(State), Reason = PrivacySanitizer.Sanitize(Reason) };
+        internal ReportAdvisorMetricComparison SanitizedCopy() => new ReportAdvisorMetricComparison { Id = ReportPrivacy.Sanitize(Id), BaselineValue = BaselineValue, FollowUpValue = FollowUpValue, State = ReportPrivacy.Sanitize(State), Reason = ReportPrivacy.Sanitize(Reason) };
     }
 
     [DataContract]
@@ -163,7 +163,7 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "metrics", Order = 1)] public List<ReportAdvisorMetricComparison> Metrics { get; set; } = new List<ReportAdvisorMetricComparison>();
         [DataMember(Name = "changedSettingIds", Order = 2)] public List<string> ChangedSettingIds { get; set; } = new List<string>();
         [DataMember(Name = "multipleChanges", Order = 3)] public bool MultipleChanges { get; set; }
-        internal ReportAdvisorComparison SanitizedCopy() => new ReportAdvisorComparison { Metrics = (Metrics ?? new List<ReportAdvisorMetricComparison>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), ChangedSettingIds = (ChangedSettingIds ?? new List<string>()).Select(PrivacySanitizer.Sanitize).ToList(), MultipleChanges = MultipleChanges };
+        internal ReportAdvisorComparison SanitizedCopy() => new ReportAdvisorComparison { Metrics = (Metrics ?? new List<ReportAdvisorMetricComparison>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), ChangedSettingIds = (ChangedSettingIds ?? new List<string>()).Select(ReportPrivacy.Sanitize).ToList(), MultipleChanges = MultipleChanges };
     }
 
     [DataContract]
@@ -178,7 +178,7 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "catalog", Order = 7)] public List<ReportAdvisorSetting> Catalog { get; set; } = new List<ReportAdvisorSetting>();
         [DataMember(Name = "changes", Order = 8)] public List<ReportAdvisorChange> Changes { get; set; } = new List<ReportAdvisorChange>();
         [DataMember(Name = "comparison", Order = 9, EmitDefaultValue = false)] public ReportAdvisorComparison Comparison { get; set; }
-        internal ReportAdvisor SanitizedCopy() => new ReportAdvisor { SelectedCaptureId = PrivacySanitizer.Sanitize(SelectedCaptureId), BaselineCaptureId = PrivacySanitizer.Sanitize(BaselineCaptureId), UnavailableReason = PrivacySanitizer.Sanitize(UnavailableReason), Evidence = (Evidence ?? new List<ReportMetric>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Diagnosis = (Diagnosis ?? new List<ReportAdvisorObservation>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Recommendations = (Recommendations ?? new List<ReportAdvisorRecommendation>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Catalog = (Catalog ?? new List<ReportAdvisorSetting>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Changes = (Changes ?? new List<ReportAdvisorChange>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Comparison = Comparison?.SanitizedCopy() };
+        internal ReportAdvisor SanitizedCopy() => new ReportAdvisor { SelectedCaptureId = ReportPrivacy.Sanitize(SelectedCaptureId), BaselineCaptureId = ReportPrivacy.Sanitize(BaselineCaptureId), UnavailableReason = ReportPrivacy.Sanitize(UnavailableReason), Evidence = (Evidence ?? new List<ReportMetric>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Diagnosis = (Diagnosis ?? new List<ReportAdvisorObservation>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Recommendations = (Recommendations ?? new List<ReportAdvisorRecommendation>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Catalog = (Catalog ?? new List<ReportAdvisorSetting>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Changes = (Changes ?? new List<ReportAdvisorChange>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Comparison = Comparison?.SanitizedCopy() };
     }
 
     [DataContract]
@@ -206,6 +206,6 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "advisor", Order = 18, EmitDefaultValue = false)] public ReportAdvisor Advisor { get; set; }
         [DataMember(Name = "cityName", Order = 100, EmitDefaultValue = false)] public string CityName { get; set; }
         public static PerformanceReport CreateForTest() => new PerformanceReport { ProfilerVersion = "test", CityName = null };
-        internal PerformanceReport SanitizedCopy() => new PerformanceReport { SchemaVersion = SchemaVersion <= 0 ? CurrentSchemaVersion : SchemaVersion, GameVersion = PrivacySanitizer.Sanitize(GameVersion), ProfilerVersion = PrivacySanitizer.Sanitize(ProfilerVersion), HardwareSummary = PrivacySanitizer.Sanitize(HardwareSummary), EnabledMods = (EnabledMods ?? new List<string>()).Select(PrivacySanitizer.Sanitize).ToList(), CaptureConfig = (CaptureConfig ?? new List<ReportNamedValue>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Capabilities = (Capabilities ?? new List<ReportNamedValue>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), GlobalMetrics = (GlobalMetrics ?? new List<ReportMetric>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Systems = (Systems ?? new List<ReportSystem>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), ModAttribution = (ModAttribution ?? new List<ReportNamedValue>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Pathfinding = (Pathfinding ?? new List<ReportMetric>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), DomainMetrics = (DomainMetrics ?? new List<ReportMetric>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Timeline = (Timeline ?? new List<ReportTimelinePoint>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), ProfilerOverhead = (ProfilerOverhead ?? new List<ReportMetric>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Warnings = (Warnings ?? new List<string>()).Select(PrivacySanitizer.Sanitize).ToList(), Captures = (Captures ?? new List<ReportCapture>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), BuildId = PrivacySanitizer.Sanitize(BuildId), Advisor = Advisor?.SanitizedCopy(), CityName = string.IsNullOrWhiteSpace(CityName) ? null : PrivacySanitizer.Sanitize(CityName) };
+        internal PerformanceReport SanitizedCopy() => new PerformanceReport { SchemaVersion = SchemaVersion <= 0 ? CurrentSchemaVersion : SchemaVersion, GameVersion = ReportPrivacy.Sanitize(GameVersion), ProfilerVersion = ReportPrivacy.Sanitize(ProfilerVersion), HardwareSummary = ReportPrivacy.Sanitize(HardwareSummary), EnabledMods = (EnabledMods ?? new List<string>()).Select(ReportPrivacy.Sanitize).ToList(), CaptureConfig = (CaptureConfig ?? new List<ReportNamedValue>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Capabilities = (Capabilities ?? new List<ReportNamedValue>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), GlobalMetrics = (GlobalMetrics ?? new List<ReportMetric>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Systems = (Systems ?? new List<ReportSystem>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), ModAttribution = (ModAttribution ?? new List<ReportNamedValue>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Pathfinding = (Pathfinding ?? new List<ReportMetric>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), DomainMetrics = (DomainMetrics ?? new List<ReportMetric>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Timeline = (Timeline ?? new List<ReportTimelinePoint>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), ProfilerOverhead = (ProfilerOverhead ?? new List<ReportMetric>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), Warnings = (Warnings ?? new List<string>()).Select(ReportPrivacy.Sanitize).ToList(), Captures = (Captures ?? new List<ReportCapture>()).Where(x => x != null).Select(x => x.SanitizedCopy()).ToList(), BuildId = ReportPrivacy.Sanitize(BuildId), Advisor = Advisor?.SanitizedCopy(), CityName = string.IsNullOrWhiteSpace(CityName) ? null : ReportPrivacy.Sanitize(CityName) };
     }
 }

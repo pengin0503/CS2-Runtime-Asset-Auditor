@@ -32,6 +32,6 @@ public class PerformanceReportSerializerTests
 
         Assert.That(json, Does.Not.Contain("Alice"));
         Assert.That(json, Does.Not.Contain(@"C:\\Users\\"));
-        Assert.That(json, Does.Contain("<user-path>"));
+        Assert.That(json, Does.Contain("[redacted-path]"));
     }
 }

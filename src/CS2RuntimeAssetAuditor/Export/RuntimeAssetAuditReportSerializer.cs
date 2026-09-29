@@ -17,7 +17,7 @@ namespace CS2RuntimeAssetAuditor.Export
             using (var stream = new MemoryStream())
             {
                 serializer.WriteObject(stream, report);
-                return SanitizeJsonStrings(Encoding.UTF8.GetString(stream.ToArray()), PrivacySanitizer.Sanitize);
+                return SanitizeJsonStrings(Encoding.UTF8.GetString(stream.ToArray()), ReportPrivacy.Sanitize);
             }
         }
 

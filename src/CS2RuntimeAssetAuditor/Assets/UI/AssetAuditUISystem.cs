@@ -23,7 +23,7 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
     {
         private readonly UiSnapshotBuilder _snapshotBuilder = new UiSnapshotBuilder();
         private readonly DiagnosticAggregator _diagnostics = new DiagnosticAggregator();
-        private readonly AuditReportBuilder _reportBuilder = new AuditReportBuilder(new CS2RuntimeAssetAuditor.Assets.Export.PrivacySanitizer());
+        private readonly AuditReportBuilder _reportBuilder = new AuditReportBuilder(CS2RuntimeAssetAuditor.Assets.Export.PrivacySanitizer.Shared);
         private readonly CsvSummaryExporter _csvExporter = new CsvSummaryExporter();
 
         private ValueBinding<string>? _snapshotBinding;
