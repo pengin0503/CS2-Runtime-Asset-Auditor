@@ -343,26 +343,26 @@ undoAdvisorExperiment(confirmed?: boolean): void
 
 - Add `AdvisorExperiment` projection with: `experimentId`, `state`, `validity`, `invalidationReason`, `baselineCaptureId`, `followUpCaptureId`, `settingId`, `settingDisplayName`, `originalValue`, `testedValue`, `changeAppliedAtUtc`, `stabilizationReadyAtUtc`, `completionOutcome`, `lastFailureReason`, `comparison`.
 
-- [ ] **Step 1: Write RED C#/TS projection tests**
+- [x] **Step 1: Write RED C#/TS projection tests**
 
 Assert no experiment projects `null`, never a default-looking observed object.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationUiProjectionTests
 cd UI && npm test -- investigationBindings.test.ts
 ```
 
-- [ ] **Step 3: Add backend triggers and `WriteAdvisorExperiment(...)`**
+- [x] **Step 3: Add backend triggers and `WriteAdvisorExperiment(...)`**
 
 Each trigger delegates to Task 3 and refreshes visible snapshot using existing Advisor-command patterns.
 
-- [ ] **Step 4: Add TS types/wrappers; set `EMPTY_ADVISOR.experiment = null`**
+- [x] **Step 4: Add TS types/wrappers; set `EMPTY_ADVISOR.experiment = null`**
 
 Do not rename any existing binding.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationUiProjectionTests
@@ -371,7 +371,7 @@ cd UI && npx tsc --noEmit -p . && npm test -- investigationBindings.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/CS2RuntimeAssetAuditor/UI/ProfilerUISystem.cs UI/src/profiler/bindings.ts tests/CS2RuntimeAssetAuditor.Tests/InvestigationUiProjectionTests.cs UI/src/profiler/investigationBindings.test.ts

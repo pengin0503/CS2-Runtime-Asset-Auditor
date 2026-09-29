@@ -7,6 +7,7 @@ using Colossal.UI.Binding;
 using CS2RuntimeAssetAuditor.Advisor;
 using CS2RuntimeAssetAuditor.Advisor.Settings;
 using CS2RuntimeAssetAuditor.Core.Advisor;
+using CS2RuntimeAssetAuditor.Core.Advisor.Experiment;
 using CS2RuntimeAssetAuditor.Collectors;
 using CS2RuntimeAssetAuditor.Core;
 using CS2RuntimeAssetAuditor.Export;
@@ -84,6 +85,12 @@ namespace CS2RuntimeAssetAuditor.UI
             AddBinding(new TriggerBinding<string, bool>(Group, "advisorUndo", AdvisorUndo));
             AddBinding(new TriggerBinding<bool>(Group, "advisorUndoSession", AdvisorUndoSession));
             AddBinding(new TriggerBinding<string, bool>(Group, "advisorResolveConflict", AdvisorResolveConflict));
+            AddBinding(new TriggerBinding<string, string, string>(Group, "advisorStartExperiment", AdvisorStartExperiment));
+            AddBinding(new TriggerBinding<bool>(Group, "advisorApplyExperiment", AdvisorApplyExperiment));
+            AddBinding(new TriggerBinding(Group, "advisorStartExperimentFollowUp", AdvisorStartExperimentFollowUp));
+            AddBinding(new TriggerBinding(Group, "advisorCancelExperiment", AdvisorCancelExperiment));
+            AddBinding(new TriggerBinding(Group, "advisorKeepExperiment", AdvisorKeepExperiment));
+            AddBinding(new TriggerBinding<bool>(Group, "advisorUndoExperiment", AdvisorUndoExperiment));
             AddBinding(new TriggerBinding(Group, "exportReport", ExportReport));
 
             _togglePanelAction = EnableTogglePanelAction();
@@ -258,6 +265,42 @@ namespace CS2RuntimeAssetAuditor.UI
         private void AdvisorResolveConflict(string id, bool restoreOriginal)
         {
             _advisor?.ResolveConflict(id, restoreOriginal);
+            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+        }
+
+        private void AdvisorStartExperiment(string captureId, string settingId, string proposedValue)
+        {
+            _advisor?.StartExperiment(captureId, settingId, proposedValue);
+            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+        }
+
+        private void AdvisorApplyExperiment(bool confirmed)
+        {
+            _advisor?.ApplyExperimentChange(confirmed);
+            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+        }
+
+        private void AdvisorStartExperimentFollowUp()
+        {
+            _advisor?.StartExperimentFollowUpCapture();
+            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+        }
+
+        private void AdvisorCancelExperiment()
+        {
+            _advisor?.CancelExperiment();
+            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+        }
+
+        private void AdvisorKeepExperiment()
+        {
+            _advisor?.KeepExperimentChange();
+            if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
+        }
+
+        private void AdvisorUndoExperiment(bool confirmed)
+        {
+            _advisor?.UndoExperimentChange(confirmed);
             if (_panelVisible) { RefreshSnapshot(); _snapshotBinding.Update(); }
         }
 
@@ -515,27 +558,62 @@ namespace CS2RuntimeAssetAuditor.UI
             writer.PropertyName("lastAction");
             WriteAdvisorAction(writer, state.LastAction);
             writer.PropertyName("comparison");
-            if (state.Comparison == null) writer.WriteNull();
-            else
+            WriteAdvisorComparison(writer, state.Comparison);
+            writer.PropertyName("experiment");
+            WriteAdvisorExperiment(writer, state.Experiment);
+            writer.TypeEnd();
+        }
+
+        private static void WriteAdvisorExperiment(IJsonWriter writer, InvestigationExperiment experiment)
+        {
+            if (experiment == null)
             {
-                writer.TypeBegin("CS2RuntimeAssetAuditor.AdvisorComparison");
-                writer.PropertyName("multipleChanges"); writer.Write(state.Comparison.MultipleChanges);
-                writer.PropertyName("changedSettingIds"); WriteStrings(writer, state.Comparison.ChangedSettingIds);
-                writer.PropertyName("metrics");
-                writer.ArrayBegin((uint)state.Comparison.Metrics.Count);
-                foreach (var metric in state.Comparison.Metrics)
-                {
-                    writer.TypeBegin("CS2RuntimeAssetAuditor.AdvisorMetricComparison");
-                    writer.PropertyName("id"); writer.Write(metric.Id);
-                    writer.PropertyName("baselineValue"); WriteNullable(writer, metric.BaselineValue);
-                    writer.PropertyName("followUpValue"); WriteNullable(writer, metric.FollowUpValue);
-                    writer.PropertyName("state"); writer.Write(metric.State.ToString());
-                    writer.PropertyName("reason"); writer.Write(metric.Reason ?? string.Empty);
-                    writer.TypeEnd();
-                }
-                writer.ArrayEnd();
+                writer.WriteNull();
+                return;
+            }
+            writer.TypeBegin("CS2RuntimeAssetAuditor.AdvisorExperiment");
+            writer.PropertyName("experimentId"); writer.Write(experiment.ExperimentId);
+            writer.PropertyName("state"); writer.Write(experiment.State.ToString());
+            writer.PropertyName("validity"); writer.Write(experiment.Validity.ToString());
+            writer.PropertyName("invalidationReason"); writer.Write(experiment.InvalidationReason.ToString());
+            writer.PropertyName("baselineCaptureId"); writer.Write(experiment.BaselineCaptureId);
+            writer.PropertyName("followUpCaptureId"); writer.Write(experiment.FollowUpCaptureId ?? string.Empty);
+            writer.PropertyName("settingId"); writer.Write(experiment.SettingId);
+            writer.PropertyName("settingDisplayName"); writer.Write(experiment.SettingDisplayName);
+            writer.PropertyName("originalValue"); writer.Write(experiment.OriginalValue);
+            writer.PropertyName("testedValue"); writer.Write(experiment.TestedValue);
+            writer.PropertyName("changeAppliedAtUtc");
+            if (experiment.ChangeAppliedAtUtc.HasValue) writer.Write(experiment.ChangeAppliedAtUtc.Value.ToString("O"));
+            else writer.WriteNull();
+            writer.PropertyName("stabilizationReadyAtUtc");
+            if (experiment.StabilizationReadyAtUtc.HasValue) writer.Write(experiment.StabilizationReadyAtUtc.Value.ToString("O"));
+            else writer.WriteNull();
+            writer.PropertyName("completionOutcome"); writer.Write(experiment.CompletionOutcome.ToString());
+            writer.PropertyName("lastFailureReason"); writer.Write(experiment.LastFailureReason ?? string.Empty);
+            writer.PropertyName("followUpWarnings"); WriteStrings(writer, experiment.FollowUpWarnings);
+            writer.PropertyName("comparison"); WriteAdvisorComparison(writer, experiment.Comparison);
+            writer.TypeEnd();
+        }
+
+        private static void WriteAdvisorComparison(IJsonWriter writer, AdvisorComparison comparison)
+        {
+            if (comparison == null) { writer.WriteNull(); return; }
+            writer.TypeBegin("CS2RuntimeAssetAuditor.AdvisorComparison");
+            writer.PropertyName("multipleChanges"); writer.Write(comparison.MultipleChanges);
+            writer.PropertyName("changedSettingIds"); WriteStrings(writer, comparison.ChangedSettingIds);
+            writer.PropertyName("metrics");
+            writer.ArrayBegin((uint)comparison.Metrics.Count);
+            foreach (var metric in comparison.Metrics)
+            {
+                writer.TypeBegin("CS2RuntimeAssetAuditor.AdvisorMetricComparison");
+                writer.PropertyName("id"); writer.Write(metric.Id);
+                writer.PropertyName("baselineValue"); WriteNullable(writer, metric.BaselineValue);
+                writer.PropertyName("followUpValue"); WriteNullable(writer, metric.FollowUpValue);
+                writer.PropertyName("state"); writer.Write(metric.State.ToString());
+                writer.PropertyName("reason"); writer.Write(metric.Reason ?? string.Empty);
                 writer.TypeEnd();
             }
+            writer.ArrayEnd();
             writer.TypeEnd();
         }
 

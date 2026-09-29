@@ -137,7 +137,27 @@ export interface AdvisorUiState {
   recommendations: AdvisorRecommendation[];
   changes?: AdvisorChange[];
   comparison?: AdvisorComparison | null;
+  experiment?: AdvisorExperiment | null;
   lastAction?: AdvisorAction | null;
+}
+
+export interface AdvisorExperiment {
+  experimentId: string;
+  state: "BaselineReady" | "AwaitingApplyConfirmation" | "AwaitingFollowUp" | "FollowUpCapturing" | "Completed" | "Cancelled" | "Invalidated";
+  validity: "Valid" | "Invalidated";
+  invalidationReason: string;
+  baselineCaptureId: string;
+  followUpCaptureId: string;
+  settingId: string;
+  settingDisplayName: string;
+  originalValue: string;
+  testedValue: string;
+  changeAppliedAtUtc: string | null;
+  stabilizationReadyAtUtc: string | null;
+  completionOutcome: "None" | "Kept" | "Undone" | "Cancelled";
+  lastFailureReason: string;
+  followUpWarnings: string[];
+  comparison: AdvisorComparison | null;
 }
 
 /** Outcome of the latest Apply/Undo/conflict action, so no button press is silent. */
@@ -171,7 +191,7 @@ export interface AdvisorChange {
 
 export const EMPTY_ADVISOR: AdvisorUiState = {
   available: false, unavailableReason: "", selectedCaptureId: "", baselineCaptureId: "",
-  catalog: [], observations: [], recommendations: [], changes: [], comparison: null, lastAction: null
+  catalog: [], observations: [], recommendations: [], changes: [], comparison: null, experiment: null, lastAction: null
 };
 
 export interface UiSnapshot {
@@ -279,4 +299,11 @@ export const advisorUndo = (id: string, confirmed = false) => trigger(GROUP, "ad
 export const advisorUndoSession = (confirmed = false) => trigger(GROUP, "advisorUndoSession", confirmed);
 export const advisorResolveConflict = (id: string, restoreOriginal: boolean) =>
   trigger(GROUP, "advisorResolveConflict", id, restoreOriginal);
+export const startAdvisorExperiment = (captureId: string, settingId: string, proposedValue: string): void =>
+  trigger(GROUP, "advisorStartExperiment", captureId, settingId, proposedValue);
+export const applyAdvisorExperiment = (confirmed = false): void => trigger(GROUP, "advisorApplyExperiment", confirmed);
+export const startAdvisorExperimentFollowUp = (): void => trigger(GROUP, "advisorStartExperimentFollowUp");
+export const cancelAdvisorExperiment = (): void => trigger(GROUP, "advisorCancelExperiment");
+export const keepAdvisorExperiment = (): void => trigger(GROUP, "advisorKeepExperiment");
+export const undoAdvisorExperiment = (confirmed = false): void => trigger(GROUP, "advisorUndoExperiment", confirmed);
 export const exportReport = () => trigger(GROUP, "exportReport");
