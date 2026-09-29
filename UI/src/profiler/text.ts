@@ -55,10 +55,17 @@ const METRIC_REASONS_JA: Record<string, string> = {
   "A prior verified pending sample is required.": "比較には直前の検証済み待機サンプルが必要です。",
   "No verified runtime request counter is available for this game build.": "このゲーム環境では検証済みの要求カウンターを取得できません。",
   "No verified runtime result counter is available for this game build.": "このゲーム環境では検証済みの結果カウンターを取得できません。",
+  "The game keeps no request counter; resultsPerSecond counts completed queries.": "ゲームは要求の件数を記録していません。完了したクエリの数は resultsPerSecond を見てください。",
+  "A prior query-statistics sample is required.": "比較には直前のクエリ統計のサンプルが必要です。",
+  "The game reset its query statistics (a save was loaded); rates resume at the next sample.": "セーブの読み込みでゲームがクエリ統計をリセットしました。次のサンプルから再開します。",
+  "No pathfind query completed in this interval.": "この区間に完了した経路探索クエリはありません。",
+  "One of the three action-type queues is unavailable.": "3つのアクション種別キューのいずれかを取得できません。",
   "m_PathfindActions is not available in this runtime build.": "このゲーム環境では m_PathfindActions を取得できません。",
   "m_PathfindActions returned null.": "m_PathfindActions が null を返しました。",
   "ActionList layout is not verified in this runtime build.": "このゲーム環境では ActionList の構造を検証できていません。",
   "ActionList m_Items is not a countable collection.": "ActionList の m_Items は件数を取得できるコレクションではありません。",
+  "ActionList layout (List m_Items, int m_NextIndex) is not present in this runtime build.": "このゲーム環境には ActionList の構造（List m_Items、int m_NextIndex）がありません。",
+  "ActionList m_NextIndex is outside its item list.": "ActionList の m_NextIndex が項目リストの範囲外です。",
   "unsupported: no verified generic service-vehicle component is available for this game build.": "未対応: このゲーム環境では検証済みの汎用サービス車両コンポーネントを取得できません。"
 };
 
@@ -66,6 +73,7 @@ const METRIC_REASON_RULES_JA: Rule[] = [
   [/^Runtime field for '(.+)' is not available\.$/, m => `ランタイムフィールド「${m[1]}」を取得できません。`],
   [/^Runtime field for '(.+)' is not a countable collection\.$/, m => `ランタイムフィールド「${m[1]}」は件数を取得できるコレクションではありません。`],
   [/^Runtime method for '(.+)' is not available\.$/, m => `ランタイムメソッド「${m[1]}」を取得できません。`],
+  [/^Runtime property for '(.+)' is not available\.$/, m => `ランタイムプロパティ「${m[1]}」を取得できません。`],
   [/^Reading pathfind action queue failed: (.+)$/, m => `経路探索アクションキューの読み取りに失敗しました: ${m[1]}`],
   [/^Reading '(.+)' failed: (.+)$/, m => `「${m[1]}」の読み取りに失敗しました: ${m[2]}`],
   [/^Counting (.+) failed: (.+)$/, m => `「${m[1]}」の件数取得に失敗しました: ${m[2]}`],

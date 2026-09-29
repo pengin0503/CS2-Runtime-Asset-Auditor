@@ -120,7 +120,7 @@ export const en = {
 
   // Pathfinding
   "pathfinding.empty": "No verified pathfinding counters are available from the current runtime.",
-  "pathfinding.explainer": "These are supporting indicators. Queue growth or throughput changes alone do not establish a cause. pendingPathfindActions counts requests still waiting for a worker; inFlightPathfindActions counts requests handed to workers and awaiting results.",
+  "pathfinding.explainer": "These are supporting indicators. Queue growth or throughput changes alone do not establish a cause. pendingPathfindActions counts requests still waiting for a worker; inFlightPathfindActions counts requests handed to workers and awaiting results. The game queues action types in three queues, processed in order: highPriorityActionTypeQueue, modificationActionTypeQueue (path-graph changes) and actionTypeQueue (normal priority, every action kind, not pathfinding alone). resultsPerSecond and the per-type rates count queries the game completed (its own query statistics); systemGraphTraversalPerSecond lists the requesting systems whose queries explored the most of the path graph.",
 
   // Timeline
   "timeline.empty": "No retained timeline history yet. History is never fabricated from single-point counters.",
@@ -697,7 +697,7 @@ export const ja: Record<MessageKey, string> = {
   "mods.noBreakdown": "このキャプチャには内訳がありません。",
 
   "pathfinding.empty": "現在のランタイムから検証済みの経路探索カウンターを取得できません。",
-  "pathfinding.explainer": "これらは補助的な指標です。キューの増加や処理量の変化だけで原因と断定しません。pendingPathfindActions はワーカーへの割り当てを待っている要求の数、inFlightPathfindActions はワーカーに渡して結果を待っている要求の数です。",
+  "pathfinding.explainer": "これらは補助的な指標です。キューの増加や処理量の変化だけで原因と断定しません。pendingPathfindActions はワーカーへの割り当てを待っている要求の数、inFlightPathfindActions はワーカーに渡して結果を待っている要求の数です。ゲームはアクション種別を3つのキューに分け、highPriorityActionTypeQueue（高優先度）、modificationActionTypeQueue（経路グラフの変更）、actionTypeQueue（通常優先度。経路探索以外のアクションも含む）の順に処理します。resultsPerSecond と種別ごとの値は、ゲーム自身のクエリ統計にある完了したクエリの数です。systemGraphTraversalPerSecond は経路グラフを多く探索した要求元システムを示します。",
 
   "timeline.empty": "保持されているタイムライン履歴はまだありません。単一時点のカウンターから履歴を捏造することはありません。",
   "timeline.chartAria": "プロファイラーのタイムライン",

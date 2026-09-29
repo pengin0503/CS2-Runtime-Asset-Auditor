@@ -12,21 +12,37 @@ namespace CS2RuntimeAssetAuditor.Collectors
         private readonly object _queueSystem;
         private readonly FieldInfo _pathfindActions;
         private readonly FieldInfo _actionTypes;
+        private readonly FieldInfo _highPriorityTypes;
+        private readonly FieldInfo _modificationTypes;
         private readonly FieldInfo _workerActions;
         private readonly MethodInfo _getGraphSize;
         private readonly MethodInfo _getGraphMemory;
         private readonly MethodInfo _getQueryMemory;
+        private readonly Func<IReadOnlyList<PathfindQueryStat>> _queryStats;
+        private readonly Func<int> _pendingRequests;
+        private readonly PathfindQueryStatsTracker _queryTracker = new PathfindQueryStatsTracker();
         private int? _previousPending;
         private double? _previousTimestamp;
 
-        public PathfindingCollector(object queueSystem)
+        /// <param name="queryStats">
+        /// Reads <c>PathfindResultSystem.queryStats</c>; null when it is not available, which leaves the result rates
+        /// unavailable.
+        /// </param>
+        /// <param name="pendingRequests">Reads <c>PathfindResultSystem.pendingRequestCount</c>.</param>
+        public PathfindingCollector(object queueSystem,
+            Func<IReadOnlyList<PathfindQueryStat>> queryStats = null,
+            Func<int> pendingRequests = null)
         {
             _queueSystem = queueSystem;
+            _queryStats = queryStats;
+            _pendingRequests = pendingRequests;
             var type = queueSystem?.GetType();
             if (type != null)
             {
                 _pathfindActions = type.GetField("m_PathfindActions", Flags);
                 _actionTypes = type.GetField("m_ActionTypes", Flags);
+                _highPriorityTypes = type.GetField("m_HighPriorityTypes", Flags);
+                _modificationTypes = type.GetField("m_ModificationTypes", Flags);
                 _workerActions = type.GetField("m_WorkerActions", Flags);
                 _getGraphSize = type.GetMethod("GetGraphSize", Flags, null, Type.EmptyTypes, null);
                 _getGraphMemory = FindMemoryMethod(type, "GetGraphMemory");
@@ -45,7 +61,20 @@ namespace CS2RuntimeAssetAuditor.Collectors
             ReadPathfindActions(out var pending, out var inFlight);
             metrics.Add(pending);
             metrics.Add(inFlight);
-            metrics.Add(TryReadCollectionCount("actionTypeQueue", _actionTypes));
+            // PathfindQueueSystem.Enqueue (1.6.2f1) files each action type in one of three queues, processed in this
+            // order: high priority, path-graph modifications (create/update/delete), then everything else.
+            // actionTypeQueue is that last, normal-priority queue of every action kind (pathfind, coverage,
+            // availability, density, time, flow), not the total and not pathfinding alone.
+            var highPriority = TryReadCollectionCount("highPriorityActionTypeQueue", _highPriorityTypes);
+            var modification = TryReadCollectionCount("modificationActionTypeQueue", _modificationTypes);
+            var normal = TryReadCollectionCount("actionTypeQueue", _actionTypes);
+            metrics.Add(highPriority);
+            metrics.Add(modification);
+            metrics.Add(normal);
+            metrics.Add(highPriority.Value.HasValue && modification.Value.HasValue && normal.Value.HasValue
+                ? NamedMetricValue.Available("totalActionTypeQueue",
+                    highPriority.Value.Value + modification.Value.Value + normal.Value.Value, MetricConfidence.Indirect)
+                : NamedMetricValue.Unavailable("totalActionTypeQueue", "One of the three action-type queues is unavailable."));
             metrics.Add(TryReadCollectionCount("workerActionQueue", _workerActions));
             metrics.Add(TryInvokeScalar("graphSize", _getGraphSize));
             AddMemoryMetrics(metrics, "graphMemory", _getGraphMemory);
@@ -64,12 +93,8 @@ namespace CS2RuntimeAssetAuditor.Collectors
                 metrics.Add(NamedMetricValue.Unavailable("queueDeltaPerSecond", "A prior verified pending sample is required."));
             }
 
-            metrics.Add(NamedMetricValue.Unavailable(
-                "requestsPerSecond",
-                "No verified runtime request counter is available for this game build."));
-            metrics.Add(NamedMetricValue.Unavailable(
-                "resultsPerSecond",
-                "No verified runtime result counter is available for this game build."));
+            metrics.Add(NamedMetricValue.Unavailable("requestsPerSecond", NoRequestCounter));
+            AddQueryMetrics(metrics, timestampSeconds);
 
             if (pending.Availability == MetricAvailability.Available && pending.Value.HasValue)
             {
@@ -126,6 +151,40 @@ namespace CS2RuntimeAssetAuditor.Collectors
 
             pending = NamedMetricValue.Unavailable(pendingId, reason);
             inFlight = NamedMetricValue.Unavailable(inFlightId, reason);
+        }
+
+        // The game counts completed queries per requesting system but keeps no counter of submitted requests; a
+        // request rate derived from results and the pending count would be biased because SkipPathfind queries are
+        // not counted as results.
+        internal const string NoRequestCounter =
+            "The game keeps no request counter; resultsPerSecond counts completed queries.";
+
+        private void AddQueryMetrics(List<NamedMetricValue> metrics, double timestampSeconds)
+        {
+            if (_pendingRequests == null)
+            {
+                metrics.Add(NamedMetricValue.Unavailable("pendingRequestCount", "Runtime property for 'pendingRequestCount' is not available."));
+            }
+            else
+            {
+                try { metrics.Add(NamedMetricValue.Available("pendingRequestCount", _pendingRequests(), MetricConfidence.Full)); }
+                catch (Exception ex) { metrics.Add(NamedMetricValue.Unavailable("pendingRequestCount", $"Reading 'pendingRequestCount' failed: {RootMessage(ex)}")); }
+            }
+
+            if (_queryStats == null)
+            {
+                metrics.Add(NamedMetricValue.Unavailable("resultsPerSecond", "Runtime property for 'queryStats' is not available."));
+                return;
+            }
+
+            IReadOnlyList<PathfindQueryStat> stats;
+            try { stats = _queryStats() ?? Array.Empty<PathfindQueryStat>(); }
+            catch (Exception ex)
+            {
+                metrics.Add(NamedMetricValue.Unavailable("resultsPerSecond", $"Reading 'queryStats' failed: {RootMessage(ex)}"));
+                return;
+            }
+            metrics.AddRange(_queryTracker.Sample(timestampSeconds, stats));
         }
 
         private static bool TryGetCollectionLength(object value, out int length)

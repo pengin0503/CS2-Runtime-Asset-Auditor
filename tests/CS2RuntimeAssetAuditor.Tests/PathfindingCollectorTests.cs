@@ -146,7 +146,7 @@ public class PathfindingCollectorTests
     }
 
     [Test]
-    public void Unverified_rate_counters_are_explicitly_unavailable()
+    public void Rates_without_a_game_counter_are_explicitly_unavailable()
     {
         var collector = new PathfindingCollector(new FakePathfindQueueSystem(1, 0, 0, 0));
         collector.Sample(1);
@@ -156,7 +156,9 @@ public class PathfindingCollectorTests
         Assert.That(requests.Availability, Is.EqualTo(MetricAvailability.Unavailable));
         Assert.That(results.Availability, Is.EqualTo(MetricAvailability.Unavailable));
         Assert.That(requests.Value, Is.Null);
-        Assert.That(requests.Reason, Does.Contain("verified"));
+        // The game has no request counter; results need PathfindResultSystem.queryStats, not given here.
+        Assert.That(requests.Reason, Does.Contain("no request counter"));
+        Assert.That(results.Reason, Does.Contain("queryStats"));
     }
 
     [Test]

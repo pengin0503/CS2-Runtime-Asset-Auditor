@@ -56,7 +56,34 @@ namespace CS2RuntimeAssetAuditor.Collectors
 
             _entities = new EntityMetricsCollector(this, samplePeriodSeconds: 2d);
             var queueSystem = World.GetOrCreateSystemManaged<PathfindQueueSystem>();
-            _pathfinding = new PathfindingCollector(queueSystem);
+            var resultSystem = World.GetOrCreateSystemManaged<PathfindResultSystem>();
+            _pathfinding = new PathfindingCollector(
+                queueSystem,
+                () => ReadQueryStats(resultSystem),
+                () => resultSystem.pendingRequestCount);
+        }
+
+        // PathfindResultSystem.queryStats is updated on the main thread by PathfindResultSystem itself, so reading it
+        // from this UI-phase system does not race with it. It holds one entry per requesting system, query type and
+        // origin/destination pair (a few dozen).
+        private static IReadOnlyList<PathfindQueryStat> ReadQueryStats(PathfindResultSystem resultSystem)
+        {
+            var stats = resultSystem.queryStats;
+            if (stats == null)
+                return Array.Empty<PathfindQueryStat>();
+            var result = new List<PathfindQueryStat>(stats.Count);
+            foreach (var pair in stats)
+            {
+                result.Add(new PathfindQueryStat(
+                    pair.Key.m_System?.GetType().FullName ?? "unknown",
+                    pair.Key.m_QueryType.ToString(),
+                    pair.Key.m_OriginType.ToString(),
+                    pair.Key.m_DestinationType.ToString(),
+                    pair.Value.m_QueryCount,
+                    pair.Value.m_SuccessCount,
+                    pair.Value.m_GraphTraversal));
+            }
+            return result;
         }
 
         protected override void OnUpdate()
