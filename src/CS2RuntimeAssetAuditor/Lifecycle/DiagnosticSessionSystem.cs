@@ -19,11 +19,33 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
         {
             base.OnGamePreload(purpose, mode);
             Mod.Sessions.Close();
+            if (mode == GameMode.Game)
+            {
+                Mod.LoadingTrace.Begin(DateTimeOffset.UtcNow, purpose.ToString());
+                World.GetOrCreateSystemManaged<LoadingMetricsSystem>().Begin();
+            }
+            else
+            {
+                Mod.LoadingTrace.Clear();
+            }
+        }
+
+        protected override void OnGameLoaded(Purpose purpose, GameMode mode)
+        {
+            base.OnGameLoaded(purpose, mode);
+            if (mode == GameMode.Game && Mod.LoadingTrace.IsLoading)
+                Mod.LoadingTrace.Mark(purpose == Purpose.LoadGame ? "saveRestored" : "gameLoaded",
+                    DateTimeOffset.UtcNow);
         }
 
         protected override void OnGameLoadingComplete(Purpose purpose, GameMode mode)
         {
             base.OnGameLoadingComplete(purpose, mode);
+            if (mode == GameMode.Game)
+            {
+                World.GetOrCreateSystemManaged<LoadingMetricsSystem>().CaptureNow();
+                Mod.LoadingTrace.Complete(DateTimeOffset.UtcNow, cityOperable: true);
+            }
             if (mode == GameMode.Game)
             {
                 var context = Mod.Sessions.Begin(UnityEngine.Application.version, BuildIdentityProvider.Current, DateTimeOffset.UtcNow);

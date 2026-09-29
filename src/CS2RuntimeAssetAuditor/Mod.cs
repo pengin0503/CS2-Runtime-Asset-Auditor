@@ -1,6 +1,7 @@
 using Colossal.IO.AssetDatabase;
 using Colossal.Logging;
 using CS2RuntimeAssetAuditor.Collectors;
+using CS2RuntimeAssetAuditor.Core.Loading;
 using CS2RuntimeAssetAuditor.Assets.GameIntegration;
 using CS2RuntimeAssetAuditor.Assets.UI;
 using CS2RuntimeAssetAuditor.Advisor;
@@ -21,6 +22,8 @@ namespace CS2RuntimeAssetAuditor
         public const string Id = "CS2RuntimeAssetAuditor";
         public static readonly ILog Log = LogManager.GetLogger($"{nameof(CS2RuntimeAssetAuditor)}.{nameof(Mod)}").SetShowsErrorsInUI(false);
         public static Setting Settings { get; private set; }
+        private static readonly LoadingTraceRecorder _loadingTrace = new LoadingTraceRecorder();
+        public static LoadingTraceRecorder LoadingTrace => _loadingTrace;
         private static readonly DiagnosticSessionRegistry _sessions = new DiagnosticSessionRegistry();
         private static readonly DiagnosticWorkCoordinator _workCoordinator = new DiagnosticWorkCoordinator();
 
@@ -41,6 +44,7 @@ namespace CS2RuntimeAssetAuditor
 
         public void OnLoad(UpdateSystem updateSystem)
         {
+            _loadingTrace.MarkModStarted(System.DateTimeOffset.UtcNow);
             var version = typeof(Mod).Assembly.GetName().Version?.ToString() ?? "unknown";
             Log.Info($"{nameof(OnLoad)} version={version} build={BuildIdentityProvider.Current}");
 
@@ -63,6 +67,7 @@ namespace CS2RuntimeAssetAuditor
             Settings.RegisterInOptionsUI();
 
             updateSystem.UpdateAt<DiagnosticSessionSystem>(SystemUpdatePhase.MainLoop);
+            updateSystem.UpdateAt<LoadingMetricsSystem>(SystemUpdatePhase.MainLoop);
             updateSystem.UpdateAt<AssetAuditSystem>(SystemUpdatePhase.MainLoop);
             updateSystem.UpdateAt<GlobalMetricsCollector>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAt<DomainMetricsSystem>(SystemUpdatePhase.UIUpdate);

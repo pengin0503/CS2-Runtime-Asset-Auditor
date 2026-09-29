@@ -37,6 +37,7 @@
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Collectors/PathfindingCollector.cs" Link="Collectors/PathfindingCollector.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Collectors/EntityMetricsCollector.cs" Link="Collectors/EntityMetricsCollector.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/ReportPrivacy.cs" Link="Export/ReportPrivacy.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/ReportLoadingTrace.cs" Link="Export/ReportLoadingTrace.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/RuntimeAssetAuditReport.cs" Link="Export/RuntimeAssetAuditReport.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/RuntimeAssetAuditReportBuilder.cs" Link="Export/RuntimeAssetAuditReportBuilder.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/RuntimeAssetAuditReportSerializer.cs" Link="Export/RuntimeAssetAuditReportSerializer.cs" />

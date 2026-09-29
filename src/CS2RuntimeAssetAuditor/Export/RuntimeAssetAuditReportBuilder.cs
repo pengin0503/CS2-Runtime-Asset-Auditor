@@ -10,7 +10,8 @@ namespace CS2RuntimeAssetAuditor.Export
     {
         public static RuntimeAssetAuditReport Build(PerformanceReport runtime, AuditReport assets,
             DiagnosticSessionContext session, DateTimeOffset generatedAtUtc,
-            IEnumerable<DiagnosticEvidenceLink> evidenceLinks = null)
+            IEnumerable<DiagnosticEvidenceLink> evidenceLinks = null,
+            ReportLoadingTrace loading = null)
         {
             // Without a loaded city there is no session identity, so nothing can be linked as same-session evidence.
             var runtimeCopy = runtime?.SanitizedCopy();
@@ -19,6 +20,7 @@ namespace CS2RuntimeAssetAuditor.Export
             return new RuntimeAssetAuditReport
             {
                 GeneratedAtUtc = generatedAtUtc.ToUniversalTime().ToString("O"),
+                Loading = loading,
                 Session = session == null ? null : new ReportSession
                 {
                     SessionId = session.SessionId,

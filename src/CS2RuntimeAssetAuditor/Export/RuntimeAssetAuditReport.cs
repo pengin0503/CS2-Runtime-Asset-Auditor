@@ -19,6 +19,7 @@ namespace CS2RuntimeAssetAuditor.Export
         [DataMember(Name = "evidenceLinks", Order = 8)] public List<ReportEvidenceLink> EvidenceLinks { get; set; } = new List<ReportEvidenceLink>();
         [DataMember(Name = "capabilities", Order = 9)] public ReportCapabilities Capabilities { get; set; } = new ReportCapabilities();
         [DataMember(Name = "diagnostics", Order = 10)] public ReportDiagnostics Diagnostics { get; set; } = new ReportDiagnostics();
+        [DataMember(Name = "loading", Order = 12, EmitDefaultValue = false)] public ReportLoadingTrace Loading { get; set; }
         [DataMember(Name = "privacy", Order = 11)] public string Privacy { get; set; } = "Home paths and account identifiers are redacted; review before sharing.";
     }
 
