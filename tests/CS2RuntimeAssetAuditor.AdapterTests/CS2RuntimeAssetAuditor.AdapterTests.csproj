@@ -11,4 +11,9 @@
     <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
     <PackageReference Include="System.Reflection.MetadataLoadContext" Version="8.0.0" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Shared pure source that contract tests compare against the game's API surface. -->
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/Core/Rendering/TextureFootprintEstimator.cs" Link="Shared/TextureFootprintEstimator.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/Core/Observations/*.cs" LinkBase="Shared/Observations" />
+  </ItemGroup>
 </Project>
