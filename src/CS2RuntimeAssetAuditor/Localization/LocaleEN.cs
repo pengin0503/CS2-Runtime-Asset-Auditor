@@ -39,9 +39,9 @@ namespace CS2RuntimeAssetAuditor.Localization
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.EnableHeuristicFindings)), "Heuristic findings" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.EnableHeuristicFindings)), "Enable versioned, evidence-based heuristic findings in Asset Audit results." },
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.EnablePeerOutliers)), "Peer-outlier analysis" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.EnablePeerOutliers)), "Enable peer comparison when a sufficient comparable population is available." },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.EnablePeerOutliers)), "Flag Prefabs whose LOD0 vertex count or estimated texture payload is far above comparable Prefabs of the same type (at least 5 peers, above the peer P95 and 2x the median). Applies to the next Asset Audit." },
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.ComparisonPopulationOption)), "Comparison population" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.ComparisonPopulationOption)), "Choose the peer population used for comparison and outlier analysis." },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.ComparisonPopulationOption)), "Reference population for peer-outlier analysis, always within the same Prefab type. Applies to the next Asset Audit." },
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.ShowNoticeFindings)), "Show Notice findings" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.ShowNoticeFindings)), "Include informational Notice findings in the Warnings view." },
 
@@ -51,9 +51,9 @@ namespace CS2RuntimeAssetAuditor.Localization
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.PageSize)), "Asset page size" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.PageSize)), "Number of assets requested per bounded UI page." },
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.MetadataCacheLimit)), "Metadata cache limit" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.MetadataCacheLimit)), "Maximum number of metadata entries retained by the bounded metadata cache." },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.MetadataCacheLimit)), "Maximum number of surface metadata entries (and the texture assets they reference) kept in memory during an Asset Audit. Lower values use less memory but may read shared surfaces more than once." },
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.DeepInspectionLimit)), "Deep Inspection limit" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.DeepInspectionLimit)), "Maximum bounded Deep Inspection selection limit." },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.DeepInspectionLimit)), "Maximum number of render assets that keep Deep Inspection results at the same time; the oldest result is dropped first." },
 
                 { _setting.GetEnumValueLocaleID(Setting.ComparisonPopulationChoice.SameCategory), "Same category" },
                 { _setting.GetEnumValueLocaleID(Setting.ComparisonPopulationChoice.BuiltinDlc), "Vanilla / DLC" },

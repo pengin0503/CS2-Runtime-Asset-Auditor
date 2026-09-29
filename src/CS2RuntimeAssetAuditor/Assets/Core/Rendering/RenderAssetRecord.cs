@@ -66,5 +66,6 @@ namespace CS2RuntimeAssetAuditor.Assets.Core.Rendering
             if (observation == null) throw new ArgumentNullException(nameof(observation));
             return new RenderAssetRecord(Key, DisplayName, observation);
         }
+        public RenderAssetRecord WithoutDeepInspection() => DeepInspection == null ? this : new RenderAssetRecord(Key, DisplayName);
     }
 }

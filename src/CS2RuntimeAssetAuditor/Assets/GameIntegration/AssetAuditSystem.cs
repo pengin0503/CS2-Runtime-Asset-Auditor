@@ -6,6 +6,7 @@ using CS2RuntimeAssetAuditor.Coordination;
 using CS2RuntimeAssetAuditor.Assets.Core.Capabilities;
 using CS2RuntimeAssetAuditor.Assets.Core.Census;
 using CS2RuntimeAssetAuditor.Assets.Core.Diagnostics;
+using CS2RuntimeAssetAuditor.Assets.Core.Findings;
 using CS2RuntimeAssetAuditor.Assets.Core.Prefabs;
 using CS2RuntimeAssetAuditor.Assets.Core.Rendering;
 using CS2RuntimeAssetAuditor.Assets.Core.Scanning;
@@ -43,6 +44,10 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
         private bool _assetAuditWaitingForCatalog;
         private bool _assetAuditRefreshCatalog = true;
         private bool _assetAuditEnableHeuristics = true;
+        private bool _assetAuditEnablePeerOutliers = true;
+        private ComparisonPopulation _assetAuditPopulation = ComparisonPopulation.SameCategory;
+        private int _metadataCacheLimit = AssetAnalysisCollector.DefaultMetadataCacheLimit;
+        private int _deepInspectionLimit = 1;
         private bool _deepInspectionRequested;
         private bool _interruptedByRuntimeCapture;
         private RenderAssetKey _requestedDeepInspectionKey;
@@ -98,14 +103,26 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
             _censusScanRequested = true;
         }
 
-        public void RequestAssetAudit(double frameBudgetMilliseconds = 1.0, bool refreshCatalogAtScanStart = true, bool enableHeuristicFindings = true)
+        public void RequestAssetAudit(double frameBudgetMilliseconds = 1.0, bool refreshCatalogAtScanStart = true, bool enableHeuristicFindings = true,
+            bool enablePeerOutliers = true, ComparisonPopulation comparisonPopulation = ComparisonPopulation.SameCategory,
+            int metadataCacheLimit = AssetAnalysisCollector.DefaultMetadataCacheLimit)
         {
             if (!CitySessionActive || IsScanActive || _assetAuditRequested || _assetAuditWaitingForCatalog || _censusScanRequested || _censusCleanupRequested || _catalogCaptureActive || _deepInspectionRequested)
                 return;
             _assetAuditFrameBudgetMs = NormalizeFrameBudget(frameBudgetMilliseconds);
             _assetAuditRefreshCatalog = refreshCatalogAtScanStart;
             _assetAuditEnableHeuristics = enableHeuristicFindings;
+            _assetAuditEnablePeerOutliers = enablePeerOutliers;
+            _assetAuditPopulation = comparisonPopulation;
+            _metadataCacheLimit = Math.Max(1, metadataCacheLimit);
             _assetAuditRequested = true;
+        }
+
+        /// <summary>How many render assets may keep Deep Inspection results in the published analysis.</summary>
+        public int DeepInspectionLimit
+        {
+            get => _deepInspectionLimit;
+            set => _deepInspectionLimit = Math.Max(1, value);
         }
 
         public bool RequestDeepInspection(RenderAssetKey key)
@@ -476,7 +493,10 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
                 CatalogGeneration,
                 _nextAnalysisGeneration,
                 DateTimeOffset.UtcNow,
-                _assetAuditEnableHeuristics);
+                _assetAuditEnableHeuristics,
+                _assetAuditEnablePeerOutliers,
+                _assetAuditPopulation,
+                _metadataCacheLimit);
             session.TransitionTo(ScanStage.ResolvingRenderGraph);
         }
 
@@ -575,7 +595,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
                 stopwatch.Stop();
                 RecordManagedSlice(stopwatch.Elapsed, 1);
                 _nextAnalysisGeneration = Math.Max(_nextAnalysisGeneration + 1, analysis.AnalysisGeneration + 1);
-                var enriched = analysis.WithDeepInspection(_activeDeepInspectionKey, observation, _nextAnalysisGeneration);
+                var enriched = analysis.WithDeepInspection(_activeDeepInspectionKey, observation, _nextAnalysisGeneration, _deepInspectionLimit);
                 session.TransitionTo(ScanStage.Finalizing);
                 session.ReportProgress(1, 1);
                 if (!_publishedState.TryPublishAnalysis(enriched, scanSucceeded: session.CanPublish))

@@ -5,6 +5,7 @@ using Colossal.UI.Binding;
 using CS2RuntimeAssetAuditor.Assets.Core;
 using CS2RuntimeAssetAuditor.Assets.Core.Census;
 using CS2RuntimeAssetAuditor.Assets.Core.Diagnostics;
+using CS2RuntimeAssetAuditor.Assets.Core.Findings;
 using CS2RuntimeAssetAuditor.Assets.Core.Prefabs;
 using CS2RuntimeAssetAuditor.Assets.Core.Query;
 using CS2RuntimeAssetAuditor.Assets.Core.Rendering;
@@ -117,10 +118,18 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                 if (UiSnapshotBuilder.TryDeserialize<UiScanOptions>(optionsJson, out var options))
                     ApplySettings(options);
                 InvalidateExport();
-                GetAuditSystem()?.RequestAssetAudit(
-                    _uiSettings.FrameBudgetMs,
-                    _uiSettings.RefreshCatalogAtScanStart,
-                    _uiSettings.EnableHeuristicFindings);
+                var auditSystem = GetAuditSystem();
+                if (auditSystem != null)
+                {
+                    auditSystem.DeepInspectionLimit = _uiSettings.DeepInspectionLimit;
+                    auditSystem.RequestAssetAudit(
+                        _uiSettings.FrameBudgetMs,
+                        _uiSettings.RefreshCatalogAtScanStart,
+                        _uiSettings.EnableHeuristicFindings,
+                        _uiSettings.EnablePeerOutliers,
+                        ParseEnum(_uiSettings.ComparisonPopulation, ComparisonPopulation.SameCategory),
+                        _uiSettings.MetadataCacheLimit);
+                }
                 PublishSnapshot();
             }
             catch
@@ -137,6 +146,8 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                 if (!RenderAssetKey.TryParse(renderKeyText, out var renderKey))
                     throw new ArgumentException("The render-asset key payload was invalid.", nameof(renderKeyText));
                 var auditSystem = GetAuditSystem();
+                if (auditSystem != null)
+                    auditSystem.DeepInspectionLimit = _uiSettings.DeepInspectionLimit;
                 if (auditSystem == null || !auditSystem.RequestDeepInspection(renderKey))
                     throw new InvalidOperationException("Deep Inspection could not be started for the selected render asset.");
                 InvalidateExport();

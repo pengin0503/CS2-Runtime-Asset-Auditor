@@ -32,6 +32,9 @@ namespace CS2RuntimeAssetAuditor.Assets.Core.Rendering
             if (observation == null) throw new ArgumentNullException(nameof(observation));
             return new RenderAssetAnalysisRecord(RenderAsset.WithDeepInspection(observation), Geometry, Surfaces, Textures);
         }
+
+        public RenderAssetAnalysisRecord WithoutDeepInspection()
+            => RenderAsset.DeepInspection == null ? this : new RenderAssetAnalysisRecord(RenderAsset.WithoutDeepInspection(), Geometry, Surfaces, Textures);
     }
 
     public sealed class PrefabAnalysisEntry
@@ -69,6 +72,10 @@ namespace CS2RuntimeAssetAuditor.Assets.Core.Rendering
         public Observation<long> UniqueTextureCount { get; }
         public Observation<long> EstimatedTexturePayload { get; }
         public IReadOnlyList<Finding> Findings { get; }
+
+        public PrefabAnalysisEntry WithAdditionalFindings(IEnumerable<Finding> additional)
+            => new PrefabAnalysisEntry(Key, RenderCoverage, Relations, Lod0Vertices, Lod1RetentionPercent, MaterialCount,
+                UniqueTextureCount, EstimatedTexturePayload, Findings.Concat(additional ?? Enumerable.Empty<Finding>()));
     }
 
     public sealed class AssetAnalysisSnapshot
@@ -135,17 +142,47 @@ namespace CS2RuntimeAssetAuditor.Assets.Core.Rendering
         public bool TryGetRenderAsset(RenderAssetKey key, out RenderAssetAnalysisRecord record) => _renderAssets.TryGetValue(key, out record!);
 
         public AssetAnalysisSnapshot WithDeepInspection(RenderAssetKey key, DeepInspectionObservation observation, long analysisGeneration)
+            => WithDeepInspection(key, observation, analysisGeneration, int.MaxValue);
+
+        /// <summary>
+        /// Adds a Deep Inspection result and keeps at most <paramref name="retentionLimit"/> inspected render
+        /// assets; the oldest other results are dropped first so the snapshot's material data stays bounded.
+        /// </summary>
+        public AssetAnalysisSnapshot WithDeepInspection(RenderAssetKey key, DeepInspectionObservation observation, long analysisGeneration, int retentionLimit)
         {
             if (!key.IsValid) throw new ArgumentException("A stable render-asset key is required.", nameof(key));
             if (observation == null) throw new ArgumentNullException(nameof(observation));
             if (analysisGeneration <= AnalysisGeneration) throw new ArgumentOutOfRangeException(nameof(analysisGeneration), "Enrichment must advance the analysis generation.");
+            if (retentionLimit < 1) throw new ArgumentOutOfRangeException(nameof(retentionLimit));
             if (!_renderAssets.ContainsKey(key))
                 throw new InvalidOperationException("The selected render asset is not part of this analysis snapshot.");
 
+            var evicted = new HashSet<RenderAssetKey>(RenderAssets
+                .Where(record => record.RenderAsset.Key != key && record.RenderAsset.DeepInspection != null)
+                .OrderByDescending(record => record.RenderAsset.DeepInspection!.CapturedAt)
+                .ThenBy(record => record.RenderAsset.Key.RenderAssetId, StringComparer.Ordinal)
+                .Skip(retentionLimit - 1)
+                .Select(record => record.RenderAsset.Key));
+
             var updated = new List<RenderAssetAnalysisRecord>(RenderAssets.Count);
             foreach (var record in RenderAssets)
-                updated.Add(record.RenderAsset.Key == key ? record.WithDeepInspection(observation) : record);
+            {
+                if (record.RenderAsset.Key == key) updated.Add(record.WithDeepInspection(observation));
+                else if (evicted.Contains(record.RenderAsset.Key)) updated.Add(record.WithoutDeepInspection());
+                else updated.Add(record);
+            }
             return new AssetAnalysisSnapshot(WorldGeneration, CatalogGeneration, analysisGeneration, observation.CapturedAt, Prefabs, updated);
+        }
+
+        /// <summary>Returns a copy whose prefab entries carry the given extra findings (for example peer outliers).</summary>
+        public AssetAnalysisSnapshot WithAdditionalFindings(IReadOnlyDictionary<PrefabKey, IReadOnlyList<Finding>> additional)
+        {
+            if (additional == null) throw new ArgumentNullException(nameof(additional));
+            if (additional.Count == 0) return this;
+            var prefabs = Prefabs.Select(entry => additional.TryGetValue(entry.Key, out var extra) && extra.Count > 0
+                ? entry.WithAdditionalFindings(extra)
+                : entry);
+            return new AssetAnalysisSnapshot(WorldGeneration, CatalogGeneration, AnalysisGeneration, CapturedAt, prefabs, RenderAssets);
         }
     }
 }

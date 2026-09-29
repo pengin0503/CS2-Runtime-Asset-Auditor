@@ -15,6 +15,8 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
 {
     public sealed class AssetAnalysisCollector
     {
+        public const int DefaultMetadataCacheLimit = 512;
+
         private readonly World _world;
         private readonly PrefabRecord[] _catalog;
         private readonly KeyValuePair<Entity, PrefabKey>[] _runtimePrefabKeys;
@@ -35,7 +37,9 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
         private readonly Dictionary<RenderAssetKey, IReadOnlyList<SurfaceObservation>> _surfaces = new Dictionary<RenderAssetKey, IReadOnlyList<SurfaceObservation>>();
         private readonly Dictionary<RenderAssetKey, IReadOnlyList<TextureObservation>> _textures = new Dictionary<RenderAssetKey, IReadOnlyList<TextureObservation>>();
         private readonly Dictionary<string, TextureObservation> _textureById = new Dictionary<string, TextureObservation>(StringComparer.Ordinal);
-        private readonly Dictionary<string, SurfaceCacheEntry> _surfaceCache = new Dictionary<string, SurfaceCacheEntry>(StringComparer.Ordinal);
+        private readonly BoundedLruCache<string, SurfaceCacheEntry> _surfaceCache;
+        private readonly bool _enablePeerOutliers;
+        private readonly ComparisonPopulation _comparisonPopulation;
         private readonly HashSet<RenderAssetKey> _surfaceReadFailures = new HashSet<RenderAssetKey>();
         private readonly Dictionary<RenderAssetKey, List<string>> _textureReadFailures = new Dictionary<RenderAssetKey, List<string>>();
         private readonly List<PrefabAnalysisEntry> _prefabAnalysis = new List<PrefabAnalysisEntry>();
@@ -56,7 +60,10 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
             long catalogGeneration,
             long analysisGeneration,
             DateTimeOffset capturedAt,
-            bool enableHeuristicFindings)
+            bool enableHeuristicFindings,
+            bool enablePeerOutliers = false,
+            ComparisonPopulation comparisonPopulation = ComparisonPopulation.SameCategory,
+            int metadataCacheLimit = DefaultMetadataCacheLimit)
         {
             _world = world ?? throw new ArgumentNullException(nameof(world));
             if (catalog == null) throw new ArgumentNullException(nameof(catalog));
@@ -77,6 +84,10 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
             _analysisGeneration = analysisGeneration;
             _capturedAt = capturedAt;
             _enableHeuristicFindings = enableHeuristicFindings;
+            _enablePeerOutliers = enablePeerOutliers;
+            _comparisonPopulation = comparisonPopulation;
+            // Surface metadata holds references to texture assets; bounding it keeps a large playset from being pinned.
+            _surfaceCache = new BoundedLruCache<string, SurfaceCacheEntry>(Math.Max(1, metadataCacheLimit), StringComparer.Ordinal);
             _renderGraphAccumulator = new RenderGraphAccumulator(new IRenderAssetResolver[] { new ObjectGeometryResolver() });
         }
 
@@ -291,13 +302,17 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
                     textures ?? Array.Empty<TextureObservation>()));
             }
 
-            return new AssetAnalysisSnapshot(
+            var snapshot = new AssetAnalysisSnapshot(
                 _worldGeneration,
                 _catalogGeneration,
                 _analysisGeneration,
                 _capturedAt,
                 _prefabAnalysis,
                 renderRecords);
+            // Peer comparison needs every Prefab's metrics, so it runs once after all findings slices.
+            return _enablePeerOutliers
+                ? snapshot.WithAdditionalFindings(PeerOutlierEvaluator.Evaluate(snapshot.Prefabs, _catalogByKey, _comparisonPopulation, _capturedAt))
+                : snapshot;
         }
 
         private PrefabAnalysisEntry BuildPrefabAnalysis(PrefabRecord prefab, RenderGraphSnapshot graph)
@@ -484,7 +499,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
         private SurfaceCacheEntry ReadSurfaceOnce(SurfaceAsset surface)
         {
             var id = StableSurfaceId(surface);
-            if (_surfaceCache.TryGetValue(id, out var cached))
+            if (_surfaceCache.TryGet(id, out var cached))
                 return cached;
 
             var loadedHere = !surface.isDataLoaded;
