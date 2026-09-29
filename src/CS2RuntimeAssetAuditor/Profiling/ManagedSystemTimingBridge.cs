@@ -19,6 +19,8 @@ namespace CS2RuntimeAssetAuditor.Profiling
             lock (Gate)
             {
                 _startFrame = UnityEngine.Time.frameCount;
+                // Frames left by a call that threw during an earlier capture must not nest under this one.
+                ManagedSystemTimingHarmonyInstrumentation.ResetCallStack();
                 _active = new ManagedSystemTimingAccumulator();
             }
         }

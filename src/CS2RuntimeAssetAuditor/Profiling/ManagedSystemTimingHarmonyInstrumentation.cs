@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using CS2RuntimeAssetAuditor.Core;
 using Unity.Entities;
 
 namespace CS2RuntimeAssetAuditor.Profiling
@@ -162,6 +163,14 @@ namespace CS2RuntimeAssetAuditor.Profiling
             }
         }
 
+        // Managed system updates run on the main thread; the stack pairs each prefix with its postfix.
+        [ThreadStatic]
+        private static NestedTimingStack _calls;
+
+        internal static void ResetCallStack() => _calls?.Reset();
+
+        // __state carries the stack token (0 = not tracked). Recording exclusive time keeps a system that updates
+        // other systems (for example a simulation phase runner) from being charged its children's time again.
         private static void Prefix(SystemBase __instance, out long __state)
         {
             __state = 0L;
@@ -172,23 +181,23 @@ namespace CS2RuntimeAssetAuditor.Profiling
             if (type.Assembly == ProfilerAssembly)
                 return;
 
-            __state = Stopwatch.GetTimestamp();
+            __state = (_calls ?? (_calls = new NestedTimingStack())).Push(Stopwatch.GetTimestamp());
         }
 
         private static void Postfix(SystemBase __instance, long __state)
         {
-            if (__state <= 0L || __instance == null || !ManagedSystemTimingBridge.IsActive)
+            // Pop even after the capture ended so a later capture never starts on a stale stack.
+            if (__state <= 0L || _calls == null
+                || !_calls.TryPop((int)__state, Stopwatch.GetTimestamp(), out _, out var exclusiveTicks))
                 return;
-
-            var elapsedTicks = Stopwatch.GetTimestamp() - __state;
-            if (elapsedTicks < 0L)
+            if (__instance == null || !ManagedSystemTimingBridge.IsActive)
                 return;
 
             var systemId = __instance.GetType().FullName;
             if (string.IsNullOrWhiteSpace(systemId))
                 return;
 
-            var milliseconds = elapsedTicks * 1000d / Stopwatch.Frequency;
+            var milliseconds = exclusiveTicks * 1000d / Stopwatch.Frequency;
             ManagedSystemTimingBridge.Record(systemId, milliseconds);
         }
     }
