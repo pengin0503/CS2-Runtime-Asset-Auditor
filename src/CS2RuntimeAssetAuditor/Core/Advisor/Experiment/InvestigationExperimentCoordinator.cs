@@ -90,6 +90,13 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor.Experiment
             Current.State = InvestigationExperimentState.Invalidated;
         }
 
+        public void RecordFollowUpWarnings(IReadOnlyList<string> warnings)
+        {
+            if (Current == null || Current.State != InvestigationExperimentState.Completed)
+                throw new InvalidOperationException("A completed follow-up is required.");
+            Current.FollowUpWarnings = (warnings ?? Array.Empty<string>()).ToArray();
+        }
+
         public void Cancel(DateTimeOffset completedAtUtc)
         {
             if (Current == null || !Current.IsActive) throw new InvalidOperationException("No active experiment.");

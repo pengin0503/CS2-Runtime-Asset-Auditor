@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace CS2RuntimeAssetAuditor.Core.Advisor.Experiment
 {
@@ -35,6 +36,7 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor.Experiment
         public DateTimeOffset? StabilizationReadyAtUtc { get; internal set; }
         public string FollowUpCaptureId { get; internal set; }
         public AdvisorEvidenceSnapshot FollowUpEvidence { get; internal set; }
+        public IReadOnlyList<string> FollowUpWarnings { get; internal set; } = Array.Empty<string>();
         public InvestigationExperimentState State { get; internal set; }
         public InvestigationExperimentValidity Validity { get; internal set; } = InvestigationExperimentValidity.Valid;
         public InvestigationInvalidationReason InvalidationReason { get; internal set; }

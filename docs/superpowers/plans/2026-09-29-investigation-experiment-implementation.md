@@ -253,11 +253,11 @@ public SettingApplyResult UndoExperimentChange(bool confirmed = false);
 public InvestigationExperiment Experiment { get; set; }
 ```
 
-- [ ] **Step 1: Write RED pure guard tests**
+- [x] **Step 1: Write RED pure guard tests**
 
 Cover successful/failed different-setting Apply, expected tested value vs external mismatch, same/different session, exact/mismatched follow-up ID, follow-up started before Apply, and filtering of pre-experiment/pending/failed changes.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationExperimentGuardTests
@@ -265,7 +265,7 @@ dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.cspr
 
 Expected: FAIL because guard is missing.
 
-- [ ] **Step 3: Implement guard and make pure tests GREEN**
+- [x] **Step 3: Implement guard and make pure tests GREEN**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release --filter InvestigationExperimentGuardTests
@@ -273,7 +273,7 @@ dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.cspr
 
 Expected: PASS.
 
-- [ ] **Step 4: Integrate `AdvisorSystem`**
+- [x] **Step 4: Integrate `AdvisorSystem`**
 
 Implement only game-facing orchestration:
 
@@ -289,11 +289,11 @@ Implement only game-facing orchestration:
 
 For tested-setting integrity, read only the single tested setting through `Gateway.Read(...)` at most once every **500 ms**, only after successful Apply and before terminal state. On mismatch invalidate with `TestedSettingExternallyModified`. Do not scan the settings catalog each frame.
 
-- [ ] **Step 5: Add adapter/source contract assertions for orchestration wiring**
+- [x] **Step 5: Add adapter/source contract assertions for orchestration wiring**
 
 Pin that `AdvisorSystem` calls the existing `AdvisorSettingOperations`, Task 2 return contract, and pure guard/coordinator rather than adding a direct settings writer or second comparison implementation.
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 ```bash
 dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.csproj -c Release
@@ -301,7 +301,7 @@ dotnet test tests/CS2RuntimeAssetAuditor.Tests/CS2RuntimeAssetAuditor.Tests.cspr
 
 Run adapter test if dependencies exist. Expected: PASS / otherwise documented NOT RUN.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/CS2RuntimeAssetAuditor/Core/Advisor/Experiment src/CS2RuntimeAssetAuditor/Advisor src/CS2RuntimeAssetAuditor/Core/Advisor/AdvisorState.cs tests/CS2RuntimeAssetAuditor.Tests/InvestigationExperimentGuardTests.cs tests/CS2RuntimeAssetAuditor.AdapterTests

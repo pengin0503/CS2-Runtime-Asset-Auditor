@@ -111,6 +111,19 @@ namespace CS2RuntimeAssetAuditor.Tests
             Assert.That(coordinator.Current.BaselineEvidence.Find("frame.p95.ms").Value, Is.EqualTo(25));
         }
 
+        [Test]
+        public void Follow_up_warnings_are_copied_into_the_observed_result()
+        {
+            var coordinator = Started();
+            coordinator.RecordApplied(Now);
+            coordinator.RecordFollowUpStarted("follow-up");
+            coordinator.CompleteFollowUp("follow-up", Evidence(20), Changes("shadow").Changes, Now.AddSeconds(10));
+            var warnings = new[] { "Capture finalized early after a safety stop." };
+            coordinator.RecordFollowUpWarnings(warnings);
+            warnings[0] = "changed";
+            Assert.That(coordinator.Current.FollowUpWarnings, Is.EqualTo(new[] { "Capture finalized early after a safety stop." }));
+        }
+
         private static InvestigationExperimentCoordinator Started()
         {
             var coordinator = new InvestigationExperimentCoordinator();
