@@ -467,6 +467,10 @@ namespace CS2RuntimeAssetAuditor.UI
             if (latest == null) writer.WriteNull(); else writer.Write(latest.ActualSpeed);
             writer.PropertyName("state"); writer.Write(state.ToString());
             writer.PropertyName("isDeepCapture"); writer.Write(state == CaptureState.DeepCapture);
+            var frames = latest?.FrameInterval;
+            writer.PropertyName("framesPerSecond"); WriteNullable(writer, frames?.FramesPerSecond);
+            writer.PropertyName("frameMsP95");
+            WriteNullable(writer, frames != null && frames.FrameMs.HasValue ? frames.FrameMs.P95 : (double?)null);
             writer.TypeEnd();
         }
 
@@ -680,6 +684,9 @@ namespace CS2RuntimeAssetAuditor.UI
             writer.PropertyName("selectedSpeed"); WriteNullable(writer, global.SelectedSpeed);
             writer.PropertyName("actualSpeed"); WriteNullable(writer, global.ActualSpeed);
             writer.PropertyName("efficiency"); WriteNullable(writer, global.Efficiency);
+            writer.PropertyName("framesPerSecond"); WriteNullable(writer, global.FramesPerSecond);
+            writer.PropertyName("frameMsMedian"); WriteNullable(writer, global.FrameMsMedian);
+            writer.PropertyName("frameMsP95"); WriteNullable(writer, global.FrameMsP95);
             writer.PropertyName("recorderMetrics"); WriteMetricsArray(writer, global.RecorderMetrics);
             writer.TypeEnd();
         }

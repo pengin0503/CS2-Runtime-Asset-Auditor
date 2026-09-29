@@ -12,5 +12,6 @@ namespace CS2RuntimeAssetAuditor.Core
         public const string Milliseconds = "Milliseconds";
         public const string Ratio = "Ratio";
         public const string Speed = "Speed";
+        public const string FramesPerSecond = "FramesPerSecond";
     }
 }

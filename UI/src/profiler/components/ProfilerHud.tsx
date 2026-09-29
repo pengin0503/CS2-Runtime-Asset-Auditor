@@ -1,7 +1,7 @@
 import React from "react";
 import { Button, Tooltip } from "cs2/ui";
 import type { UiHudSnapshot } from "../bindings";
-import { formatSpeed } from "../format";
+import { formatFramesPerSecond, formatMilliseconds, formatSpeed } from "../format";
 import { captureStateLabel } from "../text";
 import { useText } from "../../i18n/locale";
 import profilerIcon from "../../images/profiler-icon.svg";
@@ -21,7 +21,9 @@ export function ProfilerHud({ snapshot, panelVisible, onToggle }: ProfilerHudPro
   const tooltip = t("hud.tooltip", {
     selected: formatSpeed(snapshot.selectedSpeed),
     actual: formatSpeed(snapshot.actualSpeed),
-    state: captureStateLabel(snapshot.state, snapshot.isDeepCapture, locale)
+    state: captureStateLabel(snapshot.state, snapshot.isDeepCapture, locale),
+    fps: formatFramesPerSecond(snapshot.framesPerSecond),
+    frameP95: formatMilliseconds(snapshot.frameMsP95)
   });
   return (
     <Tooltip tooltip={tooltip}>

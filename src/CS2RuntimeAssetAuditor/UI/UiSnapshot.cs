@@ -12,6 +12,11 @@ namespace CS2RuntimeAssetAuditor.UI
         public double? SelectedSpeed { get; set; }
         public double? ActualSpeed { get; set; }
         public double? Efficiency { get; set; }
+        /// <summary>Rendered frames per second over the last sampling interval; null when it was not measured.</summary>
+        public double? FramesPerSecond { get; set; }
+        /// <summary>Median and 95th-percentile frame time of the same interval; an average FPS hides hitches.</summary>
+        public double? FrameMsMedian { get; set; }
+        public double? FrameMsP95 { get; set; }
         public IReadOnlyList<UiMetricRow> RecorderMetrics { get; set; } = Array.Empty<UiMetricRow>();
     }
 

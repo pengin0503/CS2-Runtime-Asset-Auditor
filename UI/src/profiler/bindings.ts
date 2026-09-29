@@ -16,6 +16,11 @@ export interface GlobalUiMetrics {
   selectedSpeed: number | null;
   actualSpeed: number | null;
   efficiency: number | null;
+  /** Rendered frames per second over the last sampling interval; null when it was not measured. */
+  framesPerSecond: number | null;
+  /** Median and 95th-percentile frame time of the same interval. */
+  frameMsMedian: number | null;
+  frameMsP95: number | null;
   recorderMetrics: UiMetricRow[];
 }
 
@@ -32,6 +37,8 @@ export interface UiHudSnapshot {
   actualSpeed: number | null;
   state: string;
   isDeepCapture: boolean;
+  framesPerSecond: number | null;
+  frameMsP95: number | null;
 }
 
 export interface SystemUiRow {
@@ -250,7 +257,9 @@ export const EMPTY_HUD_SNAPSHOT: UiHudSnapshot = {
   selectedSpeed: null,
   actualSpeed: null,
   state: "Monitoring",
-  isDeepCapture: false
+  isDeepCapture: false,
+  framesPerSecond: null,
+  frameMsP95: null
 };
 
 export const EMPTY_SNAPSHOT: UiSnapshot = {
@@ -260,6 +269,9 @@ export const EMPTY_SNAPSHOT: UiSnapshot = {
     selectedSpeed: null,
     actualSpeed: null,
     efficiency: null,
+    framesPerSecond: null,
+    frameMsMedian: null,
+    frameMsP95: null,
     recorderMetrics: []
   },
   capture: {

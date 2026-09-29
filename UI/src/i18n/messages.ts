@@ -28,7 +28,7 @@ export const en = {
   "shell.runtimeViewsAria": "Runtime views",
   "shell.assetViewsAria": "Asset views",
   "shell.assetDisclaimer": "Asset geometry, textures and instance counts are investigation evidence, not measured per-asset frame time or GPU cost.",
-  "hud.tooltip": "Open CS2 Runtime Asset Auditor\nSelected speed {selected} / Actual speed {actual} / {state}",
+  "hud.tooltip": "Open CS2 Runtime Asset Auditor\nSelected speed {selected} / Actual speed {actual} / {state}\n{fps} / frame time P95 {frameP95}",
 
   // Shared runtime labels
   "state.deepCapture": "Deep Capture",
@@ -63,7 +63,8 @@ export const en = {
   "overview.captureOverhead": "Capture processing load",
   "overview.captureOverheadTooltip": "Deep Capture control and aggregation time as a share of the 0.5 s monitoring period. Not the profiler cost of the whole game.",
   "overview.fps": "FPS",
-  "overview.fpsTooltip": "The current snapshot has no dedicated FPS field.",
+  "overview.fpsTooltip": "Rendered frames per second over the last monitoring interval (0.5 s by default). The average hides hitches, so the median and 95th-percentile frame times are shown below it.",
+  "overview.frameTimes": "Median {median} / P95 {p95}",
   "overview.manualCapture": "Manual Deep Capture",
   "overview.exportJson": "Export JSON",
   "overview.recorders": "Global recorder metrics",
@@ -610,7 +611,7 @@ export const ja: Record<MessageKey, string> = {
   "shell.runtimeViewsAria": "ランタイム表示切替",
   "shell.assetViewsAria": "アセット表示切替",
   "shell.assetDisclaimer": "アセットの形状・テクスチャ・配置数は調査の手がかりです。個々のアセットのフレーム時間や GPU 負荷を測定した値ではありません。",
-  "hud.tooltip": "CS2 Runtime Asset Auditorを開く\n指定速度 {selected} / 実効速度 {actual} / {state}",
+  "hud.tooltip": "CS2 Runtime Asset Auditorを開く\n指定速度 {selected} / 実効速度 {actual} / {state}\n{fps} / フレーム時間 P95 {frameP95}",
 
   "state.deepCapture": "詳細キャプチャ中",
   "state.monitoring": "監視中",
@@ -642,7 +643,8 @@ export const ja: Record<MessageKey, string> = {
   "overview.captureOverhead": "キャプチャ処理負荷",
   "overview.captureOverheadTooltip": "詳細キャプチャ制御・集計処理を0.5秒の監視周期に対する割合で示します。ゲーム全体のプロファイラー負荷ではありません。",
   "overview.fps": "FPS",
-  "overview.fpsTooltip": "現在のスナップショットにはFPS専用フィールドがありません。",
+  "overview.fpsTooltip": "直近の監視区間（既定 0.5 秒）に描画されたフレーム数を秒あたりにした値です。平均はヒッチを隠すため、下にフレーム時間の中央値と95パーセンタイルを示します。",
+  "overview.frameTimes": "中央値 {median} / P95 {p95}",
   "overview.manualCapture": "手動詳細キャプチャ",
   "overview.exportJson": "JSONをエクスポート",
   "overview.recorders": "グローバル記録メトリクス",

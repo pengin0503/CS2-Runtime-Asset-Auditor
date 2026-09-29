@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "cs2/ui";
 import type { UiMetricRow, UiSnapshot } from "../bindings";
-import { formatMetricValue, formatPercent, formatSpeed, shortMetricName } from "../format";
+import { formatFramesPerSecond, formatMetricValue, formatMilliseconds, formatPercent, formatSpeed, shortMetricName } from "../format";
 import { MetricBadge } from "../components/MetricBadge";
 import { captureStateLabel, exportResultLabel } from "../text";
 import { useText } from "../../i18n/locale";
@@ -42,7 +42,16 @@ export function OverviewTab({ snapshot, onManualCapture, onExport, exportResult 
         <div className={styles.summaryCard}><span>{t("overview.efficiency")}</span><strong>{formatPercent(snapshot.global.efficiency)}</strong></div>
         <div className={styles.summaryCard}><span>{t("overview.captureState")}</span><strong>{captureStateLabel(snapshot.capture.state, snapshot.capture.isDeepCapture, locale)}</strong></div>
         <div className={styles.summaryCard} title={t("overview.captureOverheadTooltip")}><span>{t("overview.captureOverhead")}</span><strong>{formatPercent(snapshot.diagnostics.profilerOverheadShare)}</strong></div>
-        <div className={styles.summaryCard} title={t("overview.fpsTooltip")}><span>{t("overview.fps")}</span><strong>—</strong><small>{t("common.unavailable")}</small></div>
+        <div className={styles.summaryCard} title={t("overview.fpsTooltip")}>
+          <span>{t("overview.fps")}</span>
+          <strong>{formatFramesPerSecond(snapshot.global.framesPerSecond)}</strong>
+          <small>{snapshot.global.framesPerSecond == null
+            ? t("common.unavailable")
+            : t("overview.frameTimes", {
+              median: formatMilliseconds(snapshot.global.frameMsMedian),
+              p95: formatMilliseconds(snapshot.global.frameMsP95)
+            })}</small>
+        </div>
       </section>
 
       <div className={styles.actionRow}>

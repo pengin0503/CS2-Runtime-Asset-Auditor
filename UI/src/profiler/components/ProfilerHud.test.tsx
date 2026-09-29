@@ -9,7 +9,7 @@ useGameLocale("ja-JP");
 it("renders a native floating launcher with a Japanese status tooltip", () => {
   const html = renderToStaticMarkup(
     <ProfilerHud
-      snapshot={{ selectedSpeed: 4, actualSpeed: 2.5, state: "DeepCapture", isDeepCapture: true }}
+      snapshot={{ selectedSpeed: 4, actualSpeed: 2.5, state: "DeepCapture", isDeepCapture: true, framesPerSecond: 28.04, frameMsP95: 51.2 }}
       panelVisible={false}
       onToggle={() => {}}
     />
@@ -18,4 +18,5 @@ it("renders a native floating launcher with a Japanese status tooltip", () => {
   expect(html).toContain("CS2 Runtime Asset Auditor");
   expect(html).toContain("指定速度 4×");
   expect(html).toContain("詳細キャプチャ中");
+  expect(html).toContain("28.0 fps / フレーム時間 P95 51.20 ms");
 });

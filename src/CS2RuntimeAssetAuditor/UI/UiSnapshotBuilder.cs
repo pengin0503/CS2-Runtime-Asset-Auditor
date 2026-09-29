@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CS2RuntimeAssetAuditor.Core;
+using CS2RuntimeAssetAuditor.Core.Frames;
 using CS2RuntimeAssetAuditor.Core.Advisor;
 
 namespace CS2RuntimeAssetAuditor.UI
@@ -126,10 +127,13 @@ namespace CS2RuntimeAssetAuditor.UI
         private static GlobalUiMetrics BuildGlobal(GlobalMetricsSnapshot global)
         {
             if (global == null) return new GlobalUiMetrics { Available = false };
+            var frames = global.FrameInterval;
+            var frameMs = frames != null && frames.FrameMs.HasValue ? frames.FrameMs : (SampleSummary?)null;
             return new GlobalUiMetrics
             {
                 Available = true, TimestampSeconds = global.TimestampSeconds, SelectedSpeed = global.SelectedSpeed,
                 ActualSpeed = global.ActualSpeed, Efficiency = global.Efficiency,
+                FramesPerSecond = frames?.FramesPerSecond, FrameMsMedian = frameMs?.Median, FrameMsP95 = frameMs?.P95,
                 RecorderMetrics = global.RecorderReadings.Where(pair => pair.Value.Count > 0).OrderBy(pair => pair.Key, StringComparer.Ordinal)
                     .Select(pair => new UiMetricRow
                     {
@@ -246,6 +250,13 @@ namespace CS2RuntimeAssetAuditor.UI
                 points.Add(new TimelinePoint { TimestampSeconds = sample.TimestampSeconds, Metric = "selectedSpeed", Value = sample.SelectedSpeed, UnitType = MetricUnits.Speed, Confidence = MetricConfidence.Full.ToString() });
                 points.Add(new TimelinePoint { TimestampSeconds = sample.TimestampSeconds, Metric = "actualSpeed", Value = sample.ActualSpeed, UnitType = MetricUnits.Speed, Confidence = MetricConfidence.Full.ToString() });
                 points.Add(new TimelinePoint { TimestampSeconds = sample.TimestampSeconds, Metric = "efficiency", Value = sample.Efficiency, UnitType = MetricUnits.Ratio, Confidence = MetricConfidence.Full.ToString() });
+                // The frame rate beside the efficiency: below 30 fps the step cap alone lowers the speed.
+                // Intervals without a measured frame add no point rather than a zero.
+                var frames = sample.FrameInterval;
+                if (frames?.FramesPerSecond is double fps)
+                    points.Add(new TimelinePoint { TimestampSeconds = sample.TimestampSeconds, Metric = "fps", Value = fps, UnitType = MetricUnits.FramesPerSecond, Confidence = MetricConfidence.Full.ToString() });
+                if (frames != null && frames.FrameMs.HasValue)
+                    points.Add(new TimelinePoint { TimestampSeconds = sample.TimestampSeconds, Metric = "frameMsP95", Value = frames.FrameMs.P95, UnitType = MetricUnits.Milliseconds, Confidence = MetricConfidence.Full.ToString() });
                 foreach (var recorder in sample.RecorderReadings.Where(pair => pair.Value.Count > 0))
                     points.Add(new TimelinePoint { TimestampSeconds = sample.TimestampSeconds, Metric = "recorder:" + recorder.Key, Value = recorder.Value.Value, UnitType = UnitOf(sample.RecorderUnits, recorder.Key), Confidence = MetricConfidence.Full.ToString() });
             }

@@ -24,6 +24,7 @@ describe("unit-aware formatting of values seen in in-game reports", () => {
     expect(formatByUnit(502.4926, "Milliseconds")).toBe("502.49 ms");
     expect(formatByUnit(0.548, "Ratio")).toBe("54.8%");
     expect(formatByUnit(2.19, "Speed")).toBe("2.19×");
+    expect(formatByUnit(59.94, "FramesPerSecond")).toBe("59.9 fps");
   });
 
   it("groups plain integer counts instead of adding decimals", () => {

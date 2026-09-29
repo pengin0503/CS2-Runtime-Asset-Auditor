@@ -16,6 +16,11 @@ export function formatSpeed(value: number | null | undefined): string {
   return `${Number(value.toFixed(digits))}×`;
 }
 
+export function formatFramesPerSecond(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return `${value.toFixed(1)} fps`;
+}
+
 export function formatPercent(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return "—";
   return `${(value * 100).toFixed(1)}%`;
@@ -49,7 +54,7 @@ export function formatBytes(value: number | null | undefined): string {
 
 /**
  * Formats a raw value by its unit identifier. Unity recorder units ("TimeNanoseconds", "Bytes") pass through
- * from C#; "Milliseconds", "Ratio" and "Speed" describe values the profiler derives itself.
+ * from C#; "Milliseconds", "Ratio", "Speed" and "FramesPerSecond" describe values the profiler derives itself.
  */
 export function formatByUnit(value: number | null | undefined, unitType?: string): string {
   if (value == null || !Number.isFinite(value)) return "—";
@@ -59,6 +64,7 @@ export function formatByUnit(value: number | null | undefined, unitType?: string
     case "Bytes": return formatBytes(value);
     case "Ratio": return formatPercent(value);
     case "Speed": return formatSpeed(value);
+    case "FramesPerSecond": return formatFramesPerSecond(value);
     default: return formatCount(value);
   }
 }

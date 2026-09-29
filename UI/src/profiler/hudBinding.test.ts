@@ -6,7 +6,9 @@ it("exposes a dedicated lightweight HUD snapshot binding", () => {
     selectedSpeed: null,
     actualSpeed: null,
     state: "Monitoring",
-    isDeepCapture: false
+    isDeepCapture: false,
+    framesPerSecond: null,
+    frameMsP95: null
   });
   expect(typeof useProfilerHudSnapshot).toBe("function");
 });
