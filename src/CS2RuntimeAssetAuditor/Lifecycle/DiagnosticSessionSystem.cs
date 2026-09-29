@@ -30,11 +30,11 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
             }
         }
 
-        protected override void OnGameLoaded(Purpose purpose, GameMode mode)
+        protected override void OnGameLoaded(Context serializationContext)
         {
-            base.OnGameLoaded(purpose, mode);
-            if (mode == GameMode.Game && Mod.LoadingTrace.IsLoading)
-                Mod.LoadingTrace.Mark(purpose == Purpose.LoadGame ? "saveRestored" : "gameLoaded",
+            base.OnGameLoaded(serializationContext);
+            if (Mod.LoadingTrace.IsLoading)
+                Mod.LoadingTrace.Mark(serializationContext.purpose == Purpose.LoadGame ? "saveRestored" : "gameLoaded",
                     DateTimeOffset.UtcNow);
         }
 
