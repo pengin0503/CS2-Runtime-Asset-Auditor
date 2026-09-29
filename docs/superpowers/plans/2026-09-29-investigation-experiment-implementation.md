@@ -393,32 +393,32 @@ git commit -m "feat: expose investigation experiment bindings"
 - Consumes Task 4 bindings/projection.
 - Produces recommendation `Test change`, active progress card, explicit Apply, stabilization guidance, explicit follow-up capture, invalidation/result card, Keep/Undo/Cancel, English/Japanese strings.
 
-- [ ] **Step 1: Write RED UI tests**
+- [x] **Step 1: Write RED UI tests**
 
 Cover eligibility, confirmation state, 5-second guidance, explicit follow-up action, follow-up-in-progress state, localized invalidation reason, neutral state counts, metric rows, always-visible non-causality notice, Keep/Undo calls, cancel-after-Apply wording, conflict compatibility, and English/Japanese key coverage.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```bash
 cd UI
 npm test -- investigationExperiment.test.tsx
 ```
 
-- [ ] **Step 3: Implement UI inside existing Performance Advisor tab**
+- [x] **Step 3: Implement UI inside existing Performance Advisor tab**
 
 Do not add a new top-level tab. While a valid experiment is active, keep recommendations readable but disable normal Apply for other recommendations with a localized explanation; backend Task 3 remains authoritative if another path changes a setting.
 
 The UI may derive readiness from `stabilizationReadyAtUtc`, but reaching it only enables/displays the explicit follow-up button and never triggers capture.
 
-- [ ] **Step 4: Implement result summary without verdict**
+- [x] **Step 4: Implement result summary without verdict**
 
 Count `Improved`, `Regressed`, `NoMaterialChange`, `NotComparable` from existing comparison rows. No weighted result, winner, success percentage, or automatic Keep/Undo suggestion.
 
-- [ ] **Step 5: Add English/Japanese strings and responsive styling**
+- [x] **Step 5: Add English/Japanese strings and responsive styling**
 
 Map machine invalidation/outcome IDs to localized copy. Cancel after Apply must explicitly say cancellation keeps the current setting; Undo is a separate action.
 
-- [ ] **Step 6: Verify all UI**
+- [x] **Step 6: Verify all UI**
 
 ```bash
 cd UI
@@ -429,7 +429,7 @@ npm run build
 
 Expected: PASS / webpack compiled successfully.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add UI/src/profiler UI/src/i18n UI/src/shell/RuntimeAssetAuditorRoot.tsx

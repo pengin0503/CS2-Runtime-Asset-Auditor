@@ -15,6 +15,12 @@ import {
   advisorUndo,
   advisorUndoSession,
   advisorResolveConflict,
+  startAdvisorExperiment,
+  applyAdvisorExperiment,
+  startAdvisorExperimentFollowUp,
+  cancelAdvisorExperiment,
+  keepAdvisorExperiment,
+  undoAdvisorExperiment,
   useExportResult,
   usePanelLayout,
   usePanelVisible,
@@ -207,7 +213,10 @@ export function RuntimeAssetAuditorRoot() {
               onDiagnose={requestAdvisorDiagnosis} onBaseline={selectAdvisorBaseline} onManualCapture={requestManualCapture}
               onRediagnose={requestAdvisorRediagnosis}
               onApply={advisorApply} onUndo={advisorUndo} onUndoSession={advisorUndoSession}
-              onResolveConflict={advisorResolveConflict} />}
+              onResolveConflict={advisorResolveConflict} onStartExperiment={startAdvisorExperiment}
+              onApplyExperiment={applyAdvisorExperiment} onStartExperimentFollowUp={startAdvisorExperimentFollowUp}
+              onCancelExperiment={cancelAdvisorExperiment} onKeepExperiment={keepAdvisorExperiment}
+              onUndoExperiment={undoAdvisorExperiment} />}
             {section === "diagnostics" && <DiagnosticsTab diagnostics={snapshot.diagnostics} captures={snapshot.captures} />}
           </div>
         </Scrollable>

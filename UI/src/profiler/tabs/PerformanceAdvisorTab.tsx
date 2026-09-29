@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Button } from "cs2/ui";
-import { AdvisorAction, AdvisorChange, AdvisorRecommendation, AdvisorUiState, CaptureSummaryUi, EMPTY_ADVISOR } from "../bindings";
+import { AdvisorAction, AdvisorChange, AdvisorExperiment, AdvisorRecommendation, AdvisorUiState, CaptureSummaryUi, EMPTY_ADVISOR } from "../bindings";
 import { advisorTextLabel } from "../text";
 import { useText, type Locale, type Translate } from "../../i18n/locale";
 import type { MessageKey } from "../../i18n/messages";
@@ -66,10 +66,11 @@ function isApplied(recommendation: AdvisorRecommendation, changes: AdvisorChange
     && change.status === "Applied" && change.appliedValue === recommendation.recommendedValue);
 }
 
-function RecommendationCard({ recommendation, applied, onApply, locale, t }: {
+function RecommendationCard({ recommendation, applied, onApply, onTest, locale, t }: {
   recommendation: AdvisorRecommendation;
   applied: boolean;
   onApply?: (id: string, value: string, confirmed: boolean) => void;
+  onTest?: (id: string, value: string) => void;
   locale: Locale;
   t: Translate;
 }) {
@@ -89,6 +90,10 @@ function RecommendationCard({ recommendation, applied, onApply, locale, t }: {
             ? <Button as="button" variant="flat" onSelect={() => setAcknowledge(true)}>{t("advisor.confirmRequired")}</Button>
             : <Button as="button" variant="flat" onSelect={() => onApply(recommendation.settingId,
                 recommendation.recommendedValue, needsConfirmation && acknowledge)}>{t("advisor.apply")}</Button>)}
+      {!applied && onTest && recommendation.applyCapability === "Available" &&
+        recommendation.currentValue !== recommendation.recommendedValue &&
+        <Button as="button" variant="flat" onSelect={() => onTest(recommendation.settingId,
+          recommendation.recommendedValue)}>{t("advisor.experiment.test")}</Button>}
       <Button as="button" variant="flat" onSelect={() => setDetails(!details)} aria-expanded={details}>
         {details ? t("advisor.hideDetails") : t("advisor.showDetails")}
       </Button>
@@ -99,6 +104,81 @@ function RecommendationCard({ recommendation, applied, onApply, locale, t }: {
       </div>}
     </article>
   );
+}
+
+const experimentActive = (experiment: AdvisorExperiment | null | undefined): boolean => !!experiment && (
+  experiment.state === "BaselineReady" || experiment.state === "AwaitingApplyConfirmation" ||
+  experiment.state === "AwaitingFollowUp" || experiment.state === "FollowUpCapturing" ||
+  experiment.state === "Completed" && experiment.completionOutcome === "None"
+);
+
+function ExperimentCard({ experiment, locale, t, onApply, onFollowUp, onCancel, onKeep, onUndo }: {
+  experiment: AdvisorExperiment;
+  locale: Locale;
+  t: Translate;
+  onApply?: (confirmed: boolean) => void;
+  onFollowUp?: () => void;
+  onCancel?: () => void;
+  onKeep?: () => void;
+  onUndo?: (confirmed: boolean) => void;
+}) {
+  const [confirmUndo, setConfirmUndo] = useState(false);
+  const compared = experiment.comparison;
+  const counts = { Improved: 0, Regressed: 0, NoMaterialChange: 0, NotComparable: 0 };
+  compared?.metrics.forEach(metric => { counts[metric.state]++; });
+  const hasApplied = !!experiment.changeAppliedAtUtc;
+  const awaitingDecision = experiment.state === "Completed" && experiment.completionOutcome === "None";
+  const needsUndoConfirmation = experiment.lastFailureReason === "ConfirmationRequired" || confirmUndo;
+  const stabilizationPending = experiment.stabilizationReadyAtUtc != null &&
+    Date.now() < Date.parse(experiment.stabilizationReadyAtUtc);
+  return <section className={styles.experimentCard} aria-label={t("advisor.experiment.title")}>
+    <h3>{t("advisor.experiment.title")}</h3>
+    <strong>{experiment.settingDisplayName || experiment.settingId}</strong>
+    <span>{t("advisor.current", { current: experiment.originalValue, proposed: experiment.testedValue })}</span>
+    <span>{t(`advisor.experiment.state.${experiment.state}` as MessageKey)}</span>
+    <span>{t("advisor.experiment.baseline", { id: experiment.baselineCaptureId })}</span>
+    {experiment.followUpCaptureId && <span>{t("advisor.experiment.followUpId", { id: experiment.followUpCaptureId })}</span>}
+    {experiment.state === "Invalidated" && <p role="status">{lookup(t, "advisor.experiment.reason",
+      experiment.invalidationReason, "advisor.experiment.reason.Unknown")}</p>}
+    {experiment.lastFailureReason && <p role="status">{advisorFailureLabel(experiment.lastFailureReason, t)}</p>}
+    {experiment.state === "BaselineReady" && onApply &&
+      <Button as="button" variant="flat" onSelect={() => onApply(false)}>{t("advisor.experiment.apply")}</Button>}
+    {experiment.state === "AwaitingApplyConfirmation" && onApply &&
+      <Button as="button" variant="flat" onSelect={() => onApply(true)}>{t("advisor.experiment.confirmApply")}</Button>}
+    {experiment.state === "AwaitingFollowUp" && <>
+      <p>{t("advisor.experiment.stabilize")}</p>
+      {onFollowUp && <Button as="button" variant="flat" disabled={stabilizationPending}
+        onSelect={onFollowUp}>{t("advisor.experiment.followUp")}</Button>}
+    </>}
+    {experiment.state === "FollowUpCapturing" && <p>{t("advisor.experiment.capturing")}</p>}
+    {compared && <>
+      <p>{t("advisor.experiment.observed")}</p>
+      <div className={styles.experimentCounts}>
+        {(["Improved", "Regressed", "NoMaterialChange", "NotComparable"] as const).map(state =>
+          <span key={state}>{t(`advisor.compare.${state}` as MessageKey)} {counts[state]}</span>)}
+      </div>
+      {compared.metrics.map(metric => <div className={styles.advisorObservation} key={metric.id}>
+        <strong>{metric.id}: {t(`advisor.compare.${metric.state}` as MessageKey)}</strong>
+        <span>{metric.baselineValue ?? t("advisor.notAvailableValue")} → {metric.followUpValue ?? t("advisor.notAvailableValue")}</span>
+        {metric.reason && <span>{advisorTextLabel(metric.reason, locale)}</span>}
+      </div>)}
+      <p>{t("advisor.experiment.disclaimer")}</p>
+    </>}
+    {experiment.followUpWarnings?.map((warning, index) =>
+      <p className={styles.experimentWarning} key={`${index}-${warning}`}>{warning}</p>)}
+    {awaitingDecision && <div className={styles.experimentButtons}>
+      {onKeep && <Button as="button" variant="flat" onSelect={onKeep}>{t("advisor.experiment.keep")}</Button>}
+      {onUndo && <Button as="button" variant="flat" onSelect={() => {
+        onUndo(needsUndoConfirmation);
+        setConfirmUndo(true);
+      }}>{needsUndoConfirmation ? t("advisor.experiment.confirmUndo") : t("advisor.experiment.undo")}</Button>}
+    </div>}
+    {experimentActive(experiment) && !awaitingDecision && onCancel && <Button as="button" variant="flat" onSelect={onCancel}>
+      {hasApplied ? t("advisor.experiment.cancelAfterApply") : t("advisor.experiment.cancel")}
+    </Button>}
+    {experiment.completionOutcome !== "None" &&
+      <p>{t(`advisor.experiment.outcome.${experiment.completionOutcome}` as MessageKey)}</p>}
+  </section>;
 }
 
 function ChangeCard({ change, onUndo, onResolveConflict, t }: {
@@ -142,7 +222,8 @@ function UndoSessionControl({ appliedCount, onUndoSession, t }: {
 }
 
 export function PerformanceAdvisorTab({ advisor = EMPTY_ADVISOR, captures = [], onDiagnose, onBaseline, onManualCapture,
-  onApply, onUndo, onUndoSession, onResolveConflict, onRediagnose }: {
+  onApply, onUndo, onUndoSession, onResolveConflict, onRediagnose, onStartExperiment, onApplyExperiment,
+  onStartExperimentFollowUp, onCancelExperiment, onKeepExperiment, onUndoExperiment }: {
   advisor?: AdvisorUiState;
   captures?: CaptureSummaryUi[];
   onDiagnose?: (id: string) => void;
@@ -153,16 +234,26 @@ export function PerformanceAdvisorTab({ advisor = EMPTY_ADVISOR, captures = [], 
   onUndoSession?: (confirmed: boolean) => void;
   onResolveConflict?: (id: string, restoreOriginal: boolean) => void;
   onRediagnose?: (id: string) => void;
+  onStartExperiment?: (captureId: string, settingId: string, proposedValue: string) => void;
+  onApplyExperiment?: (confirmed: boolean) => void;
+  onStartExperimentFollowUp?: () => void;
+  onCancelExperiment?: () => void;
+  onKeepExperiment?: () => void;
+  onUndoExperiment?: (confirmed: boolean) => void;
 }) {
   const { locale, t } = useText();
   const [showNoRecommendation, setShowNoRecommendation] = useState(false);
   const changes = advisor.changes ?? [];
   const appliedCount = changes.filter(change => change.status === "Applied").length;
+  const activeExperiment = experimentActive(advisor.experiment);
   return (
     <section className={styles.advisorTab}>
       <h2>{t("advisor.title")}</h2>
       <p>{t("advisor.intro")}</p>
       {advisor.lastAction && <p className={styles.exportResult} role="status">{advisorActionMessage(advisor.lastAction, t)}</p>}
+      {advisor.experiment && <ExperimentCard experiment={advisor.experiment} locale={locale} t={t}
+        onApply={onApplyExperiment} onFollowUp={onStartExperimentFollowUp}
+        onCancel={onCancelExperiment} onKeep={onKeepExperiment} onUndo={onUndoExperiment} />}
       <div className={styles.advisorActions}>
         {onManualCapture && <Button as="button" variant="flat" onSelect={onManualCapture}>{t("advisor.manualCapture")}</Button>}
         {captures.map(capture => (
@@ -186,6 +277,7 @@ export function PerformanceAdvisorTab({ advisor = EMPTY_ADVISOR, captures = [], 
           <span>{advisorTextLabel(observation.rationale, locale)}</span>
         </div>
       ))}
+      {activeExperiment && <p>{t("advisor.experiment.otherApplyDisabled")}</p>}
       {GROUPS.map(group => {
         const entries = advisor.recommendations.filter(group.include);
         const open = group.id !== "none" || showNoRecommendation;
@@ -196,7 +288,10 @@ export function PerformanceAdvisorTab({ advisor = EMPTY_ADVISOR, captures = [], 
                   onSelect={() => setShowNoRecommendation(!showNoRecommendation)}>{t(group.labelKey)} ({entries.length})</Button>
               : <h3 style={GROUP_TITLE_STYLE}>{t(group.labelKey)} ({entries.length})</h3>}
             {open && entries.map(entry => <RecommendationCard key={entry.settingId} recommendation={entry}
-              applied={isApplied(entry, changes)} onApply={onApply} locale={locale} t={t} />)}
+              applied={isApplied(entry, changes)} onApply={activeExperiment ? undefined : onApply}
+              onTest={!activeExperiment && advisor.available && !!advisor.selectedCaptureId && onStartExperiment
+                ? (id, value) => onStartExperiment(advisor.selectedCaptureId, id, value) : undefined}
+              locale={locale} t={t} />)}
           </section>
         );
       })}

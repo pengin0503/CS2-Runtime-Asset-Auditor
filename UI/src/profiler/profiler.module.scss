@@ -136,5 +136,10 @@
 .advisorCapture { display: flex; align-items: center; gap: 6rem; flex-wrap: wrap; padding: 5rem 7rem; border-radius: 4rem; background-color: rgba(255,255,255,.06); }
 .advisorGroup { display: flex; flex-direction: column; gap: 5rem; padding-top: 5rem; border-top-width: 1rem; border-top-style: solid; border-top-color: rgba(255,255,255,.15); }
 .advisorCard { display: flex; flex-direction: column; gap: 4rem; min-width: 0; padding: 7rem; border-radius: 4rem; background-color: rgba(255,255,255,.06); overflow-wrap: break-word; }
+.experimentCard { display: flex; flex-direction: column; gap: 5rem; min-width: 0; padding: 9rem; border-width: 1rem; border-style: solid; border-color: rgba(86,166,255,.55); border-radius: 5rem; background-color: rgba(86,166,255,.09); overflow-wrap: break-word; }
+.experimentCard h3 { margin: 0; font-size: 15rem; }
+.experimentButtons, .experimentCounts { display: flex; flex-wrap: wrap; gap: 6rem; min-width: 0; }
+.experimentCounts > span { padding: 3rem 6rem; border-radius: 3rem; background-color: rgba(255,255,255,.08); }
+.experimentWarning { color: #ffdca0; }
 .advisorDetails { display: flex; flex-direction: column; gap: 3rem; }
 .advisorObservation { display: flex; flex-direction: column; gap: 3rem; padding: 7rem; border-radius: 4rem; background-color: rgba(86,166,255,.1); }
