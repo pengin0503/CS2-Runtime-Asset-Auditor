@@ -32,7 +32,6 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
             _modUpdateMs = new SampleWindow(windowCapacity, includeZero: true);
         }
 
-        public IReadOnlyList<DiagnosticRecorderColumn> RecorderColumns => _recorderColumns;
         public int FrameCount => _interval.FrameCount;
 
         public void AddFrame(in RuntimeFrameSample frame) => _interval.AddFrame(frame);

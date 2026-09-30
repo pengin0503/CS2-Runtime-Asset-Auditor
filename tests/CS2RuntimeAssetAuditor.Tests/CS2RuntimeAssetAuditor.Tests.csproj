@@ -17,11 +17,12 @@
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/GameIntegration/Prefabs/PrefabClassifier.cs" Link="Assets/GameIntegration/PrefabClassifier.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/GameIntegration/Prefabs/SourceMetadataReader.cs" Link="Assets/GameIntegration/SourceMetadataReader.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/GameIntegration/Rendering/IRenderAssetResolver.cs" Link="Assets/GameIntegration/IRenderAssetResolver.cs" />
-    <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/GameIntegration/Rendering/RenderGraphBuilder.cs" Link="Assets/GameIntegration/RenderGraphBuilder.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/GameIntegration/Rendering/RenderGraph.cs" Link="Assets/GameIntegration/RenderGraph.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/UI/UiContracts.cs" Link="Assets/UI/UiContracts.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/UI/UiExportContracts.cs" Link="Assets/UI/UiExportContracts.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/UI/UiAnalysisProjection.cs" Link="Assets/UI/UiAnalysisProjection.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/UI/UiPublishPolicy.cs" Link="Assets/UI/UiPublishPolicy.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/UI/AssetStatusFingerprint.cs" Link="Assets/UI/AssetStatusFingerprint.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/UI/AssetAuditBindingNames.cs" Link="Assets/UI/AssetAuditBindingNames.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Assets/Export/**/*.cs" LinkBase="Assets/Export" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Core/**/*.cs" LinkBase="Core" />
@@ -33,7 +34,6 @@
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Profiling/HarmonyRuntimeResolver.cs" Link="Profiling/HarmonyRuntimeResolver.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Profiling/ManagedSystemTimingCaptureLifecycle.cs" Link="Profiling/ManagedSystemTimingCaptureLifecycle.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Collectors/IMetricCollector.cs" Link="Collectors/IMetricCollector.cs" />
-    <Compile Include="../../src/CS2RuntimeAssetAuditor/Collectors/ReflectionMetricAccessor.cs" Link="Collectors/ReflectionMetricAccessor.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Collectors/PathfindingCollector.cs" Link="Collectors/PathfindingCollector.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Collectors/EntityMetricsCollector.cs" Link="Collectors/EntityMetricsCollector.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/ReportPrivacy.cs" Link="Export/ReportPrivacy.cs" />
@@ -44,7 +44,6 @@
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/SanitizingJsonWriter.cs" Link="Export/SanitizingJsonWriter.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/DataContractJsonWriter.cs" Link="Export/DataContractJsonWriter.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/PerformanceReport.cs" Link="Export/PerformanceReport.cs" />
-    <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/PerformanceReportSerializer.cs" Link="Export/PerformanceReportSerializer.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/ProfilerReportBuilder.cs" Link="Export/ProfilerReportBuilder.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/ReportFileWriter.cs" Link="Export/ReportFileWriter.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/ExportResultFormat.cs" Link="Export/ExportResultFormat.cs" />

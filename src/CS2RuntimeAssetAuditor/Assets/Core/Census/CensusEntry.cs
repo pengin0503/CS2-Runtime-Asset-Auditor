@@ -22,21 +22,5 @@ namespace CS2RuntimeAssetAuditor.Assets.Core.Census
         public CensusCounters Counters { get; }
 
         public CensusPresence Presence { get; }
-
-        public CensusCountKind PrimaryCountKind
-        {
-            get
-            {
-                if (Traits.HasFlag(PrefabTraits.Network))
-                    return CensusCountKind.NetworkEdges;
-                if (Traits.HasFlag(PrefabTraits.Prop) || Traits.HasFlag(PrefabTraits.Vehicle))
-                    return CensusCountKind.LiveObjectReferences;
-                if (Traits.HasFlag(PrefabTraits.Building)
-                    || Traits.HasFlag(PrefabTraits.ServiceBuilding)
-                    || Traits.HasFlag(PrefabTraits.Tree))
-                    return CensusCountKind.TopLevelObjects;
-                return CensusCountKind.None;
-            }
-        }
     }
 }

@@ -18,6 +18,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
 
         public IReadOnlyCollection<string> ActiveIds => _active.Keys.ToArray();
         public IReadOnlyCollection<RecorderDescriptor> Descriptors => _discovered.Values.ToArray();
+        public int DescriptorCount => _discovered.Count;
 
         public IReadOnlyList<RecorderDescriptor> DiscoverAvailableMarkers()
         {

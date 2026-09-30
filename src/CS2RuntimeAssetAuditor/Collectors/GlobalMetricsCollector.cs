@@ -19,7 +19,6 @@ namespace CS2RuntimeAssetAuditor.Collectors
         private readonly MonitoringLifecycleGate _monitoringGate = new MonitoringLifecycleGate(initiallyEnabled: true);
         private SimulationSystem _simulationSystem;
         private RecorderManager _recorderManager;
-        private ProfilerOverheadTracker _overhead;
         private GlobalSnapshotHistory _history;
         private IReadOnlyDictionary<string, string> _recorderUnits = new Dictionary<string, string>();
         private double _nextSampleAt;
@@ -28,7 +27,6 @@ namespace CS2RuntimeAssetAuditor.Collectors
 
         public string Name => "Global";
         public GlobalMetricsSnapshot Latest { get; private set; }
-        public ProfilerOverheadTracker Overhead => _overhead;
         public RecorderManager Recorders => _recorderManager;
         public double SamplingPeriodSeconds => Mod.Settings?.ResolvedSamplingPeriodSeconds ?? DefaultSamplingPeriodSeconds;
         public double CurrentTimestampSeconds => _clock.Elapsed.TotalSeconds;
@@ -41,7 +39,6 @@ namespace CS2RuntimeAssetAuditor.Collectors
             _simulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
             _frameReader = new RuntimeFrameSampleReader(_simulationSystem, World.GetOrCreateSystemManaged<PathfindResultSystem>());
             _recorderManager = new RecorderManager(new UnityRecorderBackend());
-            _overhead = new ProfilerOverheadTracker();
             _history = new GlobalSnapshotHistory(HistoryCapacity);
             _recorderManager.DiscoverAvailableMarkers();
             _recorderUnits = _recorderManager.Descriptors.ToDictionary(descriptor => descriptor.Id, descriptor => descriptor.UnitType);
@@ -80,7 +77,7 @@ namespace CS2RuntimeAssetAuditor.Collectors
                 return;
 
             _nextSampleAt = now + SamplingPeriodSeconds;
-            _overhead.Measure(now, () => Sample(now));
+            Sample(now);
         }
 
         public void Sample(double timestampSeconds)

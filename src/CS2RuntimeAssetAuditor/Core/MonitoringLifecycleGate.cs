@@ -16,8 +16,6 @@ namespace CS2RuntimeAssetAuditor.Core
             _enabled = initiallyEnabled;
         }
 
-        public bool IsEnabled => _enabled;
-
         public MonitoringTransition Observe(bool enabled)
         {
             if (enabled == _enabled)

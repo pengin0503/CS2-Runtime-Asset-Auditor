@@ -5,6 +5,7 @@ using System.Text;
 
 namespace CS2RuntimeAssetAuditor.Export
 {
+    // Test support only: the mod writes reports through RuntimeAssetAuditReportSerializer.
     public static class PerformanceReportSerializer
     {
         public static string Serialize(PerformanceReport report)

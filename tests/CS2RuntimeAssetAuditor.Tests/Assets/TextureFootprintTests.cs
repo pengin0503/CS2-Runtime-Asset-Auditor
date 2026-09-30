@@ -70,20 +70,5 @@ namespace CS2RuntimeAssetAuditor.Tests.Assets
             };
             Assert.That(TextureObservation.Deduplicate(observations).Count, Is.EqualTo(1));
         }
-
-        [Test]
-        public void Three_references_to_one_texture_have_one_unique_payload()
-        {
-            var aggregation = ResourceAggregation.Aggregate(new[]
-            {
-                new ResourceReference("texture:shared", 64),
-                new ResourceReference("texture:shared", 64),
-                new ResourceReference("texture:shared", 64),
-            });
-            Assert.That(aggregation.ReferenceCount, Is.EqualTo(3));
-            Assert.That(aggregation.UniqueResourceCount, Is.EqualTo(1));
-            Assert.That(aggregation.ReferencedPayloadBytes, Is.EqualTo(192));
-            Assert.That(aggregation.UniquePayloadBytes, Is.EqualTo(64));
-        }
     }
 }

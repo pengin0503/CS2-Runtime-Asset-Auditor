@@ -56,8 +56,6 @@ namespace CS2RuntimeAssetAuditor.Assets.Core.Diagnostics
 
         public DateTimeOffset StartedAt { get; }
 
-        public int SampleCapacity => _sliceMilliseconds.Length;
-
         public void RecordManagedSlice(TimeSpan elapsed, long processedItems)
         {
             if (elapsed < TimeSpan.Zero)

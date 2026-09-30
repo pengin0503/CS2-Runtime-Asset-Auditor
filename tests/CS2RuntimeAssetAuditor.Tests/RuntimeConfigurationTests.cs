@@ -77,6 +77,34 @@ public class RuntimeConfigurationTests
         Assert.That(controller.CurrentBatchSize, Is.EqualTo(4));
     }
 
+    [Test]
+    public void Configuration_applied_every_frame_between_captures_keeps_the_configured_batches()
+    {
+        var descriptors = Enumerable.Range(0, 8)
+            .Select(index => new RecorderDescriptor($"marker-{index}", "CPU", $"Marker {index}", "TimeNanoseconds", "Int64"))
+            .ToArray();
+        using var manager = new RecorderManager(new FakeBackend(descriptors));
+        using var controller = new DeepCaptureController(manager, CreateShortStateMachine(), maxConcurrent: 8);
+        controller.Initialize();
+        Assert.That(manager.DescriptorCount, Is.EqualTo(manager.Descriptors.Count));
+
+        for (var frame = 0; frame < 3; frame++)
+            controller.UpdateConfiguration(maxConcurrent: 3, overheadCeiling: 0.08, maxCompletedSessions: 20);
+        controller.RequestManualCapture(0);
+        Assert.That(controller.CurrentBatchSize, Is.EqualTo(3));
+        Assert.That(manager.ActiveIds.Count, Is.EqualTo(3));
+        Assert.That(controller.CurrentSession!.MarkerCoverage.IsBatched, Is.True);
+        controller.Observe(3, global: null);
+        controller.Observe(5, global: null);
+        Assert.That(controller.CurrentSession, Is.Null);
+
+        controller.UpdateConfiguration(maxConcurrent: 8, overheadCeiling: 0.08, maxCompletedSessions: 20);
+        controller.RequestManualCapture(6);
+        Assert.That(controller.CurrentBatchSize, Is.EqualTo(8));
+        Assert.That(manager.ActiveIds.Count, Is.EqualTo(8));
+        Assert.That(controller.CurrentSession!.MarkerCoverage.IsBatched, Is.False);
+    }
+
     private static DeepCaptureStateMachine CreateShortStateMachine() => new(
         efficiencyThreshold: 0.8,
         sustainSeconds: 2,

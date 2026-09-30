@@ -24,10 +24,8 @@
     <Reference Include="Colossal.Logging"><Private>false</Private></Reference>
     <Reference Include="Colossal.IO.AssetDatabase"><Private>false</Private></Reference>
     <Reference Include="Colossal.PSI.Common"><Private>false</Private></Reference>
-    <Reference Include="Colossal.UI"><Private>false</Private></Reference>
     <Reference Include="Colossal.UI.Binding"><Private>false</Private></Reference>
     <Reference Include="UnityEngine.CoreModule"><Private>false</Private></Reference>
-    <Reference Include="UnityEngine.PerformanceReportingModule"><Private>false</Private></Reference>
     <Reference Include="Unity.Profiling.Core"><Private>false</Private></Reference>
     <Reference Include="Unity.Burst"><Private>false</Private></Reference>
     <Reference Include="Unity.Collections"><Private>false</Private></Reference>

@@ -66,13 +66,10 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
         public long CatalogGeneration => _catalog?.CatalogGeneration ?? 0;
         public DateTimeOffset CatalogCapturedAt => _catalog?.CatalogCapturedAt ?? DateTimeOffset.MinValue;
         public IReadOnlyList<PrefabRecord> CatalogRecords => _catalog?.PublishedRecords ?? Array.Empty<PrefabRecord>();
-        public int CatalogCapturedEntityCount => _catalog?.CapturedEntityCount ?? 0;
-        public int CatalogProcessedEntityCount => _catalog?.ProcessedEntityCount ?? 0;
         public int CatalogUnresolvedEntityCount => _catalog?.UnresolvedEntityCount ?? 0;
         public IReadOnlyDictionary<Entity, PrefabKey> RuntimeEntityKeys => _catalog?.RuntimeEntityKeys ?? new Dictionary<Entity, PrefabKey>();
         public ScanSession? CurrentScan { get; private set; }
         public bool IsScanActive => CurrentScan != null && (CurrentScan.State == ScanState.Running || CurrentScan.State == ScanState.CancellationRequested);
-        public bool IsCensusScanActive => IsScanActive && CurrentScan?.Kind == ScanKind.Census;
         public string DiagnosticWorkStatus { get; private set; } = "Idle";
         public CensusSnapshot? PublishedCensus => _publishedState.Census;
         public AssetAnalysisSnapshot? PublishedAnalysis => _publishedState.Analysis;
@@ -81,12 +78,15 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
         public string? PublishedAssetSnapshotSessionId => _publishedIdentity?.SessionId;
         public DateTimeOffset? PublishedAssetSnapshotStartedAtUtc => _publishedIdentity?.StartedAtUtc;
         public DateTimeOffset? PublishedAssetSnapshotCompletedAtUtc => _publishedIdentity?.CompletedAtUtc;
-        public DateTimeOffset? PublishedAssetSnapshotEnrichedAtUtc => _publishedIdentity?.EnrichedAtUtc;
-        public RenderGraphSnapshot? PublishedRuntimeRenderGraph => _publishedRuntimeRenderGraph;
         public string? LastDiagnosticCode { get; private set; }
         public int UnmatchedPrefabReferenceCount => _censusAccess?.UnmatchedPrefabReferenceCount ?? 0;
         // While a scan runs, elapsed time is live; once it ends the snapshot is frozen at the frame the scan ended.
         public ScanTelemetrySnapshot? TelemetrySnapshot => _finalTelemetry ?? _scanTelemetry?.Snapshot(DateTimeOffset.UtcNow);
+
+        // Change detection without building a snapshot (which copies and sorts the slice samples): the frozen
+        // telemetry of a finished scan, and whether a running scan's telemetry is still changing.
+        internal ScanTelemetrySnapshot? FinalTelemetry => _finalTelemetry;
+        internal bool HasLiveTelemetry => _finalTelemetry == null && _scanTelemetry != null;
 
         // Scans describe the loaded city; without an active city session there is nothing to audit.
         private static bool CitySessionActive => Mod.Sessions.IsActive;
@@ -135,12 +135,6 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
             _requestedDeepInspectionKey = key;
             _deepInspectionRequested = true;
             return true;
-        }
-
-        public void CancelCensusScan()
-        {
-            if (CurrentScan?.Kind == ScanKind.Census && CurrentScan.State == ScanState.Running)
-                CurrentScan.RequestCancellation();
         }
 
         public void CancelCurrentScan()

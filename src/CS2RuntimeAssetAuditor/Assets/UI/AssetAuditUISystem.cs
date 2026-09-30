@@ -42,7 +42,7 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
         private AssetPage _assetPage = new AssetPage(Array.Empty<AssetPageItem>(), 0, 0, 100);
         private UiScanOptions _uiSettings = new UiScanOptions();
         private DateTimeOffset _lastPublishedAt;
-        private object? _lastPublishedStatus;
+        private AssetStatusFingerprint _lastPublishedStatus;
 
         protected override void OnCreate()
         {
@@ -77,16 +77,20 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
         {
             base.OnUpdate();
             var auditSystem = GetAuditSystem();
-            var dataChanged = RefreshAssetPage(auditSystem, force: false);
-            var statusChanged = !Equals(CaptureStatus(auditSystem), _lastPublishedStatus);
             // The shared shell owns panel visibility; this system only reads it.
             var shellVisible = IsPanelVisible();
             if (!shellVisible)
             {
                 // Building the snapshot maps the asset page and serializes it; skip that work while nobody can see it.
-                _deferredChanges |= dataChanged || statusChanged;
+                // Once a change is pending the panel publishes as soon as it is shown, and that first visible
+                // update refreshes the asset page itself, so nothing more needs to be checked until then.
+                if (!_deferredChanges)
+                    _deferredChanges = RefreshAssetPage(auditSystem, force: false)
+                        || !CaptureStatus(auditSystem).Matches(_lastPublishedStatus);
                 return;
             }
+            var dataChanged = RefreshAssetPage(auditSystem, force: false);
+            var statusChanged = !CaptureStatus(auditSystem).Matches(_lastPublishedStatus);
             var decision = UiPublishPolicy.Decide(
                 shellVisible,
                 _deferredChanges,
@@ -421,23 +425,24 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
         }
 
         // Cheap, reference-based view of every snapshot input not covered by RefreshAssetPage (catalog, census,
-        // analysis) or by the request handlers, which publish on their own. Equal fingerprints mean the snapshot
-        // would be unchanged, so it is not rebuilt.
-        private object CaptureStatus(AssetAuditSystem? auditSystem)
+        // analysis) or by the request handlers, which publish on their own. Matching fingerprints mean the snapshot
+        // would be unchanged, so it is not rebuilt. Taken every frame, so it allocates nothing.
+        private AssetStatusFingerprint CaptureStatus(AssetAuditSystem? auditSystem)
         {
             var scan = auditSystem?.CurrentScan;
-            return (
+            return new AssetStatusFingerprint(
                 auditSystem,
                 scan,
-                scan?.State,
-                scan?.Stage,
+                scan?.State ?? default,
+                scan?.Stage ?? default,
                 scan?.Progress,
                 auditSystem?.Capabilities,
                 auditSystem?.LastDiagnosticCode,
-                auditSystem?.CatalogCapturedAt,
-                auditSystem?.CatalogUnresolvedEntityCount,
-                auditSystem?.UnmatchedPrefabReferenceCount,
-                auditSystem?.TelemetrySnapshot,
+                auditSystem?.CatalogCapturedAt ?? default,
+                auditSystem?.CatalogUnresolvedEntityCount ?? 0,
+                auditSystem?.UnmatchedPrefabReferenceCount ?? 0,
+                auditSystem?.FinalTelemetry,
+                auditSystem?.HasLiveTelemetry == true,
                 auditSystem?.DiagnosticWorkStatus,
                 Mod.SessionContext?.SessionId,
                 _diagnostics.OccurrenceCount);

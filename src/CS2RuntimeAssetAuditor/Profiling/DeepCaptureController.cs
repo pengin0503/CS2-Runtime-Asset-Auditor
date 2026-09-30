@@ -37,8 +37,8 @@ namespace CS2RuntimeAssetAuditor.Profiling
         private double _batchStartedAt;
         private double _lastObservedSeconds;
         private int _consecutiveSafetyStops;
-        private CaptureState _lastState;
         private MarkerBatchPlan _plan;
+        private int _planBatchSize;
 
         public DeepCaptureController(RecorderManager recorders, DeepCaptureStateMachine stateMachine, int maxConcurrent = 150, double overheadCeiling = 0.08, int maxCompletedSessions = 20)
         {
@@ -48,7 +48,6 @@ namespace CS2RuntimeAssetAuditor.Profiling
             _maxConcurrent = _configuredMaxConcurrent;
             _overheadCeiling = Math.Max(0.001, overheadCeiling);
             _maxCompletedSessions = Math.Max(1, maxCompletedSessions);
-            _lastState = _stateMachine.State;
         }
 
         public event Action<CaptureSession> CaptureCompleted;
@@ -67,7 +66,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
         public void Initialize()
         {
             _recorders.DiscoverAvailableMarkers();
-            _plan = MarkerBatchPlanner.Create(_recorders.Descriptors.Select(d => d.Id), _maxConcurrent);
+            RebuildPlan();
         }
 
         public void UpdateConfiguration(int maxConcurrent, double overheadCeiling, int maxCompletedSessions)
@@ -78,7 +77,15 @@ namespace CS2RuntimeAssetAuditor.Profiling
             while (_completed.Count > _maxCompletedSessions) _completed.RemoveAt(0);
             if (CurrentSession != null) return;
             _maxConcurrent = _configuredMaxConcurrent;
-            if (_recorders.Descriptors != null) _plan = MarkerBatchPlanner.Create(_recorders.Descriptors.Select(d => d.Id), _maxConcurrent);
+            // Called every frame; the plan only depends on the discovered markers, which change only when a
+            // capture starts (and that rebuilds the plan), and on the batch size.
+            if (_plan == null || _planBatchSize != _maxConcurrent) RebuildPlan();
+        }
+
+        private void RebuildPlan()
+        {
+            _plan = MarkerBatchPlanner.Create(_recorders.Descriptors.Select(d => d.Id), _maxConcurrent);
+            _planBatchSize = _maxConcurrent;
         }
 
         public void RequestManualCapture(double nowSeconds, IEnumerable<GlobalMetricsSnapshot> prebuffer = null)
@@ -88,7 +95,6 @@ namespace CS2RuntimeAssetAuditor.Profiling
             _stateMachine.RequestManualCapture(nowSeconds);
             if (before != CaptureState.DeepCapture && _stateMachine.State == CaptureState.DeepCapture)
                 BeginCapture(nowSeconds, FindLatestSample(prebuffer, nowSeconds), prebuffer);
-            _lastState = _stateMachine.State;
         }
 
         public void Observe(double nowSeconds, GlobalMetricsSnapshot global, IEnumerable<GlobalMetricsSnapshot> prebuffer = null)
@@ -122,10 +128,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
                     CurrentSession.AddGlobalSample(global);
                     ObserveProfilerMemory(global);
                     if (CurrentSession == null)
-                    {
-                        _lastState = _stateMachine.State;
                         return;
-                    }
                 }
                 CaptureDeepSample(nowSeconds);
             }
@@ -138,7 +141,6 @@ namespace CS2RuntimeAssetAuditor.Profiling
                 _consecutiveSafetyStops = 0;
                 FinalizeCapture();
             }
-            _lastState = after;
         }
 
         public void InterruptActiveCapture(string warning) => InterruptActiveCapture(warning, CaptureInterruptionReason.Requested);
@@ -180,7 +182,6 @@ namespace CS2RuntimeAssetAuditor.Profiling
             _degradationActions = 0;
             _profilerMemoryDegradeLevel = 0;
             _lastProfilerMemoryGrowth = null;
-            _lastState = _stateMachine.State;
         }
 
         public void ReportProfilerOverheadShare(double share)
@@ -222,7 +223,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
             _degradationActions = 0;
             _profilerMemoryDegradeLevel = 0;
             _lastProfilerMemoryGrowth = null;
-            _plan = MarkerBatchPlanner.Create(_recorders.Descriptors.Select(d => d.Id), _maxConcurrent);
+            RebuildPlan();
             CurrentSession = new CaptureSession($"capture-{DateTime.UtcNow:yyyyMMdd-HHmmss-fff}", _stateMachine.LastTrigger ?? new CaptureTrigger(CaptureTriggerKind.Manual, nowSeconds, null), 4096);
             CurrentSession.SetTriggerSnapshot(triggerSample);
             if (triggerSample != null) ObserveProfilerMemory(triggerSample);
@@ -287,7 +288,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
             if (_maxConcurrent > 1)
             {
                 _maxConcurrent = Math.Max(1, _maxConcurrent / 2);
-                _plan = MarkerBatchPlanner.Create(_recorders.Descriptors.Select(d => d.Id), _maxConcurrent);
+                RebuildPlan();
                 CurrentSession.AddWarning(string.Format(batchWarningFormat, _maxConcurrent));
             }
             else

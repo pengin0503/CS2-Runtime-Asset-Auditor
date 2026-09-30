@@ -43,7 +43,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
         public double LastOverheadShare => _lastOverheadShare;
         public int CurrentBatchSize => _controller?.CurrentBatchSize ?? 0;
         public int SamplingStride => _controller?.SamplingStride ?? 1;
-        public int DiscoveredMarkerCount => _deepRecorders?.Descriptors?.Count ?? 0;
+        public int DiscoveredMarkerCount => _deepRecorders?.DescriptorCount ?? 0;
 
         protected override void OnCreate()
         {
@@ -112,7 +112,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
 
             var prebuffer = _global.GetRecentHistory(GetPrebufferSeconds());
             var captureConfiguration = RuntimeCaptureConfigurationProvider.Capture();
-            _overhead.Measure(latest.TimestampSeconds, () =>
+            _overhead.Measure(() =>
             {
                 var beforeSession = _controller.CurrentSession;
                 var beforeState = _controller.State;
@@ -218,7 +218,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
             Mod.Info(CaptureCompletionLogFormatter.FormatStarted(capture));
             Mod.WorkCoordinator.Request(DiagnosticWorkKind.RuntimeDeepCapture);
             RefreshSystemCatalogForCapture(capture);
-            StartManagedTimingForCapture(capture);
+            StartManagedTimingForCapture();
         }
 
         // A capture from an earlier city must not be listed, diagnosed or linked as evidence for the city that
@@ -292,7 +292,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
             Mod.Info(warning);
         }
 
-        private void StartManagedTimingForCapture(CaptureSession capture)
+        private void StartManagedTimingForCapture()
         {
             if (_managedTimingLifecycle == null)
                 return;
