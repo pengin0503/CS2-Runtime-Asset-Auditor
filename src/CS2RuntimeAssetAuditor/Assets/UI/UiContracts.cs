@@ -207,6 +207,8 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
         [DataMember(Name = "sampleCount", Order = 4)] public int SampleCount { get; set; }
         [DataMember(Name = "maxSliceMilliseconds", Order = 5)] public double MaxSliceMilliseconds { get; set; }
         [DataMember(Name = "p95SliceMilliseconds", Order = 6)] public double P95SliceMilliseconds { get; set; }
+        [DataMember(Name = "overBudgetSliceCount", Order = 7)] public long OverBudgetSliceCount { get; set; }
+        [DataMember(Name = "maxIndivisibleReadMilliseconds", Order = 8)] public double MaxIndivisibleReadMilliseconds { get; set; }
     }
 
     [DataContract]

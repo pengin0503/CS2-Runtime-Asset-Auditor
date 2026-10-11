@@ -8,6 +8,7 @@ using CS2RuntimeAssetAuditor.Assets.Core.Findings;
 using CS2RuntimeAssetAuditor.Assets.Core.Observations;
 using CS2RuntimeAssetAuditor.Assets.Core.Prefabs;
 using CS2RuntimeAssetAuditor.Assets.Core.Rendering;
+using CS2RuntimeAssetAuditor.Assets.Core.Scanning;
 using Game.Prefabs;
 using Unity.Entities;
 
@@ -48,7 +49,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
         private Dictionary<PrefabKey, PrefabRenderRelation[]>? _relationsByPrefab;
         private int _runtimePrefabIndex;
         private int _geometryIndex;
-        private int _surfaceIndex;
+        private NestedReadCursor<RenderAssetRecord, SurfaceAsset, TextureAsset>? _surfaceTextureCursor;
         private int _findingIndex;
 
         public AssetAnalysisCollector(
@@ -96,7 +97,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
         public int RenderTargetCount => _catalog.Length;
         public int GeometryProcessedCount => _geometryIndex;
         public int GeometryTargetCount => _renderGraph?.RenderAssets.Count ?? 0;
-        public int SurfaceTextureProcessedCount => _surfaceIndex;
+        public int SurfaceTextureProcessedCount => _surfaceTextureCursor?.CompletedOwners ?? 0;
         public int SurfaceTextureTargetCount => _renderGraph?.RenderAssets.Count ?? 0;
         public int FindingsProcessedCount => _findingIndex;
         public int FindingsTargetCount => _catalog.Length;
@@ -196,74 +197,74 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
         {
             EnsureWorld();
             var graph = RequireRenderGraph();
-            var stopwatch = Stopwatch.StartNew();
-            var attempted = 0;
+            _surfaceTextureCursor ??= new NestedReadCursor<RenderAssetRecord, SurfaceAsset, TextureAsset>(
+                graph.RenderAssets,
+                new SurfaceTextureVisitor(this, graph));
+            return _surfaceTextureCursor.Advance(frameBudgetMilliseconds);
+        }
 
-            while (_surfaceIndex < graph.RenderAssets.Count && (attempted == 0 || stopwatch.Elapsed.TotalMilliseconds < frameBudgetMilliseconds))
+        /// <summary>Longest single surface or texture read so far; a read cannot be split across frames.</summary>
+        public double SurfaceTextureMaxStepMilliseconds => _surfaceTextureCursor?.MaxStepMilliseconds ?? 0d;
+
+        // Reads one render asset's surfaces and textures across as many slices as the frame budget needs. Results
+        // are kept per render asset and stored only when the asset is complete, so progress counts and the
+        // published snapshot never see a half-read asset; a cancelled scan drops the collector and this state.
+        private sealed class SurfaceTextureVisitor : INestedReadVisitor<RenderAssetRecord, SurfaceAsset, TextureAsset>
+        {
+            private readonly AssetAnalysisCollector _owner;
+            private readonly RenderGraphSnapshot _graph;
+            private readonly List<SurfaceObservation> _surfaceObservations = new List<SurfaceObservation>();
+            private readonly List<TextureObservation> _textureObservations = new List<TextureObservation>();
+
+            public SurfaceTextureVisitor(AssetAnalysisCollector owner, RenderGraphSnapshot graph)
             {
-                var record = graph.RenderAssets[_surfaceIndex++];
-                attempted++;
-                var surfaceObservations = new List<SurfaceObservation>();
-                var textureObservations = new List<TextureObservation>();
+                _owner = owner;
+                _graph = graph;
+            }
 
-                try
-                {
-                    if (!graph.TryGetRuntimeAsset(record.Key, out var runtime) || !(runtime is RenderPrefab renderPrefab))
-                    {
-                        _surfaces[record.Key] = surfaceObservations.AsReadOnly();
-                        _textures[record.Key] = textureObservations.AsReadOnly();
-                        continue;
-                    }
+            public IReadOnlyList<SurfaceAsset>? BeginOwner(RenderAssetRecord record)
+            {
+                _surfaceObservations.Clear();
+                _textureObservations.Clear();
+                if (!_graph.TryGetRuntimeAsset(record.Key, out var runtime) || !(runtime is RenderPrefab renderPrefab))
+                    return null;
+                return renderPrefab.surfaceAssets?.ToArray();
+            }
 
-                    var surfaceAssets = renderPrefab.surfaceAssets;
-                    if (surfaceAssets != null)
-                    {
-                        foreach (var surface in surfaceAssets)
-                        {
-                            if (surface == null)
-                                continue;
-                            try
-                            {
-                                var surfaceRead = ReadSurfaceOnce(surface);
-                                surfaceObservations.Add(surfaceRead.Observation);
-                                foreach (var texture in surfaceRead.Textures)
-                                {
-                                    if (texture == null)
-                                        continue;
-                                    try
-                                    {
-                                        var textureObservation = _textureReader.Read(texture, _analysisGeneration, _capturedAt);
-                                        textureObservations.Add(textureObservation);
-                                        if (!_textureById.ContainsKey(textureObservation.TextureAssetId))
-                                            _textureById.Add(textureObservation.TextureAssetId, textureObservation);
-                                    }
-                                    catch
-                                    {
-                                        AddTextureFailure(record.Key, StableTextureIdOrFallback(texture));
-                                    }
-                                }
-                            }
-                            catch
-                            {
-                                _surfaceReadFailures.Add(record.Key);
-                            }
-                        }
-                    }
-                }
-                catch
-                {
-                    _surfaceReadFailures.Add(record.Key);
-                }
+            public IReadOnlyList<TextureAsset>? ReadSurface(RenderAssetRecord record, SurfaceAsset surface)
+            {
+                var surfaceRead = _owner.ReadSurfaceOnce(surface);
+                _surfaceObservations.Add(surfaceRead.Observation);
+                return surfaceRead.Textures;
+            }
 
-                _surfaces[record.Key] = Array.AsReadOnly(surfaceObservations
+            public void ReadTexture(RenderAssetRecord record, TextureAsset texture)
+            {
+                var textureObservation = _owner._textureReader.Read(texture, _owner._analysisGeneration, _owner._capturedAt);
+                _textureObservations.Add(textureObservation);
+                if (!_owner._textureById.ContainsKey(textureObservation.TextureAssetId))
+                    _owner._textureById.Add(textureObservation.TextureAssetId, textureObservation);
+            }
+
+            public void OwnerFailed(RenderAssetRecord record, Exception error) => _owner._surfaceReadFailures.Add(record.Key);
+
+            public void SurfaceFailed(RenderAssetRecord record, SurfaceAsset surface, Exception error)
+                => _owner._surfaceReadFailures.Add(record.Key);
+
+            public void TextureFailed(RenderAssetRecord record, TextureAsset texture, Exception error)
+                => _owner.AddTextureFailure(record.Key, StableTextureIdOrFallback(texture));
+
+            public void CompleteOwner(RenderAssetRecord record)
+            {
+                _owner._surfaces[record.Key] = Array.AsReadOnly(_surfaceObservations
                     .GroupBy(surface => surface.SurfaceAssetId, StringComparer.Ordinal)
                     .Select(group => group.First())
                     .OrderBy(surface => surface.SurfaceAssetId, StringComparer.Ordinal)
                     .ToArray());
-                _textures[record.Key] = TextureObservation.Deduplicate(textureObservations);
+                _owner._textures[record.Key] = TextureObservation.Deduplicate(_textureObservations);
+                _surfaceObservations.Clear();
+                _textureObservations.Clear();
             }
-
-            return _surfaceIndex >= graph.RenderAssets.Count;
         }
 
         public bool ProcessFindingSlice(double frameBudgetMilliseconds)

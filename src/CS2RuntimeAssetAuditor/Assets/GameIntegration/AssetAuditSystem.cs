@@ -533,6 +533,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
                         var completed = collector.ProcessSurfaceTextureSlice(_frameBudgetMs);
                         stopwatch.Stop();
                         RecordManagedSlice(stopwatch.Elapsed, Math.Max(0, collector.SurfaceTextureProcessedCount - before));
+                        _scanTelemetry?.RecordIndivisibleRead(collector.SurfaceTextureMaxStepMilliseconds);
                         ReportExactProgress(session, collector.SurfaceTextureProcessedCount, collector.SurfaceTextureTargetCount);
                         if (completed)
                             session.TransitionTo(ScanStage.EvaluatingFindings);
@@ -825,12 +826,29 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
         private void FreezeTelemetryAfterScanEnds()
         {
             if (_scanTelemetry != null && _finalTelemetry == null && CurrentScan != null && !IsScanActive)
-                _finalTelemetry = _scanTelemetry.Snapshot(DateTimeOffset.UtcNow);
+            {
+                var telemetry = _scanTelemetry.Snapshot(DateTimeOffset.UtcNow);
+                _finalTelemetry = telemetry;
+                // The frame cost of a scan, so its effect on the game's frame time can be checked from the log.
+                Mod.Info(string.Format(
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    "Asset scan slice timing: kind={0} state={1} budgetMs={2:0.##} slices={3} overBudgetSlices={4} maxSliceMs={5:0.00} p95SliceMs={6:0.00} maxIndivisibleReadMs={7:0.00} items={8} elapsedMs={9:0}",
+                    CurrentScan.Kind,
+                    CurrentScan.State,
+                    _frameBudgetMs,
+                    telemetry.SliceCount,
+                    telemetry.OverBudgetSliceCount,
+                    telemetry.MaxSliceMilliseconds,
+                    telemetry.P95SliceMilliseconds,
+                    telemetry.MaxIndivisibleReadMilliseconds,
+                    telemetry.ProcessedItems,
+                    telemetry.ElapsedMilliseconds));
+            }
         }
 
         private void RecordManagedSlice(TimeSpan elapsed, long processedItems)
         {
-            _scanTelemetry?.RecordManagedSlice(elapsed, processedItems);
+            _scanTelemetry?.RecordManagedSlice(elapsed, processedItems, _frameBudgetMs);
         }
 
         private static void ReportExactProgress(ScanSession session, long completed, long total)

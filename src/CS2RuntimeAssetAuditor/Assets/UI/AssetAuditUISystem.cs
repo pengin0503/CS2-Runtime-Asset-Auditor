@@ -478,7 +478,9 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                     SliceCount = telemetry.SliceCount,
                     SampleCount = telemetry.SampleCount,
                     MaxSliceMilliseconds = telemetry.MaxSliceMilliseconds,
-                    P95SliceMilliseconds = telemetry.P95SliceMilliseconds
+                    P95SliceMilliseconds = telemetry.P95SliceMilliseconds,
+                    OverBudgetSliceCount = telemetry.OverBudgetSliceCount,
+                    MaxIndivisibleReadMilliseconds = telemetry.MaxIndivisibleReadMilliseconds
                 },
                 AggregatedDiagnostics = _diagnostics.Snapshot().Select(item => new UiDiagnosticEntry
                 {
