@@ -57,7 +57,13 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
             "modUpdateMsMax",
             "modUpdateSlowestSystem",
             "modUpdateSlowestSystemMs",
-            "autoSaveStarts"
+            "autoSaveStarts",
+            "vtWorkingSetLodBias",
+            "vtWorkingSetLodBiasLevels",
+            "vtMipBias",
+            "vtBusyRequests",
+            "vtAvailableRequests",
+            "vtMaterialsLeftToLoad"
         };
 
         public static readonly IReadOnlyList<string> MarkerInventoryColumns = new[]
@@ -132,7 +138,13 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
                 Max(row.ModUpdateMs),
                 row.ModUpdateSlowestSystem ?? string.Empty,
                 Number(row.ModUpdateSlowestSystemMs),
-                Integer(row.AutoSaveStarts)
+                Integer(row.AutoSaveStarts),
+                Number(row.VirtualTexturing?.WorkingSetLodBias),
+                Number(row.VirtualTexturing?.WorkingSetLodBiasLevels),
+                Integer(row.VirtualTexturing?.MipBias),
+                Integer(row.VirtualTexturing?.BusyRequests),
+                Integer(row.VirtualTexturing?.AvailableRequests),
+                Integer(row.VirtualTexturing?.MaterialsLeftToLoad)
             };
             foreach (var value in row.RecorderValues)
                 fields.Add(Number(value));

@@ -13,5 +13,10 @@ namespace CS2RuntimeAssetAuditor.Core
         public const string Ratio = "Ratio";
         public const string Speed = "Speed";
         public const string FramesPerSecond = "FramesPerSecond";
+        public const string Count = "Count";
+        /// <summary>A dimensionless multiplier (1 = unchanged).</summary>
+        public const string Factor = "Factor";
+        /// <summary>A texture LOD offset in mip levels (log2 of a factor).</summary>
+        public const string MipLevels = "MipLevels";
     }
 }

@@ -244,6 +244,13 @@ namespace CS2RuntimeAssetAuditor.Export
                 report.GlobalMetrics.Add(row);
             }
             if (global.RenderCounters != null && global.RenderCounters.Count > 0) report.Warnings.Add(RenderCounters.Limitation);
+            foreach (var metric in global.VirtualTexturing ?? Array.Empty<UiMetricRow>())
+            {
+                var row = ToReportMetric(metric);
+                if (row.Availability == MetricAvailability.Available.ToString()) row.Note = VirtualTexturingMetrics.Meaning(metric.Id);
+                report.GlobalMetrics.Add(row);
+            }
+            if (global.VirtualTexturing != null && global.VirtualTexturing.Count > 0) report.Warnings.Add(VirtualTexturingMetrics.Limitation);
         }
 
         // Unity's "Render/Video Memory Bytes" marker, recorded only by Deep Capture, is labelled by what it was found

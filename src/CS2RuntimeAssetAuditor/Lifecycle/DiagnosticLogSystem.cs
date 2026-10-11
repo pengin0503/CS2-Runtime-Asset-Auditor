@@ -167,6 +167,7 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
             {
                 _lastSnapshot = latest;
                 accumulator.AddRecorderReadings(latest.RecorderReadings);
+                accumulator.AddVirtualTexturing(latest.VirtualTexturing);
             }
 
             var elapsed = _clock.Elapsed.TotalSeconds;

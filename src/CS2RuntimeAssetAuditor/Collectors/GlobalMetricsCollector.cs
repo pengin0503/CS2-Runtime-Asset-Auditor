@@ -24,6 +24,7 @@ namespace CS2RuntimeAssetAuditor.Collectors
         private IReadOnlyDictionary<string, string> _recorderUnits = new Dictionary<string, string>();
         private double _nextSampleAt;
         private RuntimeFrameSampleReader _frameReader;
+        private VirtualTexturingReader _virtualTexturing;
         private RuntimeIntervalAccumulator _frameInterval = new RuntimeIntervalAccumulator();
 
         public string Name => "Global";
@@ -41,6 +42,7 @@ namespace CS2RuntimeAssetAuditor.Collectors
             _simulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
             _frameReader = new RuntimeFrameSampleReader(_simulationSystem, World.GetOrCreateSystemManaged<PathfindResultSystem>());
             _recorderManager = new RecorderManager(new UnityRecorderBackend());
+            _virtualTexturing = new VirtualTexturingReader(World);
             _samples = new SessionScopedSnapshots(HistoryCapacity);
             _recorderManager.DiscoverAvailableMarkers();
             _recorderUnits = _recorderManager.Descriptors.ToDictionary(descriptor => descriptor.Id, descriptor => descriptor.UnitType);
@@ -113,7 +115,8 @@ namespace CS2RuntimeAssetAuditor.Collectors
                 _simulationSystem.smoothSpeed,
                 readings,
                 _recorderUnits,
-                interval));
+                interval,
+                _virtualTexturing?.Read()));
         }
 
         /// <summary>Samples of the loaded city only; empty when the city has none yet.</summary>

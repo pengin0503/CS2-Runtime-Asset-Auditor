@@ -41,9 +41,18 @@ const RENDER_COUNTER_KEYS: Record<string, MessageKey> = {
   "render.usedBuffersBytes": "overview.render.usedBuffersBytes"
 };
 
-function RenderCounterRow({ metric }: { metric: UiMetricRow }) {
+const VIRTUAL_TEXTURING_KEYS: Record<string, MessageKey> = {
+  "vt.workingSetLodBias": "overview.vt.workingSetLodBias",
+  "vt.workingSetLodBiasLevels": "overview.vt.workingSetLodBiasLevels",
+  "vt.mipBias": "overview.vt.mipBias",
+  "vt.busyRequests": "overview.vt.busyRequests",
+  "vt.availableRequests": "overview.vt.availableRequests",
+  "vt.materialsLeftToLoad": "overview.vt.materialsLeftToLoad"
+};
+
+function LabelledMetricRow({ metric, labels }: { metric: UiMetricRow; labels: Record<string, MessageKey> }) {
   const { t } = useText();
-  const key = RENDER_COUNTER_KEYS[metric.id];
+  const key = labels[metric.id];
   return (
     <div className={styles.metricRow}>
       <div className={styles.metricIdentity}>
@@ -59,6 +68,7 @@ export function OverviewTab({ snapshot, onManualCapture, onExport, exportResult 
   const pathfinding = snapshot.pathfinding?.metrics ?? [];
   const recorders = snapshot.global?.recorderMetrics ?? [];
   const renderCounters = snapshot.global?.renderCounters ?? [];
+  const virtualTexturing = snapshot.global?.virtualTexturing ?? [];
   const { locale, t } = useText();
   const canManualCapture = snapshot.capture.state === "Monitoring" || snapshot.capture.state === "Cooldown";
 
@@ -94,8 +104,16 @@ export function OverviewTab({ snapshot, onManualCapture, onExport, exportResult 
         <h3>{t("overview.render")}</h3>
         <p className={styles.empty}>{t("overview.renderNote")}</p>
         {renderCounters.length
-          ? <div className={styles.metricList}>{renderCounters.map(metric => <RenderCounterRow key={metric.id} metric={metric} />)}</div>
+          ? <div className={styles.metricList}>{renderCounters.map(metric => <LabelledMetricRow key={metric.id} metric={metric} labels={RENDER_COUNTER_KEYS} />)}</div>
           : <p className={styles.empty}>{t("overview.renderEmpty")}</p>}
+      </section>
+
+      <section>
+        <h3>{t("overview.vt")}</h3>
+        <p className={styles.empty}>{t("overview.vtNote")}</p>
+        {virtualTexturing.length
+          ? <div className={styles.metricList}>{virtualTexturing.map(metric => <LabelledMetricRow key={metric.id} metric={metric} labels={VIRTUAL_TEXTURING_KEYS} />)}</div>
+          : <p className={styles.empty}>{t("overview.vtEmpty")}</p>}
       </section>
 
       <section>

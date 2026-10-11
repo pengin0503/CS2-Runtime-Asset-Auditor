@@ -685,6 +685,7 @@ namespace CS2RuntimeAssetAuditor.UI
             writer.PropertyName("frameMsP95"); WriteNullable(writer, global.FrameMsP95);
             writer.PropertyName("recorderMetrics"); WriteMetricsArray(writer, global.RecorderMetrics);
             writer.PropertyName("renderCounters"); WriteMetricsArray(writer, global.RenderCounters);
+            writer.PropertyName("virtualTexturing"); WriteMetricsArray(writer, global.VirtualTexturing);
             writer.TypeEnd();
         }
 

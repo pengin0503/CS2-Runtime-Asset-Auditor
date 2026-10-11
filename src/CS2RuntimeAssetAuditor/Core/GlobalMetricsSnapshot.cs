@@ -11,7 +11,8 @@ namespace CS2RuntimeAssetAuditor.Core
             double actualSpeed,
             IReadOnlyDictionary<string, RecorderReading> recorderReadings,
             IReadOnlyDictionary<string, string> recorderUnits = null,
-            RuntimeInterval? frameInterval = null)
+            RuntimeInterval? frameInterval = null,
+            VirtualTexturingReading virtualTexturing = null)
         {
             TimestampSeconds = timestampSeconds;
             SelectedSpeed = selectedSpeed;
@@ -20,6 +21,7 @@ namespace CS2RuntimeAssetAuditor.Core
             RecorderReadings = recorderReadings ?? new Dictionary<string, RecorderReading>();
             RecorderUnits = recorderUnits ?? new Dictionary<string, string>();
             FrameInterval = frameInterval;
+            VirtualTexturing = virtualTexturing;
         }
 
         public double TimestampSeconds { get; }
@@ -34,5 +36,8 @@ namespace CS2RuntimeAssetAuditor.Core
         /// the sample was not taken by the per-frame collector.
         /// </summary>
         public RuntimeInterval? FrameInterval { get; }
+
+        /// <summary>The game's virtual-texturing streaming state at this sample; null when it was not read.</summary>
+        public VirtualTexturingReading VirtualTexturing { get; }
     }
 }

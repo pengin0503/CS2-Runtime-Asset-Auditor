@@ -73,6 +73,12 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
         public string? ModUpdateSlowestSystem { get; set; }
         public double? ModUpdateSlowestSystemMs { get; set; }
 
+        /// <summary>
+        /// The latest virtual-texturing read of the interval (the game's own state; the working-set bias is a few
+        /// frames old). Null when no sample read it in this interval.
+        /// </summary>
+        public VirtualTexturingReading? VirtualTexturing { get; set; }
+
         /// <summary>Last value each recorder column reported in the interval, aligned with the header.</summary>
         public IReadOnlyList<double?> RecorderValues { get; set; } = Array.Empty<double?>();
     }

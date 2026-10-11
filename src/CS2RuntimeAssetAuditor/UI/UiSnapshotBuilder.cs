@@ -135,6 +135,9 @@ namespace CS2RuntimeAssetAuditor.UI
                 ActualSpeed = global.ActualSpeed, Efficiency = global.Efficiency,
                 FramesPerSecond = frames?.FramesPerSecond, FrameMsMedian = frameMs?.Median, FrameMsP95 = frameMs?.P95,
                 RenderCounters = Core.RenderCounters.Read(global.RecorderReadings).Select(ToUiRow).ToArray(),
+                VirtualTexturing = global.VirtualTexturing == null
+                    ? Array.Empty<UiMetricRow>()
+                    : VirtualTexturingMetrics.ToMetrics(global.VirtualTexturing).Select(ToUiRow).ToArray(),
                 RecorderMetrics = global.RecorderReadings
                     .Where(pair => pair.Value.Count > 0 && !Core.RenderCounters.IsRenderCounter(pair.Key))
                     .OrderBy(pair => pair.Key, StringComparer.Ordinal)

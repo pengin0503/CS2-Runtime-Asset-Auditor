@@ -54,7 +54,8 @@ export function formatBytes(value: number | null | undefined): string {
 
 /**
  * Formats a raw value by its unit identifier. Unity recorder units ("TimeNanoseconds", "Bytes") pass through
- * from C#; "Milliseconds", "Ratio", "Speed" and "FramesPerSecond" describe values the profiler derives itself.
+ * from C#; "Milliseconds", "Ratio", "Speed", "FramesPerSecond", "Factor" and "MipLevels" describe values the profiler
+ * derives itself.
  */
 export function formatByUnit(value: number | null | undefined, unitType?: string): string {
   if (value == null || !Number.isFinite(value)) return "—";
@@ -65,6 +66,8 @@ export function formatByUnit(value: number | null | undefined, unitType?: string
     case "Ratio": return formatPercent(value);
     case "Speed": return formatSpeed(value);
     case "FramesPerSecond": return formatFramesPerSecond(value);
+    case "Factor": return `×${value.toFixed(2)}`;
+    case "MipLevels": return `${value > 0 ? "+" : ""}${value.toFixed(2)}`;
     default: return formatCount(value);
   }
 }

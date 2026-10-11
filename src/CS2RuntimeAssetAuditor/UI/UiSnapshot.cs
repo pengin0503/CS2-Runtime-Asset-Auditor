@@ -20,6 +20,8 @@ namespace CS2RuntimeAssetAuditor.UI
         public IReadOnlyList<UiMetricRow> RecorderMetrics { get; set; } = Array.Empty<UiMetricRow>();
         /// <summary>Rendering counters of the last frame, in <see cref="RenderCounters.All"/> order; never left out, unavailable instead.</summary>
         public IReadOnlyList<UiMetricRow> RenderCounters { get; set; } = Array.Empty<UiMetricRow>();
+        /// <summary>The game's virtual-texturing streaming state, in <see cref="VirtualTexturingMetrics.ToMetrics"/> order.</summary>
+        public IReadOnlyList<UiMetricRow> VirtualTexturing { get; set; } = Array.Empty<UiMetricRow>();
     }
 
     public sealed class CaptureUiState

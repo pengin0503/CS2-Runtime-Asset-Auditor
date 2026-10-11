@@ -74,6 +74,28 @@ describe("core profiler tabs", () => {
     expect(html).not.toMatch(/影を落とすオブジェクト<\/strong><\/div><span[^>]*>0</);
   });
 
+  it("overview shows the virtual-texturing state and keeps a missing readback unavailable", () => {
+    const withVt = {
+      ...snapshot,
+      global: {
+        ...snapshot.global,
+        virtualTexturing: [
+          { id: "vt.workingSetLodBias", value: 1.5, unitType: "Factor", confidence: "Full", availability: "Available", reason: null },
+          { id: "vt.workingSetLodBiasLevels", value: 0.6, unitType: "MipLevels", confidence: "Full", availability: "Available", reason: null },
+          { id: "vt.materialsLeftToLoad", value: null, unitType: "", confidence: "Unavailable", availability: "Unavailable", reason: "Virtual texturing is not initialized yet." }
+        ]
+      }
+    };
+    const html = renderToStaticMarkup(<OverviewTab snapshot={withVt} onManualCapture={() => {}} onExport={() => {}} exportResult="" />);
+    expect(html).toContain("仮想テクスチャ（テクスチャストリーミング）");
+    expect(html).toContain("VRAM使用量ではなく");
+    expect(html).toContain("作業セットLODバイアス");
+    expect(html).toContain("×1.50");
+    expect(html).toContain("+0.60");
+    expect(html).toContain("読み込み待ちのVTマテリアル");
+    expect(html).not.toMatch(/読み込み待ちのVTマテリアル<\/strong><\/div><span[^>]*>0</);
+  });
+
   it("manual capture is disabled while the state machine is in post-buffer", () => {
     const postBufferSnapshot = {
       ...snapshot,

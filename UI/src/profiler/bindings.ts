@@ -24,6 +24,8 @@ export interface GlobalUiMetrics {
   recorderMetrics: UiMetricRow[];
   /** Rendering counters of the last frame (draw calls, triangles, ...); unavailable rows are kept, never 0. */
   renderCounters?: UiMetricRow[];
+  /** The game's virtual-texturing streaming state (working-set LOD bias, request and load queues). */
+  virtualTexturing?: UiMetricRow[];
 }
 
 export interface CaptureUiState {
@@ -275,7 +277,8 @@ export const EMPTY_SNAPSHOT: UiSnapshot = {
     frameMsMedian: null,
     frameMsP95: null,
     recorderMetrics: [],
-    renderCounters: []
+    renderCounters: [],
+    virtualTexturing: []
   },
   capture: {
     state: "Monitoring",

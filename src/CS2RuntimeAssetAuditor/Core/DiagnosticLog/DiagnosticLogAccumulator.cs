@@ -20,6 +20,7 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
         private string? _modUpdateMaxSystem;
         private double _modUpdateMaxSystemMs;
         private int? _previousGcCount;
+        private VirtualTexturingReading? _virtualTexturing;
 
         public DiagnosticLogAccumulator(IReadOnlyList<DiagnosticRecorderColumn>? recorderColumns, int windowCapacity = RuntimeIntervalAccumulator.DefaultWindowCapacity)
         {
@@ -66,6 +67,13 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
             }
         }
 
+        /// <summary>Keeps the latest virtual-texturing read of the interval.</summary>
+        public void AddVirtualTexturing(VirtualTexturingReading? reading)
+        {
+            if (reading != null)
+                _virtualTexturing = reading;
+        }
+
         public DiagnosticLogRow Complete(DateTimeOffset utcTime, double elapsedSeconds, DiagnosticIntervalContext context)
         {
             var row = new DiagnosticLogRow
@@ -80,11 +88,13 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
                 CaptureTrigger = context.CaptureTrigger,
                 CaptureId = context.CaptureId,
                 RecorderValues = (double?[])_recorderValues.Clone(),
+                VirtualTexturing = _virtualTexturing,
                 ModUpdateMs = _modUpdateMs.Summarize(),
                 ModUpdateSlowestSystem = _modUpdateMaxSystem,
                 ModUpdateSlowestSystemMs = _modUpdateMaxSystem == null ? (double?)null : _modUpdateMaxSystemMs
             };
             _modUpdateMs.Reset();
+            _virtualTexturing = null;
             _modUpdateMaxMs = -1d;
             _modUpdateMaxSystem = null;
             _modUpdateMaxSystemMs = 0d;
