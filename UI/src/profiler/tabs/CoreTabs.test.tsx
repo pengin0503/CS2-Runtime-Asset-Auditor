@@ -52,6 +52,28 @@ describe("core profiler tabs", () => {
     expect(html).toContain("not exposed");
   });
 
+  it("overview lists the rendering counters with labels and keeps a missing one unavailable instead of 0", () => {
+    const withCounters = {
+      ...snapshot,
+      global: {
+        ...snapshot.global,
+        renderCounters: [
+          { id: "render.drawCalls", value: 6216, unitType: "Count", confidence: "Full", availability: "Available", reason: null },
+          { id: "render.renderTexturesBytes", value: 2_037_676_139, unitType: "Bytes", confidence: "Full", availability: "Available", reason: null },
+          { id: "render.shadowCasters", value: null, unitType: "", confidence: "Full", availability: "Unavailable", reason: "The game did not report this rendering counter in this sample." }
+        ]
+      }
+    };
+    const html = renderToStaticMarkup(<OverviewTab snapshot={withCounters} onManualCapture={() => {}} onExport={() => {}} exportResult="" />);
+    expect(html).toContain("描画負荷（直近フレーム）");
+    expect(html).toContain("GPU時間でもVRAM使用量でも個別アセットのコストでもありません");
+    expect(html).toContain("ドローコール");
+    expect(html).toContain("6,216");
+    expect(html).toContain("レンダーテクスチャ（メモリ）");
+    expect(html).toContain("影を落とすオブジェクト");
+    expect(html).not.toMatch(/影を落とすオブジェクト<\/strong><\/div><span[^>]*>0</);
+  });
+
   it("manual capture is disabled while the state machine is in post-buffer", () => {
     const postBufferSnapshot = {
       ...snapshot,

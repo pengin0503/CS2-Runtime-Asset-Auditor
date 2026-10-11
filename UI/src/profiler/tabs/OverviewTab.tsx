@@ -5,6 +5,7 @@ import { formatFramesPerSecond, formatMetricValue, formatMilliseconds, formatPer
 import { MetricBadge } from "../components/MetricBadge";
 import { captureStateLabel, exportResultLabel } from "../text";
 import { useText } from "../../i18n/locale";
+import type { MessageKey } from "../../i18n/messages";
 import styles from "../profiler.module.scss";
 
 interface OverviewTabProps {
@@ -28,9 +29,36 @@ function MetricRow({ metric }: { metric: UiMetricRow }) {
   );
 }
 
+// Labels by counter id; an unknown id shows as sent.
+const RENDER_COUNTER_KEYS: Record<string, MessageKey> = {
+  "render.drawCalls": "overview.render.drawCalls",
+  "render.batches": "overview.render.batches",
+  "render.setPassCalls": "overview.render.setPassCalls",
+  "render.triangles": "overview.render.triangles",
+  "render.vertices": "overview.render.vertices",
+  "render.shadowCasters": "overview.render.shadowCasters",
+  "render.renderTexturesBytes": "overview.render.renderTexturesBytes",
+  "render.usedBuffersBytes": "overview.render.usedBuffersBytes"
+};
+
+function RenderCounterRow({ metric }: { metric: UiMetricRow }) {
+  const { t } = useText();
+  const key = RENDER_COUNTER_KEYS[metric.id];
+  return (
+    <div className={styles.metricRow}>
+      <div className={styles.metricIdentity}>
+        <strong>{key ? t(key) : metric.id}</strong>
+      </div>
+      <span className={styles.metricValue}>{formatMetricValue(metric)}</span>
+      <MetricBadge confidence={metric.confidence} availability={metric.availability} reason={metric.reason} />
+    </div>
+  );
+}
+
 export function OverviewTab({ snapshot, onManualCapture, onExport, exportResult }: OverviewTabProps) {
   const pathfinding = snapshot.pathfinding?.metrics ?? [];
   const recorders = snapshot.global?.recorderMetrics ?? [];
+  const renderCounters = snapshot.global?.renderCounters ?? [];
   const { locale, t } = useText();
   const canManualCapture = snapshot.capture.state === "Monitoring" || snapshot.capture.state === "Cooldown";
 
@@ -61,6 +89,14 @@ export function OverviewTab({ snapshot, onManualCapture, onExport, exportResult 
         <Button as="button" variant="flat" onSelect={onExport}>{t("overview.exportJson")}</Button>
         {exportResult && <span className={styles.exportResult}>{exportResultLabel(exportResult, locale)}</span>}
       </div>
+
+      <section>
+        <h3>{t("overview.render")}</h3>
+        <p className={styles.empty}>{t("overview.renderNote")}</p>
+        {renderCounters.length
+          ? <div className={styles.metricList}>{renderCounters.map(metric => <RenderCounterRow key={metric.id} metric={metric} />)}</div>
+          : <p className={styles.empty}>{t("overview.renderEmpty")}</p>}
+      </section>
 
       <section>
         <h3>{t("overview.recorders")}</h3>

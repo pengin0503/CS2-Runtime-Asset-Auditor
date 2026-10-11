@@ -22,6 +22,8 @@ export interface GlobalUiMetrics {
   frameMsMedian: number | null;
   frameMsP95: number | null;
   recorderMetrics: UiMetricRow[];
+  /** Rendering counters of the last frame (draw calls, triangles, ...); unavailable rows are kept, never 0. */
+  renderCounters?: UiMetricRow[];
 }
 
 export interface CaptureUiState {
@@ -272,7 +274,8 @@ export const EMPTY_SNAPSHOT: UiSnapshot = {
     framesPerSecond: null,
     frameMsMedian: null,
     frameMsP95: null,
-    recorderMetrics: []
+    recorderMetrics: [],
+    renderCounters: []
   },
   capture: {
     state: "Monitoring",

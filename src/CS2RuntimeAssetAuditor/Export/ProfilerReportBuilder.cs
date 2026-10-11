@@ -41,6 +41,7 @@ namespace CS2RuntimeAssetAuditor.Export
             AddCaptureScope(report, snapshot);
             AddCaptureConfiguration(report, captureConfiguration);
             AddGlobal(report, snapshot.Global);
+            AddVideoMemoryMeaning(report, snapshot, metadata);
 
             foreach (var capture in snapshot.Captures ?? Array.Empty<CaptureSummaryUi>())
             {
@@ -235,6 +236,41 @@ namespace CS2RuntimeAssetAuditor.Export
             if (global == null || !global.Available) return;
             report.GlobalMetrics.Add(Scalar("selectedSpeed", global.SelectedSpeed, "x")); report.GlobalMetrics.Add(Scalar("actualSpeed", global.ActualSpeed, "x")); report.GlobalMetrics.Add(Scalar("efficiency", global.Efficiency, "ratio"));
             foreach (var metric in global.RecorderMetrics ?? Array.Empty<UiMetricRow>()) report.GlobalMetrics.Add(ToReportMetric(metric));
+            foreach (var metric in global.RenderCounters ?? Array.Empty<UiMetricRow>())
+            {
+                var row = ToReportMetric(metric);
+                // The meaning travels with the value, so a reader does not take a count for GPU time or VRAM usage.
+                if (row.Availability == MetricAvailability.Available.ToString()) row.Note = RenderCounters.Find(metric.Id)?.Meaning;
+                report.GlobalMetrics.Add(row);
+            }
+            if (global.RenderCounters != null && global.RenderCounters.Count > 0) report.Warnings.Add(RenderCounters.Limitation);
+        }
+
+        // Unity's "Render/Video Memory Bytes" marker, recorded only by Deep Capture, is labelled by what it was found
+        // to be on this system; it is never reported as VRAM usage.
+        private static void AddVideoMemoryMeaning(PerformanceReport report, UiSnapshot snapshot, RuntimeReportMetadata metadata)
+        {
+            var capacity = metadata?.GpuMemoryCapacityMegabytes;
+            if (capacity.HasValue && capacity.Value > 0)
+                report.GlobalMetrics.Add(new ReportMetric
+                {
+                    Name = "gpuMemoryCapacityReported", Value = capacity.Value * 1024d * 1024d, Unit = MetricUnits.Bytes,
+                    Confidence = "Full", Availability = "Available",
+                    Note = "SystemInfo.graphicsMemorySize: the GPU memory capacity the driver reports. No counter measures VRAM usage directly."
+                });
+
+            var marker = (snapshot.Timeline ?? Array.Empty<TimelinePoint>())
+                .LastOrDefault(point => point != null && point.Metric != null
+                    && point.Metric.StartsWith("marker:", StringComparison.Ordinal)
+                    && point.Metric.EndsWith("\u001f" + VideoMemoryCounter.MarkerName, StringComparison.Ordinal));
+            if (marker == null) return;
+            var meaning = VideoMemoryCounter.Classify(marker.Value, capacity);
+            report.GlobalMetrics.Add(new ReportMetric
+            {
+                Name = meaning == VideoMemoryCounterMeaning.ReportedCapacity ? "render.videoMemoryBytes.capacity" : "render.videoMemoryBytes.unclassified",
+                Value = marker.Value, Unit = MetricUnits.Bytes, Confidence = "Full", Availability = "Available",
+                Note = VideoMemoryCounter.Describe(meaning)
+            });
         }
         private static ReportMetric Scalar(string name, double? value, string unit) => new ReportMetric { Name = name, Value = value, Unit = unit, Confidence = value.HasValue ? "Full" : "Unavailable", Availability = value.HasValue ? "Available" : "Unavailable" };
         private static ReportMetric ToReportMetric(UiMetricRow metric) => metric == null ? new ReportMetric { Name = "unknown", Availability = "Unavailable", Confidence = "Unavailable" } : new ReportMetric { Name = metric.Id, Value = metric.Value, Unit = metric.UnitType, Confidence = metric.Confidence, Availability = metric.Availability, Note = metric.Reason };

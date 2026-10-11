@@ -18,6 +18,8 @@ namespace CS2RuntimeAssetAuditor.UI
         public double? FrameMsMedian { get; set; }
         public double? FrameMsP95 { get; set; }
         public IReadOnlyList<UiMetricRow> RecorderMetrics { get; set; } = Array.Empty<UiMetricRow>();
+        /// <summary>Rendering counters of the last frame, in <see cref="RenderCounters.All"/> order; never left out, unavailable instead.</summary>
+        public IReadOnlyList<UiMetricRow> RenderCounters { get; set; } = Array.Empty<UiMetricRow>();
     }
 
     public sealed class CaptureUiState

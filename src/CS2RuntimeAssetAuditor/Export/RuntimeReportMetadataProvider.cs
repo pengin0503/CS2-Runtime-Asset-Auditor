@@ -17,9 +17,16 @@ namespace CS2RuntimeAssetAuditor.Export
             {
                 BuildId = BuildIdentityProvider.Current,
                 HardwareSummary = BuildHardwareSummary(),
+                GpuMemoryCapacityMegabytes = ReadGpuMemoryCapacity(),
                 EnabledMods = enabled,
                 ModLoadFailures = failed
             };
+        }
+
+        private static int? ReadGpuMemoryCapacity()
+        {
+            try { return SystemInfo.graphicsMemorySize > 0 ? SystemInfo.graphicsMemorySize : (int?)null; }
+            catch { return null; }
         }
 
         private static string BuildHardwareSummary()

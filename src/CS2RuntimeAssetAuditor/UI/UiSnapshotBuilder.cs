@@ -134,7 +134,10 @@ namespace CS2RuntimeAssetAuditor.UI
                 Available = true, TimestampSeconds = global.TimestampSeconds, SelectedSpeed = global.SelectedSpeed,
                 ActualSpeed = global.ActualSpeed, Efficiency = global.Efficiency,
                 FramesPerSecond = frames?.FramesPerSecond, FrameMsMedian = frameMs?.Median, FrameMsP95 = frameMs?.P95,
-                RecorderMetrics = global.RecorderReadings.Where(pair => pair.Value.Count > 0).OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                RenderCounters = Core.RenderCounters.Read(global.RecorderReadings).Select(ToUiRow).ToArray(),
+                RecorderMetrics = global.RecorderReadings
+                    .Where(pair => pair.Value.Count > 0 && !Core.RenderCounters.IsRenderCounter(pair.Key))
+                    .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                     .Select(pair => new UiMetricRow
                     {
                         Id = pair.Key, Value = pair.Value.Value,
@@ -147,9 +150,11 @@ namespace CS2RuntimeAssetAuditor.UI
         private static IReadOnlyList<UiMetricRow> BuildMetrics(NamedMetricSnapshot snapshot)
         {
             if (snapshot == null) return Array.Empty<UiMetricRow>();
-            return snapshot.Metrics.Values.OrderBy(metric => metric.Id, StringComparer.Ordinal)
-                .Select(metric => new UiMetricRow { Id = metric.Id, Value = metric.Value, UnitType = metric.UnitType, Confidence = metric.Confidence.ToString(), Availability = metric.Availability.ToString(), Reason = metric.Reason }).ToArray();
+            return snapshot.Metrics.Values.OrderBy(metric => metric.Id, StringComparer.Ordinal).Select(ToUiRow).ToArray();
         }
+
+        private static UiMetricRow ToUiRow(NamedMetricValue metric)
+            => new UiMetricRow { Id = metric.Id, Value = metric.Value, UnitType = metric.UnitType, Confidence = metric.Confidence.ToString(), Availability = metric.Availability.ToString(), Reason = metric.Reason };
 
         private static IReadOnlyList<SystemUiRow> BuildSystems(SystemTimingSnapshot snapshot)
         {
