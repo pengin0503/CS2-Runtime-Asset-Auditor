@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Game.Modding;
 using Game.SceneFlow;
+using Game.Settings;
 using UnityEngine;
 
 namespace CS2RuntimeAssetAuditor.Export
@@ -19,9 +20,51 @@ namespace CS2RuntimeAssetAuditor.Export
                 HardwareSummary = BuildHardwareSummary(),
                 GpuMemoryCapacityMegabytes = ReadGpuMemoryCapacity(),
                 EnabledMods = enabled,
-                ModLoadFailures = failed
+                ModLoadFailures = failed,
+                GameBenchmark = ReadGameBenchmark()
             };
         }
+
+        // Game.Settings.BenchmarkSettings (1.6.2f1): BenchmarkUISystem stores the last completed run with the UTC
+        // ticks of its save. A cancelled run is not stored. Only the summary is copied, not the per-frame series.
+        private static ReportGameBenchmark ReadGameBenchmark()
+        {
+            try
+            {
+                var settings = SharedSettings.instance?.benchmark;
+                var data = settings?.latestResult;
+                if (data == null)
+                    return null;
+                var report = ReportGameBenchmark.Create(data.hasData, data.framesRendered, settings.lastUpdatedTicks);
+                if (report == null)
+                    return null;
+                report.GameVersion = ReportGameBenchmark.Text(data.gameVersion);
+                report.GraphicsQuality = ReportGameBenchmark.Text(data.graphicsQuality);
+                report.ScreenResolution = ReportGameBenchmark.Text(data.screenResolution);
+                report.CpuModel = ReportGameBenchmark.Text(data.cpuModel);
+                report.GpuModel = ReportGameBenchmark.Text(data.gpuModel);
+                report.GraphicsDeviceVersion = ReportGameBenchmark.Text(data.videoDriverVersion);
+                report.SystemMemoryMb = ReportGameBenchmark.Positive(data.systemMemoryMb);
+                report.VideoMemoryMb = ReportGameBenchmark.Positive(data.videoMemoryMb);
+                report.SimulationTicks = data.simulationTicks;
+                report.AverageFps = data.averageFps;
+                report.MapLoadingSeconds = data.loadingTimeSecs > 0 ? data.loadingTimeSecs : (double?)null;
+                report.CpuFrameMs = Stats(data.cpuMs);
+                report.CpuGameMs = Stats(data.cpuGameMs);
+                report.CpuRenderMs = Stats(data.cpuRenderMs);
+                report.GpuMs = Stats(data.gpuMs);
+                // Without GPU timings every GPU sample is 0 and no frame can count as GPU bound.
+                report.GpuBoundPercent = report.GpuMs != null ? data.gpuBoundPercent : (double?)null;
+                return report;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static ReportBenchmarkStats Stats(BenchmarkMetricStats stats)
+            => stats == null ? null : ReportBenchmarkStats.From(stats.min, stats.average, stats.p95, stats.max);
 
         private static int? ReadGpuMemoryCapacity()
         {

@@ -42,6 +42,7 @@ namespace CS2RuntimeAssetAuditor.Export
             AddCaptureConfiguration(report, captureConfiguration);
             AddGlobal(report, snapshot.Global);
             AddVideoMemoryMeaning(report, snapshot, metadata);
+            AddGameBenchmark(report, metadata?.GameBenchmark);
 
             foreach (var capture in snapshot.Captures ?? Array.Empty<CaptureSummaryUi>())
             {
@@ -255,6 +256,16 @@ namespace CS2RuntimeAssetAuditor.Export
 
         // Unity's "Render/Video Memory Bytes" marker, recorded only by Deep Capture, is labelled by what it was found
         // to be on this system; it is never reported as VRAM usage.
+        private static void AddGameBenchmark(PerformanceReport report, ReportGameBenchmark benchmark)
+        {
+            if (benchmark == null) return;
+            report.GameBenchmark = benchmark;
+            benchmark.Note = ReportGameBenchmark.Meaning;
+            if (!string.IsNullOrWhiteSpace(report.GameVersion) && !string.IsNullOrWhiteSpace(benchmark.GameVersion)
+                && !string.Equals(report.GameVersion.Trim(), benchmark.GameVersion.Trim(), StringComparison.Ordinal))
+                report.Warnings.Add(ReportGameBenchmark.DifferentGameVersionWarning);
+        }
+
         private static void AddVideoMemoryMeaning(PerformanceReport report, UiSnapshot snapshot, RuntimeReportMetadata metadata)
         {
             var capacity = metadata?.GpuMemoryCapacityMegabytes;
