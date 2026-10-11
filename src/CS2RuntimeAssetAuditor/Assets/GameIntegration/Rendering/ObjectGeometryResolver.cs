@@ -24,12 +24,26 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
             var relations = new List<PrefabRenderRelation>();
             var meshes = objectGeometry.m_Meshes;
             if (meshes == null || meshes.Length == 0)
-                return new RenderResolution(RenderCoverage.Unknown, diagnosticCode: "object_geometry_has_no_mesh_relations");
+                return new RenderResolution(RenderCoverage.Unknown, diagnosticCode: MeshReferenceCoverage.NoMeshRelations);
 
+            // Every reference is counted: a Prefab with one resolved and one broken mesh is not complete.
+            var resolved = 0;
+            var missing = 0;
+            var unsupported = 0;
             foreach (var meshInfo in meshes)
             {
-                if (!(meshInfo.m_Mesh is RenderPrefab renderPrefab))
+                var mesh = meshInfo?.m_Mesh;
+                if (mesh == null)
+                {
+                    missing++;
                     continue;
+                }
+                if (!(mesh is RenderPrefab renderPrefab))
+                {
+                    unsupported++;
+                    continue;
+                }
+                resolved++;
                 AddRenderAsset(input, renderPrefab, RenderRelationKind.DirectMesh, null, assets, runtimeAssets, relations);
                 if (renderPrefab.components == null)
                     continue;
@@ -40,15 +54,19 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
                     for (var index = 0; index < lod.m_LodMeshes.Length; index++)
                     {
                         var lodRenderPrefab = lod.m_LodMeshes[index];
-                        if (lodRenderPrefab == null) continue;
+                        if (lodRenderPrefab == null)
+                        {
+                            missing++;
+                            continue;
+                        }
                         AddRenderAsset(input, lodRenderPrefab, RenderRelationKind.Lod, index + 1, assets, runtimeAssets, relations);
                     }
                 }
             }
 
-            return assets.Count == 0
-                ? new RenderResolution(RenderCoverage.Unknown, diagnosticCode: "object_geometry_render_prefab_unresolved")
-                : new RenderResolution(RenderCoverage.Supported, assets.Values, relations, runtimeAssets: runtimeAssets.Values);
+            // The resolved part is kept for inspection; the coverage tells analysis not to total it as the whole Prefab.
+            var coverage = MeshReferenceCoverage.Classify(resolved, missing, unsupported);
+            return new RenderResolution(coverage.Coverage, assets.Values, relations, coverage.DiagnosticCode, runtimeAssets.Values);
         }
 
         private static void AddRenderAsset(

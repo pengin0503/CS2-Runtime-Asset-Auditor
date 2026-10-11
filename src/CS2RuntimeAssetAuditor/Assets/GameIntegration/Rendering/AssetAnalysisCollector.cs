@@ -390,7 +390,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
         private Observation<long> SumVertices(IEnumerable<PrefabRenderRelation> relations, RenderCoverage coverage)
         {
             var keys = relations.Select(relation => relation.RenderAssetKey).Distinct().ToArray();
-            if (keys.Length == 0)
+            if (keys.Length == 0 || coverage != RenderCoverage.Supported)
                 return UnavailableLongForCoverage(coverage, ObservationOrigin.Derived);
 
             long total = 0;
@@ -423,7 +423,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
         private Observation<long> CountUniqueSurfaces(IEnumerable<PrefabRenderRelation> relations, RenderCoverage coverage)
         {
             var keys = relations.Select(relation => relation.RenderAssetKey).Distinct().ToArray();
-            if (keys.Length == 0)
+            if (keys.Length == 0 || coverage != RenderCoverage.Supported)
                 return UnavailableLongForCoverage(coverage, ObservationOrigin.Derived);
             if (keys.Any(key => _surfaceReadFailures.Contains(key)))
                 return Observation<long>.Unavailable(Availability.Failed, ObservationOrigin.Derived, _capturedAt, "APA-SRF-001");
@@ -438,7 +438,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
         private Observation<long> CountUniqueTextureReferences(IEnumerable<PrefabRenderRelation> relations, RenderCoverage coverage)
         {
             var keys = relations.Select(relation => relation.RenderAssetKey).Distinct().ToArray();
-            if (keys.Length == 0)
+            if (keys.Length == 0 || coverage != RenderCoverage.Supported)
                 return UnavailableLongForCoverage(coverage, ObservationOrigin.Derived);
             if (keys.Any(key => _surfaceReadFailures.Contains(key)))
                 return Observation<long>.Unavailable(Availability.Failed, ObservationOrigin.Derived, _capturedAt, "APA-SRF-001");
@@ -454,7 +454,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
         private Observation<long> SumUniqueTexturePayload(IEnumerable<PrefabRenderRelation> relations, RenderCoverage coverage)
         {
             var keys = relations.Select(relation => relation.RenderAssetKey).Distinct().ToArray();
-            if (keys.Length == 0)
+            if (keys.Length == 0 || coverage != RenderCoverage.Supported)
                 return UnavailableLongForCoverage(coverage, ObservationOrigin.Estimated);
             if (keys.Any(key => _surfaceReadFailures.Contains(key)))
                 return Observation<long>.Unavailable(Availability.Failed, ObservationOrigin.Estimated, _capturedAt, "APA-SRF-001");
@@ -482,6 +482,8 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
             return Observation<long>.FromValue(total, ObservationOrigin.Estimated, _capturedAt);
         }
 
+        // Totals are published only for a Prefab whose render references all resolved; a partial total would
+        // understate it.
         private Observation<long> UnavailableLongForCoverage(RenderCoverage coverage, ObservationOrigin origin)
         {
             switch (coverage)
