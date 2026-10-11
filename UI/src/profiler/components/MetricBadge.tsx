@@ -1,4 +1,5 @@
 import React from "react";
+import { Tooltip } from "cs2/ui";
 import { confidenceLabel, metricReasonLabel } from "../text";
 import { useText } from "../../i18n/locale";
 import styles from "../profiler.module.scss";
@@ -30,5 +31,5 @@ export function MetricBadge({ confidence, availability, reason }: MetricBadgePro
         ? t("badge.managed")
         : t("badge.indirect");
 
-  return <span className={`${styles.badge} ${className}`} title={tooltip}>{label}</span>;
+  return <Tooltip tooltip={tooltip}><span className={`${styles.badge} ${className}`}>{label}</span></Tooltip>;
 }

@@ -1,4 +1,5 @@
 import React from "react";
+import { Button } from "cs2/ui";
 import { formatCountKind, formatObservation } from "../bindings";
 import { EvidencePanel } from "../components/EvidencePanel";
 import type { AssetRow, UiFinding } from "../types";
@@ -42,7 +43,7 @@ export function AssetDetails({
         <h3>{t("details.exposure")}</h3>
         <p><strong>{formatCountKind(asset.countKind, t)}:</strong> {formatObservation(asset.instances, t)}</p>
         <p className="apa__muted">{t("details.exposureNote")}</p>
-        {onOpenRuntimeCaptures && <button type="button" className="apa__button" onClick={onOpenRuntimeCaptures}>{t("details.openCaptures")}</button>}
+        {onOpenRuntimeCaptures && <Button as="button" variant="flat" className="apa__button" onSelect={onOpenRuntimeCaptures}>{t("details.openCaptures")}</Button>}
       </section>
       <RenderStructure coverage={asset.renderCoverage ?? "NotScanned"} relations={asset.renderRelations ?? []} onDeepInspect={onDeepInspect} />
       <GeometryDetails asset={asset} />

@@ -1,4 +1,5 @@
 import React from "react";
+import { Button } from "cs2/ui";
 import type { CaptureSummaryUi } from "../profiler/bindings";
 import type { UiSummary } from "./types";
 import { useText } from "../i18n/locale";
@@ -24,7 +25,7 @@ export function RuntimeContextCard({ capture, sessionId, summary, onRunAudit }: 
     <h3>{t("context.title", { id: capture.id })}</h3>
     {timing ? <p>{t("context.linked", { snapshot: summary.latestAssetSnapshotId ?? "", timing: t(`context.timing.${timing}` as MessageKey) })}</p>
       : <><p>{t("context.none")}</p>
-        <button type="button" className="apa__button" onClick={onRunAudit}>{t("context.runAudit")}</button></>}
+        <Button as="button" variant="flat" className="apa__button" onSelect={onRunAudit}>{t("context.runAudit")}</Button></>}
     <p>{t("context.disclaimer")}</p>
   </section>;
 }

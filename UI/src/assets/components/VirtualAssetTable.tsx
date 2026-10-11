@@ -1,4 +1,5 @@
 import React from "react";
+import { Button } from "cs2/ui";
 import { formatCountKind, formatObservation } from "../bindings";
 import { MAX_ASSET_PAGE_SIZE, type AssetPage, type AssetRow } from "../types";
 import { useText } from "../../i18n/locale";
@@ -29,9 +30,9 @@ export function VirtualAssetTable({ page, onPageChange, onSelect, selectedKey }:
         <div role="listitem" className="apa__asset-row" key={`${item.prefabType}:${item.prefabId}`}
           data-selected={selectedKey === `${item.prefabType}:${item.prefabId}`}>
           <div className="apa__asset-main">
-            <button type="button" className="apa__link-button" onClick={() => onSelect?.(item)} disabled={!onSelect}>
+            <Button as="button" variant="text" className="apa__link-button" onSelect={() => onSelect?.(item)} disabled={!onSelect}>
               <strong>{item.displayName}</strong>
-            </button>
+            </Button>
             <small className="apa__asset-id">{item.prefabId}</small>
           </div>
           <div className="apa__asset-facts">
@@ -48,8 +49,8 @@ export function VirtualAssetTable({ page, onPageChange, onSelect, selectedKey }:
     <footer className="apa__table-footer">
       <span>{t("table.range", { start, end, total: page.totalCount })}</span>
       <div className="apa__pager">
-        <button type="button" className="apa__button" disabled={page.offset <= 0 || !onPageChange} onClick={() => onPageChange?.(previousOffset)}>{t("table.previous")}</button>
-        <button type="button" className="apa__button" disabled={nextOffset >= page.totalCount || !onPageChange} onClick={() => onPageChange?.(nextOffset)}>{t("table.next")}</button>
+        <Button as="button" variant="flat" className="apa__button" disabled={page.offset <= 0 || !onPageChange} onSelect={() => onPageChange?.(previousOffset)}>{t("table.previous")}</Button>
+        <Button as="button" variant="flat" className="apa__button" disabled={nextOffset >= page.totalCount || !onPageChange} onSelect={() => onPageChange?.(nextOffset)}>{t("table.next")}</Button>
       </div>
     </footer>
   </section>;

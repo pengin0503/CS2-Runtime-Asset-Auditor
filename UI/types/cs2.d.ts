@@ -23,9 +23,11 @@ declare module "cs2/ui" {
   import type { ButtonHTMLAttributes, PropsWithChildren, ReactElement, ReactNode } from "react";
 
   export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onSelect"> {
-    variant?: "flat" | "primary" | "round" | "menu" | "icon" | "floating" | "default";
+    variant?: "flat" | "primary" | "round" | "menu" | "icon" | "floating" | "default" | "text";
     selected?: boolean;
     src?: string;
+    /** Draws `src` as a mask filled with the theme's --iconColor, the way vanilla glyph buttons do. */
+    tinted?: boolean | string;
     tooltipLabel?: ReactNode;
     onSelect?: () => void;
     as?: "button" | "div";
@@ -36,10 +38,22 @@ declare module "cs2/ui" {
   export interface TooltipProps {
     tooltip: ReactNode;
     disabled?: boolean;
+    direction?: "up" | "down" | "left" | "right";
+    alignment?: "start" | "center" | "end";
     children: ReactElement;
   }
 
   export const Tooltip: (props: TooltipProps) => JSX.Element;
+
+  // Vanilla icon: a 26rem box (override the size with --size) holding either an <img> or, when
+  // tinted, a mask filled with --iconColor so monochrome game glyphs follow the text color.
+  export interface IconProps {
+    src: string;
+    tinted?: boolean | string;
+    className?: string;
+  }
+
+  export const Icon: (props: PropsWithChildren<IconProps>) => JSX.Element;
 
   // Mirrors the official toolchain declaration of the vanilla scroll container, which draws a
   // draggable scrollbar track (Gameface renders no native scrollbars for overflow containers).

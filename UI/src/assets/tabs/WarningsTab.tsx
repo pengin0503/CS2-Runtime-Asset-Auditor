@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { Button } from "cs2/ui";
 import { EvidencePanel } from "../components/EvidencePanel";
 import { ChoiceControl } from "../components/ChoiceControl";
 import { FindingBadge } from "../components/FindingBadge";
@@ -39,9 +40,9 @@ export function WarningsTab({ findings }: { findings: UiFinding[] }): React.JSX.
       ))}
       {visible.length > shown.length ? <div className="apa__pager">
         <span className="apa__muted">{t("warnings.shown", { shown: shown.length, total: visible.length })}</span>
-        <button type="button" className="apa__button" onClick={() => setLimit(limit + FINDINGS_PAGE_SIZE)}>
+        <Button as="button" variant="flat" className="apa__button" onSelect={() => setLimit(limit + FINDINGS_PAGE_SIZE)}>
           {t("warnings.showMore", { count: Math.min(FINDINGS_PAGE_SIZE, visible.length - shown.length) })}
-        </button>
+        </Button>
       </div> : null}
     </section>
   );

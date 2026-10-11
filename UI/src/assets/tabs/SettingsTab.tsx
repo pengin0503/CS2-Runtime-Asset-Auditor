@@ -1,4 +1,5 @@
 import React from "react";
+import { Button } from "cs2/ui";
 import { ChoiceControl } from "../components/ChoiceControl";
 import type { NormalizedUiScanOptions } from "../types";
 import { useText } from "../../i18n/locale";
@@ -17,17 +18,17 @@ export function SettingsTab({ settings, onChange }: {
   const toggle = (key: BoolKey, labelKey: MessageKey, detailKey: MessageKey) =>
     <div className="apa__setting-row" key={key}>
       <span><strong>{t(labelKey)}</strong><small>{t(detailKey)}</small></span>
-      <button type="button" className="apa__button" aria-pressed={settings[key]}
-        onClick={() => onChange({ ...settings, [key]: !settings[key] })}>{settings[key] ? t("settings.on") : t("settings.off")}</button>
+      <Button as="button" variant="flat" className="apa__button" selected={settings[key]} aria-pressed={settings[key]}
+        onSelect={() => onChange({ ...settings, [key]: !settings[key] })}>{settings[key] ? t("settings.on") : t("settings.off")}</Button>
     </div>;
   const number = (key: NumKey, labelKey: MessageKey, min: number, max: number, step: number) => {
     const label = t(labelKey);
     return <div className="apa__setting-row" key={key} role="group" aria-label={label}>
       <span>{label}</span>
       <div className="apa__choices">
-        <button type="button" className="apa__button" disabled={settings[key] <= min} onClick={() => onChange({ ...settings, [key]: Math.max(min, +(settings[key] - step).toFixed(2)) })} aria-label={t("settings.decrease", { label })}>−</button>
+        <Button as="button" variant="flat" className="apa__button" disabled={settings[key] <= min} onSelect={() => onChange({ ...settings, [key]: Math.max(min, +(settings[key] - step).toFixed(2)) })} aria-label={t("settings.decrease", { label })}>−</Button>
         <strong>{settings[key]}</strong>
-        <button type="button" className="apa__button" disabled={settings[key] >= max} onClick={() => onChange({ ...settings, [key]: Math.min(max, +(settings[key] + step).toFixed(2)) })} aria-label={t("settings.increase", { label })}>+</button>
+        <Button as="button" variant="flat" className="apa__button" disabled={settings[key] >= max} onSelect={() => onChange({ ...settings, [key]: Math.min(max, +(settings[key] + step).toFixed(2)) })} aria-label={t("settings.increase", { label })}>+</Button>
       </div>
     </div>;
   };

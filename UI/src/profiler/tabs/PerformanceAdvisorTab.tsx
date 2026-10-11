@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button } from "cs2/ui";
+import { Button, Tooltip } from "cs2/ui";
 import { AdvisorAction, AdvisorChange, AdvisorExperiment, AdvisorRecommendation, AdvisorUiState, CaptureSummaryUi, EMPTY_ADVISOR } from "../bindings";
 import { advisorTextLabel } from "../text";
 import { useText, type Locale, type Translate } from "../../i18n/locale";
@@ -13,8 +13,6 @@ const GROUPS: Array<{ id: string; labelKey: MessageKey; include: (r: AdvisorReco
   { id: "headroom", labelKey: "advisor.group.headroom", include: r => r.direction === "HeadroomAvailable" },
   { id: "none", labelKey: "advisor.group.none", include: r => r.direction === "NoRecommendation" || r.direction === "KeepCurrent" }
 ];
-
-const GROUP_TITLE_STYLE = { whiteSpace: "nowrap", margin: "0 0 3rem", fontSize: "13rem" } as const;
 
 function lookup(t: Translate, prefix: string, value: string, fallback: MessageKey): string {
   const key = `${prefix}.${value}` as MessageKey;
@@ -83,20 +81,21 @@ function RecommendationCard({ recommendation, applied, onApply, onTest, locale, 
       <span>{t("advisor.current", { current: recommendation.currentValue, proposed: recommendation.recommendedValue })}</span>
       <span>{t("advisor.priority", { priority: levelLabel(recommendation.priority, t), confidence: levelLabel(recommendation.confidence, t) })}</span>
       <span>{recommendation.applyCapability === "ReadOnlyForAdvisor" ? t("advisor.readOnly") : t("advisor.checkEvidence")}</span>
-      {applied
-        ? <span>{t("advisor.applied")}</span>
-        : onApply && recommendation.applyCapability === "Available" &&
+      {applied && <span>{t("advisor.applied")}</span>}
+      <div className={styles.cardButtons}>
+        {!applied && onApply && recommendation.applyCapability === "Available" &&
           (needsConfirmation && !acknowledge
             ? <Button as="button" variant="flat" onSelect={() => setAcknowledge(true)}>{t("advisor.confirmRequired")}</Button>
             : <Button as="button" variant="flat" onSelect={() => onApply(recommendation.settingId,
                 recommendation.recommendedValue, needsConfirmation && acknowledge)}>{t("advisor.apply")}</Button>)}
-      {!applied && onTest && recommendation.applyCapability === "Available" &&
-        recommendation.currentValue !== recommendation.recommendedValue &&
-        <Button as="button" variant="flat" onSelect={() => onTest(recommendation.settingId,
-          recommendation.recommendedValue)}>{t("advisor.experiment.test")}</Button>}
-      <Button as="button" variant="flat" onSelect={() => setDetails(!details)} aria-expanded={details}>
-        {details ? t("advisor.hideDetails") : t("advisor.showDetails")}
-      </Button>
+        {!applied && onTest && recommendation.applyCapability === "Available" &&
+          recommendation.currentValue !== recommendation.recommendedValue &&
+          <Button as="button" variant="flat" onSelect={() => onTest(recommendation.settingId,
+            recommendation.recommendedValue)}>{t("advisor.experiment.test")}</Button>}
+        <Button as="button" variant="flat" onSelect={() => setDetails(!details)} aria-expanded={details}>
+          {details ? t("advisor.hideDetails") : t("advisor.showDetails")}
+        </Button>
+      </div>
       {details && <div className={styles.advisorDetails}>
         <span>{advisorTextLabel(recommendation.rationale, locale)}</span>
         <span>{t("advisor.evidence", { evidence: recommendation.evidenceIds?.join(", ") || t("advisor.noEvidence") })}</span>
@@ -192,7 +191,7 @@ function ChangeCard({ change, onUndo, onResolveConflict, t }: {
 }) {
   const [acknowledgeUndo, setAcknowledgeUndo] = useState(false);
   return <article className={styles.advisorCard}>
-    <strong title={change.settingId}>{change.displayName || change.settingId}</strong>
+    <Tooltip tooltip={change.settingId}><strong>{change.displayName || change.settingId}</strong></Tooltip>
     <span>{t("advisor.changeValues", { original: change.originalValue, applied: change.appliedValue, current: change.currentObservedValue })}</span>
     <span>{t("advisor.changeStatus", { status: changeStatusLabel(change.status, t) })}</span>
     {change.status === "Applied" && onUndo && (
@@ -251,8 +250,8 @@ export function PerformanceAdvisorTab({ advisor = EMPTY_ADVISOR, captures = [], 
   const activeExperiment = experimentActive(advisor.experiment);
   return (
     <section className={styles.advisorTab}>
-      <h2>{t("advisor.title")}</h2>
-      <p>{t("advisor.intro")}</p>
+      <h2 className={styles.tabTitle}>{t("advisor.title")}</h2>
+      <p className={styles.explainer}>{t("advisor.intro")}</p>
       {advisor.lastAction && <p className={styles.exportResult} role="status">{advisorActionMessage(advisor.lastAction, t)}</p>}
       {advisor.experiment && <ExperimentCard experiment={advisor.experiment} locale={locale} t={t}
         onApply={onApplyExperiment} onFollowUp={onStartExperimentFollowUp}
@@ -289,7 +288,7 @@ export function PerformanceAdvisorTab({ advisor = EMPTY_ADVISOR, captures = [], 
             {group.id === "none"
               ? <Button as="button" variant="flat" aria-label={t("advisor.showNone")} aria-expanded={open}
                   onSelect={() => setShowNoRecommendation(!showNoRecommendation)}>{t(group.labelKey)} ({entries.length})</Button>
-              : <h3 style={GROUP_TITLE_STYLE}>{t(group.labelKey)} ({entries.length})</h3>}
+              : <h3 className={styles.groupTitle}>{t(group.labelKey)} ({entries.length})</h3>}
             {open && entries.map(entry => <RecommendationCard key={entry.settingId} recommendation={entry}
               applied={isApplied(entry, changes)} onApply={activeExperiment ? undefined : onApply}
               onTest={!activeExperiment && advisor.available && !!advisor.selectedCaptureId && onStartExperiment
@@ -299,13 +298,13 @@ export function PerformanceAdvisorTab({ advisor = EMPTY_ADVISOR, captures = [], 
         );
       })}
       {!!changes.length && <section className={styles.advisorGroup}>
-        <h3 style={GROUP_TITLE_STYLE}>{t("advisor.changes", { count: changes.length })}</h3>
+        <h3 className={styles.groupTitle}>{t("advisor.changes", { count: changes.length })}</h3>
         {changes.map((change, index) => <ChangeCard key={`${change.settingId}-${index}`} change={change}
           onUndo={onUndo} onResolveConflict={onResolveConflict} t={t} />)}
         {onUndoSession && appliedCount > 0 && <UndoSessionControl appliedCount={appliedCount} onUndoSession={onUndoSession} t={t} />}
       </section>}
       {advisor.comparison && <section className={styles.advisorGroup}>
-        <h3 style={GROUP_TITLE_STYLE}>{t("advisor.comparison")}</h3>
+        <h3 className={styles.groupTitle}>{t("advisor.comparison")}</h3>
         {advisor.comparison.multipleChanges && <p>{t("advisor.multipleChanges")}</p>}
         {advisor.comparison.metrics.map(metric => (
           <div className={styles.advisorObservation} key={metric.id}>

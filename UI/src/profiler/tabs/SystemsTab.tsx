@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Button } from "cs2/ui";
+import { Button, Tooltip } from "cs2/ui";
+import { ExpandGlyph } from "../../shell/glyphs";
 import type { SystemUiRow } from "../bindings";
 import { formatInteger, formatMilliseconds } from "../format";
 import { MetricBadge } from "../components/MetricBadge";
@@ -85,8 +86,10 @@ export function SystemsTab({ systems }: SystemsTabProps) {
             <Button as="button" variant="flat" className={`${styles.sortButton} ${sortKey === "name" ? styles.sortActive : ""}`} onSelect={() => changeSort("name")}>{t("systems.system")}</Button>
           </span>
           {COLUMNS.map(([key, label, tooltip]) => (
-            <span key={key} className={styles.systemValueCell} title={t(tooltip)}>
-              <Button as="button" variant="flat" className={`${styles.sortButton} ${sortKey === key ? styles.sortActive : ""}`} onSelect={() => changeSort(key)}>{t(label)}</Button>
+            <span key={key} className={styles.systemValueCell}>
+              <Tooltip tooltip={t(tooltip)}>
+                <Button as="button" variant="flat" className={`${styles.sortButton} ${sortKey === key ? styles.sortActive : ""}`} onSelect={() => changeSort(key)}>{t(label)}</Button>
+              </Tooltip>
             </span>
           ))}
           <span className={styles.systemBadgeCell}>{t("systems.basis")}</span>
@@ -100,7 +103,7 @@ export function SystemsTab({ systems }: SystemsTabProps) {
               <div className={styles.systemRow} role="row">
                 <span className={styles.systemNameCell}>
                   <Button as="button" variant="flat" className={styles.systemNameButton} onSelect={() => setExpanded(isExpanded ? null : row.id)} aria-expanded={isExpanded}>
-                    <strong>{isExpanded ? "▾ " : "▸ "}{row.id}</strong>
+                    <strong className={styles.expandTitle}><ExpandGlyph expanded={isExpanded} />{row.id}</strong>
                     <small>
                       {t("systems.owner", { owner: row.ownerAssembly || "—" })}
                       {patchOwners ? t("systems.patches", { owners: patchOwners }) : ""}
@@ -114,7 +117,7 @@ export function SystemsTab({ systems }: SystemsTabProps) {
                 <span className={styles.systemValueCell}>{formatMilliseconds(row.p99Milliseconds)}</span>
                 <span className={styles.systemValueCell}>{formatMilliseconds(row.maxMilliseconds)}</span>
                 <span className={styles.systemValueCell}>{formatInteger(row.calls)}</span>
-                <span className={styles.systemBadgeCell} title={t("systems.source", { source: measurementSource(row.confidence, t) })}>
+                <span className={styles.systemBadgeCell}>
                   <MetricBadge confidence={row.confidence} availability={row.confidence === "Unavailable" ? "Unavailable" : "Available"} />
                 </span>
               </div>

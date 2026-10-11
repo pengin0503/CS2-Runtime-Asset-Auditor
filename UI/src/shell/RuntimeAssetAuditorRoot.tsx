@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Button, Scrollable } from "cs2/ui";
+import { Button, Scrollable, Tooltip } from "cs2/ui";
 import { InputActionConsumer } from "cs2/input";
 import {
   closePanel,
@@ -41,6 +41,7 @@ import { PanelRect, clampPanelRect, movePanelRect, resizePanelRect } from "../pr
 import styles from "../profiler/profiler.module.scss";
 import { AssetSection } from "../assets/AssetSection";
 import { TOP_SECTIONS, RUNTIME_SECTIONS, ASSET_SECTIONS, type TopSection, type RuntimeSection, type AssetSectionName } from "./navigation";
+import { GLYPHS } from "./glyphs";
 
 type DragMode = "move" | "resize";
 
@@ -156,46 +157,52 @@ export function RuntimeAssetAuditorRoot() {
   return (
     <InputActionConsumer actions={BACK_ACTIONS} ignoreFocusState>
       <div ref={panelRef} className={styles.panel} style={panelStyle} role="dialog" aria-label="CS2 Runtime Asset Auditor">
+        {/* Laid out like the game's center panels (economy, city info): a dark title bar and tab
+            strip over a gradient body, with the vanilla close glyph. */}
         <header className={styles.panelHeader}>
-          <div className={styles.dragHandle} onMouseDown={beginDrag("move")} title={t("shell.dragMove")}>
-            <strong>CS2 Runtime Asset Auditor</strong>
-            <small>{snapshot.capture.isDeepCapture ? t("shell.deepCaptureRunning") : t("shell.lowOverhead", { state: captureStateLabel(snapshot.capture.state, false, locale) })}</small>
+          <div className={styles.titleBar}>
+            <Tooltip tooltip={t("shell.dragMove")}>
+              <div className={styles.dragHandle} onMouseDown={beginDrag("move")}>
+                <div className={styles.panelTitle}>CS2 Runtime Asset Auditor</div>
+                <div className={styles.panelSubtitle}>{snapshot.capture.isDeepCapture ? t("shell.deepCaptureRunning") : t("shell.lowOverhead", { state: captureStateLabel(snapshot.capture.state, false, locale) })}</div>
+              </div>
+            </Tooltip>
+            <div className={styles.headerActions}>
+              {rect && (
+                <Button as="button" variant="flat" className={styles.headerButton} onSelect={resetPanelLayout} aria-label={t("shell.resetLayoutAria")}>
+                  {t("shell.resetLayout")}
+                </Button>
+              )}
+              <Button as="button" variant="round" tinted src={GLYPHS.close} className={styles.closeButton} onSelect={closePanel} aria-label={t("shell.close")} />
+            </div>
           </div>
-          <div className={styles.headerActions}>
-            {rect && (
-              <Button as="button" variant="flat" className={styles.headerButton} onSelect={resetPanelLayout} aria-label={t("shell.resetLayoutAria")}>
-                {t("shell.resetLayout")}
-              </Button>
-            )}
-            <Button as="button" variant="flat" className={styles.closeButton} onSelect={closePanel} aria-label={t("shell.close")}>×</Button>
-          </div>
-        </header>
 
-        <nav className={styles.tabs} aria-label={t("shell.sectionsAria")}>
-          {TOP_SECTIONS.map(({ id, labelKey }) => (
-            <Button
-              as="button"
-              variant="flat"
-              key={id}
-              selected={section === id}
-              className={`${styles.tabButton} ${section === id ? styles.activeTab : ""}`}
-              onSelect={() => setSection(id)}
-            >
-              {t(labelKey)}
-            </Button>
-          ))}
-        </nav>
+          <nav className={styles.tabBar} aria-label={t("shell.sectionsAria")}>
+            {TOP_SECTIONS.map(({ id, labelKey }) => (
+              <Button
+                as="button"
+                variant="flat"
+                key={id}
+                selected={section === id}
+                className={`${styles.tab} ${section === id ? styles.activeTab : ""}`}
+                onSelect={() => setSection(id)}
+              >
+                {t(labelKey)}
+              </Button>
+            ))}
+          </nav>
+        </header>
 
         <Scrollable vertical trackVisibility="scrollable" className={styles.panelBody}>
           <div className={styles.panelContent}>
-            {section === "runtime" && <nav className={styles.tabs} aria-label={t("shell.runtimeViewsAria")}>
+            {section === "runtime" && <nav className={styles.subTabBar} aria-label={t("shell.runtimeViewsAria")}>
               {RUNTIME_SECTIONS.map(({ id, labelKey }) => <Button as="button" variant="flat" key={id}
-                selected={runtimeView === id} className={`${styles.tabButton} ${runtimeView === id ? styles.activeTab : ""}`}
+                selected={runtimeView === id} className={`${styles.subTab} ${runtimeView === id ? styles.activeSubTab : ""}`}
                 onSelect={() => setRuntimeView(id)}>{t(labelKey)}</Button>)}
             </nav>}
-            {section === "assets" && <nav className={styles.tabs} aria-label={t("shell.assetViewsAria")}>
+            {section === "assets" && <nav className={styles.subTabBar} aria-label={t("shell.assetViewsAria")}>
               {ASSET_SECTIONS.map(({ id, labelKey }) => <Button as="button" variant="flat" key={id}
-                selected={assetView === id} className={`${styles.tabButton} ${assetView === id ? styles.activeTab : ""}`}
+                selected={assetView === id} className={`${styles.subTab} ${assetView === id ? styles.activeSubTab : ""}`}
                 onSelect={() => setAssetView(id)}>{t(labelKey)}</Button>)}
             </nav>}
             {section === "overview" && <><OverviewTab snapshot={snapshot} onManualCapture={requestManualCapture} onExport={exportReport} exportResult={exportResult} />
@@ -206,7 +213,7 @@ export function RuntimeAssetAuditorRoot() {
             {section === "runtime" && runtimeView === "timeline" && <TimelineTab points={snapshot.timeline} />}
             {section === "runtime" && runtimeView === "captures" && <CapturesTab captures={snapshot.captures} onSelect={selectCapture}
               onInvestigate={id => { setInvestigationCaptureId(id); selectCapture(id); setAssetView("catalog"); setSection("assets"); }} />}
-            {section === "assets" && <><p>{t("shell.assetDisclaimer")}</p>
+            {section === "assets" && <><p className={styles.explainer}>{t("shell.assetDisclaimer")}</p>
               <AssetSection view={assetView} active={visible} capture={snapshot.captures.find(capture => capture.id === investigationCaptureId)}
                 onOpenRuntimeCaptures={() => { setRuntimeView("captures"); setSection("runtime"); }} /></>}
             {section === "advisor" && <PerformanceAdvisorTab advisor={snapshot.advisor} captures={snapshot.captures}
@@ -221,7 +228,9 @@ export function RuntimeAssetAuditorRoot() {
           </div>
         </Scrollable>
 
-        <div className={styles.resizeGrip} onMouseDown={beginDrag("resize")} title={t("shell.dragResize")} />
+        <Tooltip tooltip={t("shell.dragResize")}>
+          <div className={styles.resizeGrip} onMouseDown={beginDrag("resize")} />
+        </Tooltip>
       </div>
     </InputActionConsumer>
   );

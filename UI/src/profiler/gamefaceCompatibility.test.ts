@@ -2,10 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-const stylesheet = fs.readFileSync(
-  path.resolve(process.cwd(), "src/profiler/profiler.module.scss"),
-  "utf8"
-);
+const stylesheetPaths = ["src/profiler/profiler.module.scss", "src/assets/assetAuditor.module.scss"];
+const stylesheet = fs.readFileSync(path.resolve(process.cwd(), stylesheetPaths[0]), "utf8");
 
 describe("Gameface runtime compatibility", () => {
   it("keeps the Game-mounted profiler panel pointer-interactive", () => {
@@ -26,8 +24,20 @@ describe("Gameface runtime compatibility", () => {
       ["border shorthand", /(^|[;{]\s*)border(?:-(?:top|right|bottom|left))?\s*:/im]
     ];
 
-    for (const [name, pattern] of rejectedPatterns) {
-      expect(stylesheet, `${name} should not be present`).not.toMatch(pattern);
+    for (const file of stylesheetPaths) {
+      const source = fs.readFileSync(path.resolve(process.cwd(), file), "utf8");
+      for (const [name, pattern] of rejectedPatterns) {
+        expect(source, `${name} should not be present in ${file}`).not.toMatch(pattern);
+      }
+    }
+  });
+
+  it("resolves no url() from the mod stylesheets", () => {
+    // A relative url() in this stylesheet resolves against coui://ui-mods/, not the game UI folder, so
+    // game glyphs (Media/Glyphs/...) are referenced from markup instead.
+    for (const file of stylesheetPaths) {
+      const source = fs.readFileSync(path.resolve(process.cwd(), file), "utf8");
+      expect(source, file).not.toMatch(/url\(/i);
     }
   });
 });

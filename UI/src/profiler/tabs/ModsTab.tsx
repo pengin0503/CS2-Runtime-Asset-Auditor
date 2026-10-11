@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Button } from "cs2/ui";
+import { ExpandGlyph } from "../../shell/glyphs";
 import type { ModUiRow, SystemUiRow } from "../bindings";
 import { formatMilliseconds } from "../format";
 import { frameCost } from "./SystemsTab";
@@ -45,7 +46,7 @@ export function ModsTab({ mods, systems = [] }: ModsTabProps) {
               onSelect={() => setExpanded(isExpanded ? null : row.assemblyName)}
               aria-expanded={isExpanded}
             >
-              <strong>{isExpanded ? "▾ " : "▸ "}{row.assemblyName}</strong>
+              <strong className={styles.expandTitle}><ExpandGlyph expanded={isExpanded} />{row.assemblyName}</strong>
               <span>{costLabel(row, t)} <b>{formatMilliseconds(row.directSystemMilliseconds)}</b></span>
               <span>{t("mods.ownedSystems")} <b>{row.directSystemCount}</b></span>
               <span>{t("mods.patchedSystems")} <b>{row.patchedVanillaSystemCount}</b></span>

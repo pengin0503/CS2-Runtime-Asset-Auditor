@@ -1,4 +1,5 @@
 import React from "react";
+import { Button } from "cs2/ui";
 import { ObservationValue } from "../components/ScanStatus";
 import type { AssetAuditorBindings, UiSnapshot } from "../types";
 import { useText } from "../../i18n/locale";
@@ -22,22 +23,20 @@ export function OverviewTab({
           <h2 id="apa-overview-title">{t("aoverview.title")}</h2>
         </div>
         <div className="apa__actions">
-          <button
-            type="button"
+          <Button as="button" variant="primary"
             className="apa__button apa__button--primary"
             disabled={isActive}
-            onClick={() => bindings.requestCensus(settings)}
+            onSelect={() => bindings.requestCensus(settings)}
           >
             {t("aoverview.runCensus")}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button as="button" variant="primary"
             className="apa__button apa__button--primary"
             disabled={isActive}
-            onClick={() => bindings.requestAssetAudit(settings)}
+            onSelect={() => bindings.requestAssetAudit(settings)}
           >
             {t("aoverview.runAudit")}
-          </button>
+          </Button>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import React from "react";
 
-export function Button({ onSelect, children, src, variant, selected, as: _as, tooltipLabel: _tooltipLabel, ...rest }: any) {
+export function Button({ onSelect, children, src, variant, selected, tinted: _tinted, as: _as, tooltipLabel: _tooltipLabel, ...rest }: any) {
   return (
     <button type="button" data-variant={variant} data-selected={selected ? "true" : "false"} onClick={onSelect} {...rest}>
       {src ? <img src={src} alt="" /> : null}
@@ -15,4 +15,8 @@ export function Tooltip({ tooltip, children }: any) {
 
 export function Scrollable({ children, className, vertical, trackVisibility }: any) {
   return <div className={className} data-scrollable={vertical ? "vertical" : "none"} data-track={trackVisibility}>{children}</div>;
+}
+
+export function Icon({ src, className, children }: any) {
+  return <span className={className} data-icon={src}>{children}</span>;
 }

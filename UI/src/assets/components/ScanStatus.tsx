@@ -1,4 +1,5 @@
 import React from "react";
+import { Button } from "cs2/ui";
 import { formatObservation } from "../bindings";
 import type { ScanStatusData, UiObservation } from "../types";
 import { useText, type Translate } from "../../i18n/locale";
@@ -44,9 +45,9 @@ export function ScanStatus({ scan, onCancel }: ScanStatusProps): React.JSX.Eleme
           <h2>{translated(t, `scan.stage.${scan.stage}`, scan.stage)}</h2>
         </div>
         {scan.state === "Running" && onCancel ? (
-          <button type="button" className="apa__button apa__button--quiet" onClick={onCancel}>
+          <Button as="button" variant="flat" className="apa__button apa__button--quiet" onSelect={onCancel}>
             {t("scan.cancel")}
-          </button>
+          </Button>
         ) : null}
       </div>
       {isActive ? (

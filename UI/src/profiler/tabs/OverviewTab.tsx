@@ -1,5 +1,5 @@
 import React from "react";
-import { Button } from "cs2/ui";
+import { Button, Tooltip } from "cs2/ui";
 import type { UiMetricRow, UiSnapshot } from "../bindings";
 import { formatFramesPerSecond, formatMetricValue, formatMilliseconds, formatPercent, formatSpeed, shortMetricName } from "../format";
 import { MetricBadge } from "../components/MetricBadge";
@@ -41,8 +41,10 @@ export function OverviewTab({ snapshot, onManualCapture, onExport, exportResult 
         <div className={styles.summaryCard}><span>{t("overview.actualSpeed")}</span><strong>{formatSpeed(snapshot.global.actualSpeed)}</strong></div>
         <div className={styles.summaryCard}><span>{t("overview.efficiency")}</span><strong>{formatPercent(snapshot.global.efficiency)}</strong></div>
         <div className={styles.summaryCard}><span>{t("overview.captureState")}</span><strong>{captureStateLabel(snapshot.capture.state, snapshot.capture.isDeepCapture, locale)}</strong></div>
-        <div className={styles.summaryCard} title={t("overview.captureOverheadTooltip")}><span>{t("overview.captureOverhead")}</span><strong>{formatPercent(snapshot.diagnostics.profilerOverheadShare)}</strong></div>
-        <div className={styles.summaryCard} title={t("overview.fpsTooltip")}>
+        <Tooltip tooltip={t("overview.captureOverheadTooltip")}>
+          <div className={styles.summaryCard}><span>{t("overview.captureOverhead")}</span><strong>{formatPercent(snapshot.diagnostics.profilerOverheadShare)}</strong></div>
+        </Tooltip>
+        <Tooltip tooltip={t("overview.fpsTooltip")}><div className={styles.summaryCard}>
           <span>{t("overview.fps")}</span>
           <strong>{formatFramesPerSecond(snapshot.global.framesPerSecond)}</strong>
           <small>{snapshot.global.framesPerSecond == null
@@ -51,7 +53,7 @@ export function OverviewTab({ snapshot, onManualCapture, onExport, exportResult 
               median: formatMilliseconds(snapshot.global.frameMsMedian),
               p95: formatMilliseconds(snapshot.global.frameMsP95)
             })}</small>
-        </div>
+        </div></Tooltip>
       </section>
 
       <div className={styles.actionRow}>
@@ -62,12 +64,12 @@ export function OverviewTab({ snapshot, onManualCapture, onExport, exportResult 
 
       <section>
         <h3>{t("overview.recorders")}</h3>
-        {recorders.length ? recorders.map(metric => <MetricRow key={metric.id} metric={metric} />) : <p className={styles.empty}>{t("overview.recordersEmpty")}</p>}
+        {recorders.length ? <div className={styles.metricList}>{recorders.map(metric => <MetricRow key={metric.id} metric={metric} />)}</div> : <p className={styles.empty}>{t("overview.recordersEmpty")}</p>}
       </section>
 
       <section>
         <h3>{t("overview.pathfinding")}</h3>
-        {pathfinding.length ? pathfinding.slice(0, 6).map(metric => <MetricRow key={metric.id} metric={metric} />) : <p className={styles.empty}>{t("overview.pathfindingEmpty")}</p>}
+        {pathfinding.length ? <div className={styles.metricList}>{pathfinding.slice(0, 6).map(metric => <MetricRow key={metric.id} metric={metric} />)}</div> : <p className={styles.empty}>{t("overview.pathfindingEmpty")}</p>}
       </section>
     </div>
   );

@@ -1,4 +1,5 @@
 import React from "react";
+import { Button } from "cs2/ui";
 import type { RenderCoverage, UiRenderRelation } from "../types";
 import { useText } from "../../i18n/locale";
 
@@ -32,7 +33,7 @@ export function RenderStructure({
             <li key={`${relation.kind}:${relation.from}:${relation.to}:${index}`}>
               <span>{relation.from} → {relation.to} ({relation.kind}{relation.lodLevel == null ? "" : ` LOD${relation.lodLevel}`})</span>
               {onDeepInspect ? (
-                <button type="button" className="apa__link-button" onClick={() => onDeepInspect(relation.to)}>{t("render.deepInspect")}</button>
+                <Button as="button" variant="text" className="apa__link-button" onSelect={() => onDeepInspect(relation.to)}>{t("render.deepInspect")}</Button>
               ) : null}
               {relation.deepInspection ? (
                 <div className="apa__deep-inspection">

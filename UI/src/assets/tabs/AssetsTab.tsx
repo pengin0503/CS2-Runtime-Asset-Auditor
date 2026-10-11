@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Button } from "cs2/ui";
 import { VirtualAssetTable } from "../components/VirtualAssetTable";
 import { ChoiceControl } from "../components/ChoiceControl";
 import { AssetDetails } from "../details/AssetDetails";
@@ -57,7 +58,7 @@ export function AssetsTab({ page, query, onQueryChange, findings = [], onSelecte
         <ChoiceControl label={t("atab.sort")} value={query.sort} choices={choices("atab.sort", SORT_CHOICES)} onChange={value => onQueryChange({ sort: value })} />
       </div>
       <VirtualAssetTable page={page} onPageChange={(offset) => onQueryChange({ offset })} onSelect={(asset) => setSelectedKey(`${asset.prefabType}:${asset.prefabId}`)} selectedKey={selected ? `${selected.prefabType}:${selected.prefabId}` : null} />
-      <button type="button" className="apa__link-button" onClick={() => onQueryChange(DEFAULT_ASSET_QUERY_STATE)}>{t("atab.reset")}</button>
+      <Button as="button" variant="text" className="apa__link-button" onSelect={() => onQueryChange(DEFAULT_ASSET_QUERY_STATE)}>{t("atab.reset")}</Button>
       {selected ? <AssetDetails asset={selected} findings={findings} onDeepInspect={onDeepInspect} onOpenRuntimeCaptures={onOpenRuntimeCaptures} /> : null}
     </section>
   );

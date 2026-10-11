@@ -22,7 +22,7 @@ export function PathfindingTab({ metrics }: { metrics: UiMetricRow[] }) {
             <div className={styles.metricRow} key={metric.id}>
               <div className={styles.metricIdentity}>
                 <strong>{shortMetricName(metric.id)}</strong>
-                {reason && <small title={reason}>{reason}</small>}
+                {reason && <small className={styles.wrapText}>{reason}</small>}
               </div>
               <span className={styles.metricValue}>{formatMetricValue(metric)}</span>
               <MetricBadge confidence={metric.confidence} availability={metric.availability} reason={metric.reason} />

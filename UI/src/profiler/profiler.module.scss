@@ -1,3 +1,10 @@
+// Styled after the game's own center panels (economy panel, "iceflake" panel theme) and built on the
+// CSS custom properties the game UI defines on :root (index.css of the 1.6.2f1 UI). Using the
+// variables instead of copied colors lets the panel follow the interface style chosen in the game's
+// options (default, bright blue, dark grey/orange) and the text size option (--fontScale).
+// Buttons rendered with cs2/ui Button carry the vanilla theme classes; the overrides below need
+// !important because those theme rules (e.g. ".button.selected") are more specific.
+
 .panel {
   position: absolute;
   top: 72rem;
@@ -10,119 +17,186 @@
   flex-direction: column;
   overflow: hidden;
   pointer-events: auto;
-  color: #edf3f8;
-  background-color: rgba(18,23,30,.97);
-  border-width: 1rem;
-  border-style: solid;
-  border-color: rgba(255,255,255,.15);
-  border-radius: 10rem;
-  box-shadow: 0 8rem 30rem rgba(0,0,0,.5);
+  color: var(--normalTextColor);
+  font-size: var(--fontSizeS);
+  border-radius: var(--panelRadius);
   z-index: 1000;
-  font-size: 13rem;
 }
-.panelHeader { display: flex; justify-content: space-between; align-items: center; gap: 10rem; padding: 12rem 14rem; border-bottom-width: 1rem; border-bottom-style: solid; border-bottom-color: rgba(255,255,255,.1); }
-.dragHandle { display: flex; flex-direction: column; gap: 2rem; flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 0; cursor: move; }
-.dragHandle strong { font-size: 16rem; }
-.dragHandle small { opacity: .65; }
-.headerActions { display: flex; align-items: center; gap: 6rem; flex-shrink: 0; }
-.headerButton { height: 30rem; padding: 0 10rem !important; border-width: 0 !important; border-style: none !important; border-radius: 6rem !important; background-color: rgba(255,255,255,.08) !important; color: #edf3f8 !important; cursor: pointer; font-size: 11rem; white-space: nowrap; }
-.closeButton { width: 30rem; min-width: 30rem; height: 30rem; padding: 0 !important; border-width: 0 !important; border-style: none !important; border-radius: 6rem !important; background-color: rgba(255,255,255,.08) !important; color: #edf3f8 !important; cursor: pointer; font-size: 20rem; }
-.tabs { display: flex; gap: 5rem; padding: 8rem 12rem; border-bottom-width: 1rem; border-bottom-style: solid; border-bottom-color: rgba(255,255,255,.08); overflow-x: auto; }
-.tabButton, .actionRow button { border-width: 0 !important; border-style: none !important; border-radius: 5rem !important; background-color: rgba(255,255,255,.07) !important; color: #edf3f8 !important; padding: 6rem 10rem !important; cursor: pointer; white-space: nowrap; }
-.tabButton:hover, .actionRow button:hover { background-color: rgba(255,255,255,.13) !important; }
-.activeTab { background-color: rgba(86,166,255,.34) !important; box-shadow: inset 0 0 0 1rem rgba(104,185,255,.45); }
-.panelBody { flex: 1 1 0; min-height: 0; }
-.panelContent { padding: 12rem 16rem 12rem 12rem; }
-.resizeGrip { position: absolute; right: 0; bottom: 0; width: 18rem; height: 18rem; cursor: nwse-resize; border-right-width: 3rem; border-right-style: solid; border-right-color: rgba(255,255,255,.35); border-bottom-width: 3rem; border-bottom-style: solid; border-bottom-color: rgba(255,255,255,.35); border-bottom-right-radius: 8rem; z-index: 2; }
-.resizeGrip:hover { border-right-color: rgba(104,185,255,.8); border-bottom-color: rgba(104,185,255,.8); }
-.tabBody { display: flex; flex-direction: column; gap: 14rem; }
-.tabBody section { display: flex; flex-direction: column; gap: 5rem; }
-.tabBody h3 { margin: 0 0 3rem; font-size: 13rem; }
-.summaryGrid { display: flex !important; flex-wrap: wrap; gap: 7rem !important; }
-.summaryCard { display: flex; flex-direction: column; gap: 2rem; width: 31%; min-height: 54rem; padding: 8rem; border-radius: 6rem; background-color: rgba(255,255,255,.055); }
-.summaryCard span, .summaryCard small { opacity: .68; font-size: 10rem; }
-.summaryCard strong { font-size: 18rem; }
-.actionRow { display: flex; align-items: center; gap: 6rem; flex-wrap: wrap; }
-.actionRow button[disabled] { opacity: .45; cursor: default; }
-.exportResult { opacity: .7; font-size: 10rem; }
-.metricList { display: flex; flex-direction: column; gap: 4rem; }
-.metricRow { display: flex; align-items: center; gap: 8rem; min-height: 34rem; padding: 4rem 7rem; border-radius: 5rem; background-color: rgba(255,255,255,.035); }
+
+// Title bar and tab strip share the dark header color, as in the economy panel.
+.panelHeader {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  background-color: var(--panelColorDark);
+  backdrop-filter: var(--panelBlur);
+  color: var(--highlightBrightBlue);
+}
+.titleBar { display: flex; align-items: center; gap: 10rem; min-height: 36rem; padding: 6rem 10rem; }
+.dragHandle { display: flex; flex-direction: column; align-items: center; gap: 2rem; flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 0; padding: 4rem 0; cursor: move; text-align: center; }
+.panelTitle { font-size: var(--fontSizeXL); font-weight: bold; text-transform: uppercase; line-height: 1.2; }
+.panelSubtitle { color: var(--normalTextColor); opacity: .7; font-size: var(--fontSizeXS); }
+.headerActions { display: flex; align-items: center; gap: 8rem; flex-shrink: 0; }
+.headerButton { padding: 4rem 10rem !important; font-size: var(--fontSizeXS); white-space: nowrap; }
+.closeButton { width: 24rem; height: 24rem; --iconColor: white; }
+.closeButton:hover { --iconColor: var(--highlightLightBlue); }
+
+// Vanilla tab bar: rounded-top tabs, the selected one filled with the highlight gradient.
+.tabBar { display: flex; justify-content: center; padding: 0 10rem; }
+.tab {
+  flex: 0 1 auto;
+  min-width: 150rem;
+  margin: 0 2rem;
+  padding: 7rem 15rem 5rem !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-radius: 9rem 9rem 0 0 !important;
+  background-color: rgba(255,255,255,.1) !important;
+  background-image: none !important;
+  color: rgba(255,255,255,.8) !important;
+  font-size: var(--fontSizeL);
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.tab:hover { background-color: rgba(255,255,255,.15) !important; }
+.tab:active { background-color: rgba(255,255,255,.2) !important; }
+.activeTab, .activeTab:hover { background-color: transparent !important; background-image: linear-gradient(var(--gradientHighlightStart), var(--gradientHighlightEnd)) !important; color: white !important; }
+
+// Second-level views use the same shape at a smaller size, over an accent rule.
+.subTabBar { display: flex; flex-wrap: wrap; gap: 4rem; margin-bottom: 12rem; border-bottom-width: var(--stroke2); border-bottom-style: solid; border-bottom-color: var(--accentColorDark); }
+.subTab {
+  padding: 5rem 14rem 3rem !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-radius: 6rem 6rem 0 0 !important;
+  background-color: rgba(255,255,255,.08) !important;
+  background-image: none !important;
+  color: rgba(255,255,255,.8) !important;
+  font-size: var(--fontSizeM);
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.subTab:hover { background-color: rgba(255,255,255,.15) !important; }
+.activeSubTab, .activeSubTab:hover { background-color: var(--accentColorDark) !important; color: white !important; }
+
+.panelBody { flex: 1 1 0; min-height: 0; background-image: linear-gradient(var(--gradientDarkBlueEnd), var(--gradientDarkBlueStart)); }
+.panelContent { padding: 16rem 20rem 16rem 16rem; }
+// Plain cs2/ui buttons keep the vanilla flat theme; give their labels room.
+.panelContent button { padding: 5rem 12rem; font-size: var(--fontSizeS); cursor: pointer; }
+.panelContent button[disabled] { opacity: .5; cursor: default; }
+.resizeGrip { position: absolute; right: 0; bottom: 0; width: 18rem; height: 18rem; cursor: nwse-resize; border-right-width: 3rem; border-right-style: solid; border-right-color: rgba(255,255,255,.35); border-bottom-width: 3rem; border-bottom-style: solid; border-bottom-color: rgba(255,255,255,.35); border-bottom-right-radius: var(--panelRadius); z-index: 2; }
+.resizeGrip:hover { border-right-color: var(--accentColorNormal); border-bottom-color: var(--accentColorNormal); }
+
+// Section titles follow the vanilla section headers: bold, upper case.
+.tabBody { display: flex; flex-direction: column; gap: 16rem; }
+.tabBody section { display: flex; flex-direction: column; gap: 6rem; }
+.tabBody h3, .groupTitle { margin: 0 0 2rem; font-size: var(--fontSizeM); font-weight: bold; text-transform: uppercase; white-space: nowrap; }
+.tabTitle { margin: 0; color: var(--highlightBrightBlue); font-size: var(--fontSizeXL); font-weight: bold; text-transform: uppercase; }
+.summaryGrid { display: flex !important; flex-direction: row !important; flex-wrap: wrap; gap: 8rem !important; }
+.summaryCard { display: flex; flex-direction: column; gap: 3rem; width: 31%; flex-grow: 1; min-height: 58rem; padding: 8rem 10rem; border-radius: var(--panelRadius); background-color: var(--sectionBackgroundColor); }
+.summaryCard span, .summaryCard small { opacity: .75; font-size: var(--fontSizeXS); }
+.summaryCard span { text-transform: uppercase; }
+.summaryCard strong { font-size: var(--fontSizeXL); }
+.actionRow { display: flex; align-items: center; gap: 8rem; flex-wrap: wrap; }
+.exportResult { opacity: .75; font-size: var(--fontSizeXS); }
+.wrapText { white-space: normal !important; }
+
+// Rows mirror the vanilla info rows: label left, value right, inner radius, dim label color.
+.metricList { display: flex; flex-direction: column; border-radius: var(--panelRadius); background-color: var(--sectionBackgroundColor); }
+.metricRow { display: flex; align-items: center; gap: 10rem; min-height: 34rem; padding: 5rem 10rem; }
+.metricRow + .metricRow { border-top-width: var(--stroke1); border-top-style: solid; border-top-color: var(--dividerColor); }
 .metricIdentity { display: flex; flex-direction: column; min-width: 0; flex-grow: 1; flex-shrink: 1; flex-basis: 0; }
 .metricIdentity strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.metricIdentity small { opacity: .55; font-size: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.metricValue { width: 100rem; flex-shrink: 0; font-variant-numeric: tabular-nums; text-align: right; }
-.badge { display: flex; justify-content: center; padding: 2rem 6rem; border-radius: 999rem; font-size: 9rem; white-space: nowrap; }
-.badgeFull { background-color: rgba(74,190,118,.18); }
-.badgeManaged { background-color: rgba(91,151,255,.18); }
-.badgeIndirect { background-color: rgba(230,184,74,.18); }
-.badgeUnavailable { background-color: rgba(160,166,177,.16); opacity: .75; }
-.empty { opacity: .65; margin: 10rem 2rem; }
-.explainer { margin: 0; opacity: .72; line-height: 1.45; }
-.details { margin-top: 3rem; padding: 6rem 8rem; background-color: rgba(255,255,255,.04); border-radius: 4rem; line-height: 1.4; font-size: 11rem; display: flex; flex-direction: column; gap: 2rem; }
+.metricIdentity small { opacity: .6; font-size: var(--fontSizeXXS); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.metricValue { width: 110rem; flex-shrink: 0; font-variant-numeric: tabular-nums; text-align: right; }
 
-.systemList { display: flex; flex-direction: column; font-size: 11rem; }
-.systemEntry { display: flex; flex-direction: column; border-bottom-width: 1rem; border-bottom-style: solid; border-bottom-color: rgba(255,255,255,.07); padding-bottom: 3rem; }
+// Measurement-basis badges use the game's semantic colors (positive / accent / warning / disabled).
+.badge { display: flex; justify-content: center; padding: 1rem 7rem; border-width: var(--stroke1); border-style: solid; border-radius: 3rem; font-size: var(--fontSizeXXS); text-transform: uppercase; white-space: nowrap; }
+.badgeFull { color: var(--positiveColor); border-color: var(--positiveColor); }
+.badgeManaged { color: var(--accentColorNormal); border-color: var(--accentColorNormal); }
+.badgeIndirect { color: var(--warningColor); border-color: var(--warningColor); }
+.badgeUnavailable { color: var(--normalTextColorDisabled); border-color: rgba(167,198,209,.4); }
+.empty { opacity: .65; margin: 10rem 2rem; }
+.explainer { margin: 0; opacity: .75; line-height: 1.45; }
+.details { margin: 2rem 0 4rem 20rem; padding: 6rem 10rem; border-radius: var(--panelRadiusInner); background-color: var(--sectionBackgroundColorLight); line-height: 1.4; font-size: var(--fontSizeXS); display: flex; flex-direction: column; gap: 2rem; }
+
+// Foldout arrow (vanilla ThickStrokeArrow glyphs).
+.expandTitle { display: flex; align-items: center; }
+.expandGlyph { --size: 12rem !important; --iconColor: var(--accentColorNormal); margin-right: 6rem; flex-shrink: 0; }
+
+.systemList { display: flex; flex-direction: column; font-size: var(--fontSizeXS); border-radius: var(--panelRadius); background-color: var(--sectionBackgroundColor); }
+.systemEntry { display: flex; flex-direction: column; padding: 0 8rem 3rem; border-bottom-width: var(--stroke1); border-bottom-style: solid; border-bottom-color: var(--dividerColor); }
 .systemRow { display: flex; align-items: center; gap: 6rem; min-height: 30rem; }
-.systemHeader { border-bottom-width: 1rem; border-bottom-style: solid; border-bottom-color: rgba(255,255,255,.18); padding-bottom: 4rem; }
+.systemHeader { padding: 4rem 8rem; border-top-left-radius: var(--panelRadius); border-top-right-radius: var(--panelRadius); background-color: var(--sectionHeaderColor); }
 .systemNameCell { display: flex; flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 120rem; overflow: hidden; }
 .systemValueCell { display: flex; justify-content: flex-end; width: 72rem; flex-shrink: 0; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.systemBadgeCell { display: flex; justify-content: flex-end; width: 68rem; flex-shrink: 0; }
-.systemNameButton { display: flex !important; flex-direction: column; align-items: flex-start !important; width: 100%; min-width: 0; padding: 3rem 4rem !important; border-width: 0 !important; border-style: none !important; border-radius: 4rem !important; background-color: transparent !important; color: #edf3f8 !important; text-align: left !important; cursor: pointer; }
-.systemNameButton:hover { background-color: rgba(255,255,255,.05) !important; }
+.systemBadgeCell { display: flex; justify-content: flex-end; width: 76rem; flex-shrink: 0; }
+.systemNameButton { display: flex !important; flex-direction: column; align-items: flex-start !important; width: 100%; min-width: 0; padding: 3rem 4rem !important; border-width: 0 !important; border-style: none !important; border-radius: var(--panelRadiusInner) !important; background-color: transparent !important; background-image: none !important; color: var(--normalTextColor) !important; text-align: left !important; cursor: pointer; }
+.systemNameButton:hover { background-color: var(--hoverColorDark) !important; }
 .systemNameButton strong, .systemNameButton small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.systemNameButton small { opacity: .55; font-size: 9rem; }
-.sortButton { padding: 3rem 5rem !important; border-width: 0 !important; border-style: none !important; border-radius: 4rem !important; background-color: rgba(255,255,255,.07) !important; color: #edf3f8 !important; font-size: 10rem; white-space: nowrap; cursor: pointer; }
-.sortActive { background-color: rgba(86,166,255,.34) !important; }
+.systemNameButton small { opacity: .55; font-size: var(--fontSizeXXS); margin-left: 18rem; }
+.sortButton { padding: 3rem 6rem !important; border-width: 0 !important; border-style: none !important; border-radius: 3rem !important; background-color: transparent !important; background-image: none !important; color: var(--normalTextColor) !important; font-size: var(--fontSizeXS) !important; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
+.sortButton:hover { background-color: var(--hoverColor) !important; }
+.sortActive, .sortActive:hover { background-color: var(--accentColorDark) !important; }
 
-.modGrid { display: flex; flex-wrap: wrap; gap: 7rem; }
-.modCard { display: flex !important; flex-direction: column; align-items: stretch !important; gap: 5rem; width: 49%; padding: 10rem !important; border-width: 1rem !important; border-style: solid !important; border-color: rgba(255,255,255,.08) !important; border-radius: 7rem !important; background-color: rgba(255,255,255,.045) !important; color: #edf3f8 !important; text-align: left !important; cursor: pointer; }
-.modCard:hover { background-color: rgba(255,255,255,.075) !important; }
-.modCard > span { display: flex; justify-content: space-between; gap: 10rem; opacity: .82; }
+.modGrid { display: flex; flex-wrap: wrap; gap: 8rem; }
+.modCard { display: flex !important; flex-direction: column; align-items: stretch !important; gap: 5rem; width: 49%; padding: 10rem !important; border-width: 0 !important; border-style: none !important; border-radius: var(--panelRadius) !important; background-color: var(--sectionBackgroundColor) !important; background-image: none !important; color: var(--normalTextColor) !important; text-align: left !important; cursor: pointer; }
+.modCard:hover { background-color: var(--sectionBackgroundColorLight) !important; }
+.modCard > span { display: flex; justify-content: space-between; gap: 10rem; opacity: .85; }
 .modCardExpanded { width: 100%; }
-.modCard > .modBreakdown { display: flex; flex-direction: column; justify-content: flex-start; gap: 3rem; margin-top: 4rem; padding: 6rem; border-radius: 5rem; background-color: rgba(0,0,0,.18); opacity: 1; font-size: 10rem; }
+.modCard > .modBreakdown { display: flex; flex-direction: column; justify-content: flex-start; gap: 3rem; margin-top: 4rem; padding: 6rem 8rem; border-radius: var(--panelRadiusInner); background-color: var(--sectionHeaderColor); opacity: 1; font-size: var(--fontSizeXS); }
 .modBreakdownRow { display: flex; justify-content: space-between; gap: 10rem; }
 .modBreakdownRow em { font-style: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex-grow: 1; flex-shrink: 1; flex-basis: 0; }
 .modBreakdownRow b { flex-shrink: 0; }
 .modBreakdown small { opacity: .65; }
 
 .seriesControls { display: flex; flex-wrap: wrap; gap: 5rem; }
-.seriesToggle { display: flex !important; align-items: center !important; gap: 5rem; padding: 4rem 8rem !important; border-width: 0 !important; border-style: none !important; border-radius: 5rem !important; background-color: rgba(255,255,255,.045) !important; color: #edf3f8 !important; opacity: .55; font-size: 10rem; cursor: pointer; }
-.seriesToggleOn { opacity: 1; background-color: rgba(255,255,255,.09) !important; }
-.seriesSwatch { width: 10rem; height: 10rem; border-radius: 2rem; border-width: 2rem; border-style: solid; }
-.chartWrap { min-height: 260rem; padding: 6rem; border-radius: 7rem; background-color: rgba(0,0,0,.18); }
+.seriesToggle { display: flex !important; align-items: center !important; gap: 6rem; padding: 4rem 10rem !important; border-width: 0 !important; border-style: none !important; border-radius: 12rem !important; background-color: var(--sectionBackgroundColor) !important; background-image: none !important; color: var(--normalTextColor) !important; opacity: .55; font-size: var(--fontSizeXS) !important; cursor: pointer; }
+.seriesToggleOn { opacity: 1; background-color: var(--sectionBackgroundColorLight) !important; }
+.seriesSwatch { width: 18rem; height: 10rem; }
+.chartWrap { min-height: 260rem; padding: 8rem; border-radius: var(--panelRadius); background-color: var(--sectionBackgroundColor); }
 .timelineChart { width: 100%; height: 260rem; overflow: visible; }
 .chartAxis { stroke: rgba(255,255,255,.2); stroke-width: 2; }
 .chartLine { stroke-width: 3; vector-effect: non-scaling-stroke; }
 .chartPoint { cursor: pointer; }
 .chartPoint:hover { r: 8; }
-.chartNote { margin: 0; opacity: .6; font-size: 10rem; }
-.selectedPoint { display: flex; flex-wrap: wrap; gap: 8rem; padding: 8rem; border-radius: 6rem; background-color: rgba(255,255,255,.04); }
+.chartNote { margin: 0; opacity: .65; font-size: var(--fontSizeXS); }
+.selectedPoint { display: flex; flex-wrap: wrap; gap: 8rem 16rem; padding: 8rem 10rem; border-radius: var(--panelRadius); background-color: var(--sectionBackgroundColor); }
 
 .captureList { display: flex; flex-direction: column; gap: 8rem; }
-.captureCard { border-width: 1rem; border-style: solid; border-color: rgba(255,255,255,.08); border-radius: 7rem; overflow: hidden; background-color: rgba(255,255,255,.035); }
-.captureHeader { width: 100%; display: flex !important; flex-wrap: wrap; align-items: center !important; gap: 7rem; padding: 9rem !important; border-width: 0 !important; border-style: none !important; color: #edf3f8 !important; background-color: transparent !important; text-align: left !important; cursor: pointer; }
-.captureHeader:hover { background-color: rgba(255,255,255,.04) !important; }
+.captureCard { border-radius: var(--panelRadius); overflow: hidden; background-color: var(--sectionBackgroundColor); }
+.captureHeader { width: 100%; display: flex !important; flex-wrap: wrap; align-items: center !important; gap: 8rem; padding: 9rem 10rem !important; border-width: 0 !important; border-style: none !important; border-radius: 0 !important; color: var(--normalTextColor) !important; background-color: var(--sectionHeaderColor) !important; background-image: none !important; text-align: left !important; cursor: pointer; }
+.captureHeader:hover { background-color: var(--sectionHeaderColorLight) !important; }
 .captureHeader > span { width: 16%; }
 .captureHeader > span:first-child { display: flex; flex-direction: column; width: 28%; }
-.captureHeader small { opacity: .5; font-size: 9rem; }
-.captureBody { display: flex; flex-direction: column; gap: 7rem; padding: 10rem; border-top-width: 1rem; border-top-style: solid; border-top-color: rgba(255,255,255,.07); }
-.captureBody h3 { margin: 4rem 0 0; }
-.captureFacts { display: flex; flex-wrap: wrap; gap: 8rem 16rem; }
-.changeRow { display: flex; align-items: center; gap: 8rem; padding: 5rem 7rem; border-radius: 5rem; background-color: rgba(255,255,255,.035); }
+.captureHeader small { opacity: .5; font-size: var(--fontSizeXXS); }
+.captureBody { display: flex; flex-direction: column; align-items: flex-start; gap: 8rem; padding: 10rem; }
+.captureBody > * { align-self: stretch; }
+.captureBody > button { align-self: flex-start; }
+.captureBody h3 { margin: 4rem 0 0; font-size: var(--fontSizeM); text-transform: uppercase; }
+.captureFacts { display: flex; flex-wrap: wrap; gap: 8rem 18rem; }
+.changeRow { display: flex; align-items: center; gap: 8rem; padding: 5rem 8rem; border-radius: var(--panelRadiusInner); background-color: var(--sectionBackgroundColorLight); }
 .changeRow > span:first-child { flex-grow: 1; flex-shrink: 1; flex-basis: 0; }
 .changeRow > span:nth-child(2) { width: 160rem; flex-shrink: 0; }
 .changeRow > b { width: 90rem; flex-shrink: 0; }
-.warningBox { display: flex; flex-direction: column; gap: 3rem; padding: 8rem; border-radius: 5rem; background-color: rgba(230,184,74,.08); }
-.warningBox span { opacity: .75; }
+.warningBox { display: flex; flex-direction: column; gap: 3rem; padding: 8rem 10rem; border-left-width: var(--stroke3); border-left-style: solid; border-left-color: var(--warningColor); border-radius: var(--panelRadiusInner); background-color: rgba(255,164,45,.1); }
+.warningBox strong { color: var(--warningColor); }
+.warningBox span { opacity: .8; }
 
 .diagnosticsGrid { display: flex; flex-wrap: wrap; gap: 6rem; }
-.diagnosticItem { display: flex; justify-content: space-between; gap: 12rem; width: 48%; padding: 7rem 9rem; border-radius: 5rem; background-color: rgba(255,255,255,.04); }
-.diagnosticItem span { opacity: .65; }
+.diagnosticItem { display: flex; justify-content: space-between; gap: 12rem; width: 48%; padding: 6rem 10rem; border-radius: var(--panelRadiusInner); background-color: var(--sectionBackgroundColor); }
+.diagnosticItem span { opacity: .7; }
 .diagnosticItem strong { text-align: right; }
-.diagnosticMessage { margin: 0; padding: 6rem 8rem; border-left-width: 2rem; border-left-style: solid; border-left-color: rgba(99,181,255,.45); background-color: rgba(99,181,255,.05); }
+.diagnosticMessage { margin: 0; padding: 6rem 10rem; border-left-width: var(--stroke3); border-left-style: solid; border-left-color: var(--accentColorNormal); border-radius: var(--panelRadiusInner); background-color: var(--sectionBackgroundColor); }
 
 @media (max-width: 900px) {
   .panel { width: calc(100vw - 24rem); max-width: calc(100vw - 24rem); left: 12rem; }
+  .tab { min-width: 0; padding: 6rem 10rem 4rem !important; font-size: var(--fontSizeM); }
   .summaryCard { width: 46%; }
   .modCard, .diagnosticItem { width: 100%; }
   .captureHeader > span { width: 47%; }
@@ -131,15 +205,20 @@
   .changeRow > span:first-child { width: 47%; flex-basis: auto; }
   .changeRow > span:nth-child(2) { width: 47%; }
 }
-.advisorTab { display: flex; flex-direction: column; gap: 8rem; min-width: 0; }
-.advisorActions { display: flex; flex-direction: column; gap: 5rem; }
-.advisorCapture { display: flex; align-items: center; gap: 6rem; flex-wrap: wrap; padding: 5rem 7rem; border-radius: 4rem; background-color: rgba(255,255,255,.06); }
-.advisorGroup { display: flex; flex-direction: column; gap: 5rem; padding-top: 5rem; border-top-width: 1rem; border-top-style: solid; border-top-color: rgba(255,255,255,.15); }
-.advisorCard { display: flex; flex-direction: column; gap: 4rem; min-width: 0; padding: 7rem; border-radius: 4rem; background-color: rgba(255,255,255,.06); overflow-wrap: break-word; }
-.experimentCard { display: flex; flex-direction: column; gap: 5rem; min-width: 0; padding: 9rem; border-width: 1rem; border-style: solid; border-color: rgba(86,166,255,.55); border-radius: 5rem; background-color: rgba(86,166,255,.09); overflow-wrap: break-word; }
-.experimentCard h3 { margin: 0; font-size: 15rem; }
+
+.advisorTab { display: flex; flex-direction: column; gap: 10rem; min-width: 0; }
+.advisorActions { display: flex; flex-direction: column; align-items: flex-start; gap: 6rem; }
+.advisorCapture { display: flex; align-items: center; gap: 8rem; flex-wrap: wrap; align-self: stretch; padding: 5rem 10rem; border-radius: var(--panelRadiusInner); background-color: var(--sectionBackgroundColor); }
+.advisorCapture > span { flex-grow: 1; }
+.advisorGroup { display: flex; flex-direction: column; align-items: flex-start; gap: 6rem; padding-top: 8rem; border-top-width: var(--stroke2); border-top-style: solid; border-top-color: var(--dividerColor); }
+.advisorGroup > article, .advisorGroup > div { align-self: stretch; }
+.advisorCard { display: flex; flex-direction: column; align-items: flex-start; gap: 4rem; min-width: 0; padding: 8rem 10rem; border-radius: var(--panelRadius); background-color: var(--sectionBackgroundColor); overflow-wrap: break-word; }
+.advisorCard > strong { font-size: var(--fontSizeM); }
+.cardButtons { display: flex; flex-wrap: wrap; gap: 6rem; margin-top: 2rem; }
+.experimentCard { display: flex; flex-direction: column; align-items: flex-start; gap: 6rem; min-width: 0; padding: 10rem 12rem; border-width: var(--stroke2); border-style: solid; border-color: var(--accentColorNormal); border-radius: var(--panelRadius); background-color: var(--sectionBackgroundColorLight); overflow-wrap: break-word; }
+.experimentCard h3 { margin: 0; color: var(--accentColorNormal); font-size: var(--fontSizeL); font-weight: bold; text-transform: uppercase; }
 .experimentButtons, .experimentCounts { display: flex; flex-wrap: wrap; gap: 6rem; min-width: 0; }
-.experimentCounts > span { padding: 3rem 6rem; border-radius: 3rem; background-color: rgba(255,255,255,.08); }
-.experimentWarning { color: #ffdca0; }
-.advisorDetails { display: flex; flex-direction: column; gap: 3rem; }
-.advisorObservation { display: flex; flex-direction: column; gap: 3rem; padding: 7rem; border-radius: 4rem; background-color: rgba(86,166,255,.1); }
+.experimentCounts > span { padding: 3rem 8rem; border-radius: 3rem; background-color: var(--sectionHeaderColor); }
+.experimentWarning { color: var(--warningColor); }
+.advisorDetails { display: flex; flex-direction: column; gap: 3rem; opacity: .85; font-size: var(--fontSizeXS); }
+.advisorObservation { display: flex; flex-direction: column; gap: 3rem; align-self: stretch; padding: 8rem 10rem; border-left-width: var(--stroke3); border-left-style: solid; border-left-color: var(--accentColorNormal); border-radius: var(--panelRadiusInner); background-color: var(--sectionBackgroundColor); }

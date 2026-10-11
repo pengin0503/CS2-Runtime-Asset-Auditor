@@ -1,22 +1,73 @@
-.assetSection { display: flex; flex-direction: column; gap: 8rem; min-width: 0; color: #edf3f4; }
-.assetSection :global(.apa__tab-content) { display: flex; flex-direction: column; gap: 9rem; min-width: 0; }
+// Asset views share the vanilla-derived look of profiler.module.scss: game CSS variables for colors and
+// font sizes, section backgrounds for cards, and cs2/ui Button themes (flat, primary, text) for actions.
+.assetSection { display: flex; flex-direction: column; gap: 12rem; min-width: 0; color: var(--normalTextColor); }
+.assetSection h2 { margin: 0; color: var(--highlightBrightBlue); font-size: var(--fontSizeXL); font-weight: bold; text-transform: uppercase; }
+.assetSection h3 { margin: 0 0 2rem; font-size: var(--fontSizeM); font-weight: bold; text-transform: uppercase; }
+.assetSection h4 { margin: 0; font-size: var(--fontSizeM); }
+// The scan status names the running stage; it is a status line, not a page title.
+.assetSection :global(.apa__scan-status) h2 { color: var(--normalTextColor); font-size: var(--fontSizeM); text-transform: none; }
+.assetSection p { margin: 0; }
+.assetSection :global(.apa__tab-content), .assetSection :global(.apa__export-controls), .assetSection :global(.apa__asset-details), .assetSection :global(.apa__table-shell) { display: flex; flex-direction: column; gap: 10rem; min-width: 0; }
 .assetSection :global(.apa__section-heading), .assetSection :global(.apa__scan-heading), .assetSection :global(.apa__table-footer) { display: flex; justify-content: space-between; align-items: center; gap: 10rem; }
-.assetSection :global(.apa__eyebrow), .assetSection :global(.apa__muted), .assetSection :global(.apa__progress-copy) { font-size: 10rem; opacity: .72; }
-.assetSection :global(.apa__actions), .assetSection :global(.apa__pager), .assetSection :global(.apa__filters) { display: flex; flex-wrap: wrap; gap: 6rem; }
-.assetSection :global(.apa__button), .assetSection :global(.apa__link-button), .assetSection :global(.apa__tab) { padding: 5rem 8rem; border-width: 1rem; border-style: solid; border-color: rgba(230,240,255,.25); border-radius: 4rem; background-color: rgba(255,255,255,.08); color: #edf3f4; cursor: pointer; }
-.assetSection :global(.apa__button--primary) { background-color: #337660; }
-.assetSection :global(.apa__scan-status), .assetSection :global(.apa__asset-row), .assetSection :global(.apa__asset-detail), .assetSection :global(.apa__evidence), .assetSection :global(.apa__setting-row) { padding: 8rem; border-bottom-width: 1rem; border-bottom-style: solid; border-bottom-color: rgba(255,255,255,.12); background-color: rgba(255,255,255,.035); }
-.assetSection :global(.apa__asset-row), .assetSection :global(.apa__setting-row) { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8rem; }
-.assetSection :global(.apa__asset-main) { display: flex; flex-direction: column; min-width: 145rem; flex-grow: 1; }
-.assetSection :global(.apa__asset-facts) { display: flex; flex-wrap: wrap; gap: 10rem; font-size: 10rem; }
-.assetSection :global(.apa__asset-id) { opacity: .65; font-size: 9rem; overflow: hidden; text-overflow: ellipsis; }
+.assetSection :global(.apa__eyebrow) { font-size: var(--fontSizeXS); text-transform: uppercase; opacity: .75; }
+.assetSection :global(.apa__muted), .assetSection :global(.apa__progress-copy) { font-size: var(--fontSizeXS); opacity: .75; }
+.assetSection :global(.apa__actions), .assetSection :global(.apa__pager), .assetSection :global(.apa__filters) { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8rem 12rem; }
+.assetSection :global(.apa__pager) { align-items: center; }
+
+// Actions are cs2/ui Buttons; these rules only size them (the theme supplies colors and states).
+.assetSection :global(.apa__button) { padding: 5rem 12rem; font-size: var(--fontSizeS); cursor: pointer; }
+.assetSection :global(.apa__button--primary) { padding: 8rem 16rem; font-size: var(--fontSizeM); }
+.assetSection :global(.apa__link-button) { padding: 0; font-size: var(--fontSizeS); text-align: left; cursor: pointer; }
+.assetSection :global(.apa__button[disabled]), .assetSection :global(.apa__link-button[disabled]) { opacity: .5; cursor: default; }
+
+// Cards and rows use the vanilla section background.
+.assetSection :global(.apa__scan-status), .assetSection :global(.apa__evidence), .assetSection :global(.apa__export-controls), .assetSection :global(.apa__detail-section), .assetSection :global(.apa__metric-card), .assetSection :global(.apa__finding) { padding: 8rem 10rem; border-radius: var(--panelRadius); background-color: var(--sectionBackgroundColor); }
+.assetSection :global(.apa__asset-details) { padding: 10rem; border-width: var(--stroke2); border-style: solid; border-color: var(--sectionBorderColor); border-radius: var(--panelRadius); }
+.assetSection :global(.apa__detail-section) { display: flex; flex-direction: column; gap: 4rem; }
+.assetSection :global(.apa__asset-list), .assetSection :global(.apa__setting-list) { display: flex; flex-direction: column; border-radius: var(--panelRadius); background-color: var(--sectionBackgroundColor); }
+.assetSection :global(.apa__asset-row), .assetSection :global(.apa__setting-row) { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8rem; padding: 6rem 10rem; border-radius: var(--panelRadiusInner); }
+.assetSection :global(.apa__setting-row) { background-color: var(--sectionBackgroundColor); }
+.assetSection :global(.apa__asset-row) + :global(.apa__asset-row) { border-top-width: var(--stroke1); border-top-style: solid; border-top-color: var(--dividerColor); }
+.assetSection :global(.apa__asset-row[data-selected="true"]) { background-color: var(--sectionBackgroundColorLight); border-left-width: var(--stroke3); border-left-style: solid; border-left-color: var(--accentColorNormal); }
+.assetSection :global(.apa__setting-row) > span { display: flex; flex-direction: column; gap: 2rem; flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 200rem; }
+.assetSection :global(.apa__setting-row) small { opacity: .7; font-size: var(--fontSizeXS); }
+.assetSection :global(.apa__asset-main) { display: flex; flex-direction: column; align-items: flex-start; min-width: 145rem; flex-grow: 1; }
+.assetSection :global(.apa__asset-facts) { display: flex; flex-wrap: wrap; gap: 4rem 14rem; font-size: var(--fontSizeXS); opacity: .85; }
+.assetSection :global(.apa__asset-id) { opacity: .6; font-size: var(--fontSizeXXS); overflow: hidden; text-overflow: ellipsis; }
+
+// Filters: a caption over a row of choice buttons; the search box follows the vanilla toolbar field.
 .assetSection :global(.apa__field) { display: flex; flex-direction: column; gap: 4rem; }
-.assetSection :global(.apa__field input) { padding: 6rem; color: #edf3f4; background-color: #172128; border-width: 1rem; border-style: solid; border-color: rgba(255,255,255,.3); }
-.assetSection :global(.apa__choices), .assetSection :global(.apa__compare-list) { display: flex; flex-wrap: wrap; gap: 5rem; }
-.assetSection :global(.apa__button[aria-pressed="true"]) { border-color: #81d9c0; background-color: #315c51; }
-.assetSection :global(.apa__progress) { display: block; height: 6rem; background-color: #324148; }
-.assetSection :global(.apa__progress span) { display: block; height: 6rem; background-color: #7fceb6; }
-.assetSection :global(.apa__warning) { color: #f6c476; }
+.assetSection :global(.apa__field) > span { font-size: var(--fontSizeXS); text-transform: uppercase; opacity: .75; }
+.assetSection :global(.apa__field input) { min-width: 220rem; padding: 6rem 10rem; color: var(--normalTextColor); font-size: var(--fontSizeS); background-color: var(--toolbarFieldColor); border-width: var(--toolbarFieldBorderWidth); border-style: solid; border-color: var(--toolbarFieldBorderColor); border-radius: var(--toolbarFieldRadius); }
+.assetSection :global(.apa__field input:hover) { background-color: var(--toolbarFieldColor-hover); }
+.assetSection :global(.apa__field input:focus) { border-color: var(--accentColorNormal); }
+.assetSection :global(.apa__choices), .assetSection :global(.apa__compare-list) { display: flex; flex-wrap: wrap; align-items: center; gap: 4rem; }
+.assetSection :global(.apa__choices) > strong { min-width: 40rem; text-align: center; font-variant-numeric: tabular-nums; }
+
+.assetSection :global(.apa__progress) { display: block; height: 8rem; border-radius: 4rem; overflow: hidden; background-color: rgba(255,255,255,.1); }
+.assetSection :global(.apa__progress span) { display: block; height: 8rem; background-color: var(--progressColor); }
+.assetSection :global(.apa__progress-block) { display: flex; flex-direction: column; gap: 4rem; margin-top: 6rem; }
+.assetSection :global(.apa__warning) { color: var(--warningColor); }
+.assetSection :global(.apa__empty-state) { padding: 6rem 10rem; border-left-width: var(--stroke3); border-left-style: solid; border-left-color: var(--accentColorNormal); border-radius: var(--panelRadiusInner); background-color: var(--sectionBackgroundColor); }
 .assetSection :global(.apa__metric-grid) { display: flex; flex-wrap: wrap; gap: 8rem; }
-.assetSection :global(.apa__metric-card) { display: flex; flex-direction: column; min-width: 140rem; flex-grow: 1; padding: 8rem; background-color: rgba(255,255,255,.05); }
+.assetSection :global(.apa__metric-card) { display: flex; flex-direction: column; gap: 3rem; min-width: 160rem; flex-grow: 1; flex-basis: 0; }
+.assetSection :global(.apa__metric-value) { font-size: var(--fontSizeXL); }
+.assetSection :global(.apa__metadata-line) { display: flex; flex-wrap: wrap; gap: 4rem 16rem; font-size: var(--fontSizeXS); opacity: .8; }
+.assetSection :global(.apa__capability-list) { display: flex; flex-direction: column; margin: 0; padding: 0; border-radius: var(--panelRadius); background-color: var(--sectionBackgroundColor); }
+.assetSection :global(.apa__capability-list li) { display: flex; justify-content: space-between; gap: 10rem; padding: 4rem 10rem; font-size: var(--fontSizeXS); }
+
+// Findings: severity pill in the game's semantic colors, then the evidence card.
+.assetSection :global(.apa__finding) { display: flex; flex-direction: column; align-items: flex-start; gap: 6rem; }
+.assetSection :global(.apa__finding) > :global(.apa__evidence) { align-self: stretch; padding: 0; background-color: transparent; }
+.assetSection :global(.apa__finding-badge) { padding: 1rem 8rem; border-width: var(--stroke1); border-style: solid; border-radius: 3rem; font-size: var(--fontSizeXXS); text-transform: uppercase; color: var(--normalTextColorDisabled); border-color: rgba(167,198,209,.4); }
+.assetSection :global(.apa__finding-badge--warning) { color: var(--warningColor); border-color: var(--warningColor); }
+.assetSection :global(.apa__finding-badge--potentialissue) { color: var(--negativeColor); border-color: var(--negativeColor); }
+.assetSection :global(.apa__finding-badge--notice) { color: var(--accentColorNormal); border-color: var(--accentColorNormal); }
+.assetSection :global(.apa__evidence dl) { display: flex; flex-wrap: wrap; margin: 4rem 0 0; font-size: var(--fontSizeXS); }
+.assetSection :global(.apa__evidence dt) { width: 25%; opacity: .7; }
+.assetSection :global(.apa__evidence dd) { width: 75%; margin: 0; }
+.assetSection :global(.apa__detail-section ul) { display: flex; flex-direction: column; gap: 4rem; margin: 0; padding: 0; }
+.assetSection :global(.apa__detail-section li) { display: flex; flex-direction: column; align-items: flex-start; gap: 3rem; padding: 4rem 8rem; border-radius: var(--panelRadiusInner); background-color: var(--sectionBackgroundColorLight); }
+.assetSection :global(.apa__deep-inspection) { display: flex; flex-direction: column; gap: 2rem; }
+.exportResult { display: flex; flex-direction: column; gap: 4rem; padding: 8rem 10rem; border-left-width: var(--stroke3); border-left-style: solid; border-left-color: var(--accentColorNormal); border-radius: var(--panelRadiusInner); background-color: var(--sectionBackgroundColor); }
 .exportResult pre { white-space: pre-wrap; word-break: break-word; max-height: 160rem; overflow: hidden; }

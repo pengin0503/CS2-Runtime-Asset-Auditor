@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Button } from "cs2/ui";
 import type { ExportAssetKey, ExportFormat, ExportRequest, ExportScope } from "../types";
 import { ChoiceControl } from "./ChoiceControl";
 import { useText } from "../../i18n/locale";
@@ -27,17 +28,16 @@ export function ExportControls({
         <ChoiceControl label={t("exportc.format")} value={format} choices={[["Json", "JSON"], ["Csv", "CSV"]]} onChange={setFormat} />
         <ChoiceControl label={t("exportc.scope")} value={effectiveScope}
           choices={scopes.map(value => [value, t(`exportc.scope.${value}` as MessageKey)] as const)} onChange={setScope} />
-        <button
-          type="button"
+        <Button as="button" variant="flat"
           className="apa__button"
-          onClick={() => onExport({
+          onSelect={() => onExport({
             format,
             scope: effectiveScope,
             selectedKeys: effectiveScope === "Selected" && selectedAsset ? [selectedAsset] : [],
           })}
         >
           {format === "Json" ? t("exportc.saveJson") : t("exportc.saveCsv")}
-        </button>
+        </Button>
       </div>
       {selectedUnavailable ? <p className="apa__muted">{t("exportc.selectHint")}</p> : null}
       <p className="apa__muted">{t("exportc.location")}</p>
