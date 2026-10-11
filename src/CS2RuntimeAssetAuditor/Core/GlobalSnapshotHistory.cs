@@ -37,6 +37,13 @@ namespace CS2RuntimeAssetAuditor.Core
             _start = (_start + 1) % _capacity;
         }
 
+        public void Clear()
+        {
+            Array.Clear(_samples, 0, _samples.Length);
+            _start = 0;
+            _count = 0;
+        }
+
         public IReadOnlyList<GlobalMetricsSnapshot> Snapshot()
         {
             var result = new GlobalMetricsSnapshot[_count];

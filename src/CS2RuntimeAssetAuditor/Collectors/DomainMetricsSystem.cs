@@ -24,9 +24,18 @@ namespace CS2RuntimeAssetAuditor.Collectors
         private EntityMetricsCollector _entities;
         private PathfindingCollector _pathfinding;
         private double _nextUpdateAt;
+        private long _sessionGeneration = long.MinValue;
 
         public new EntityMetricsCollector Entities => _entities;
         public PathfindingCollector Pathfinding => _pathfinding;
+
+        /// <summary>The loaded city's latest pathfinding sample; null before its first sample and outside a city.</summary>
+        public NamedMetricSnapshot LatestPathfinding => IsCurrentSession ? _pathfinding?.Latest : null;
+
+        /// <summary>The loaded city's latest entity counts; null before its first sample and outside a city.</summary>
+        public NamedMetricSnapshot LatestEntities => IsCurrentSession ? _entities?.Latest : null;
+
+        private bool IsCurrentSession => Mod.Sessions.IsActive && _sessionGeneration == Mod.Sessions.Generation;
 
         protected override void OnCreate()
         {
@@ -96,6 +105,18 @@ namespace CS2RuntimeAssetAuditor.Collectors
         private void RunUpdate()
         {
             if (Mod.Settings != null && !Mod.Settings.EnableMonitoring)
+                return;
+
+            // Values and rate baselines belong to one loaded city; menus and loading screens are not sampled.
+            var generation = Mod.Sessions.Generation;
+            if (generation != _sessionGeneration)
+            {
+                _sessionGeneration = generation;
+                _pathfinding?.Reset();
+                _entities?.Reset();
+                _nextUpdateAt = 0d;
+            }
+            if (!Mod.Sessions.IsActive)
                 return;
 
             var now = _clock.Elapsed.TotalSeconds;

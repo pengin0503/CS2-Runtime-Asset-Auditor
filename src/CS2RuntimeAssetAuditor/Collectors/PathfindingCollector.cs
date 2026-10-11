@@ -55,6 +55,15 @@ namespace CS2RuntimeAssetAuditor.Collectors
         public string Name => "Pathfinding";
         public NamedMetricSnapshot Latest { get; private set; }
 
+        /// <summary>Forgets the latest sample and every rate baseline, so the next city starts without them.</summary>
+        public void Reset()
+        {
+            _previousPending = null;
+            _previousTimestamp = null;
+            _queryTracker.Reset();
+            Latest = new NamedMetricSnapshot(0, Array.Empty<NamedMetricValue>());
+        }
+
         public void Sample(double timestampSeconds)
         {
             var metrics = new List<NamedMetricValue>();

@@ -39,6 +39,13 @@ namespace CS2RuntimeAssetAuditor.Collectors
         public string Name => "EntityDomains";
         public NamedMetricSnapshot Latest { get; private set; }
 
+        /// <summary>Forgets the latest counts so the next city starts without them; the next sample is due at once.</summary>
+        public void Reset()
+        {
+            _nextSampleAt = double.NegativeInfinity;
+            Latest = new NamedMetricSnapshot(0, Array.Empty<NamedMetricValue>());
+        }
+
         public void Sample(double timestampSeconds)
         {
             if (timestampSeconds < _nextSampleAt)

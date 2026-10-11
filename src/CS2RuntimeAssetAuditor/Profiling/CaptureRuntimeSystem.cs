@@ -141,8 +141,8 @@ namespace CS2RuntimeAssetAuditor.Profiling
 
                 _controller.CurrentSession?.SetConfiguration(captureConfiguration);
                 _controller.CurrentSession?.SetRuntimeSnapshots(
-                    _domains?.Pathfinding?.Latest,
-                    _domains?.Entities?.Latest);
+                    _domains?.LatestPathfinding,
+                    _domains?.LatestEntities);
             });
 
             var samplingPeriod = Math.Max(0.001d, _global?.SamplingPeriodSeconds ?? GlobalMetricsCollector.DefaultSamplingPeriodSeconds);
@@ -192,8 +192,8 @@ namespace CS2RuntimeAssetAuditor.Profiling
                 BeginCaptureWork(created);
             _controller?.CurrentSession?.SetConfiguration(captureConfiguration);
             _controller?.CurrentSession?.SetRuntimeSnapshots(
-                _domains?.Pathfinding?.Latest,
-                _domains?.Entities?.Latest);
+                _domains?.LatestPathfinding,
+                _domains?.LatestEntities);
             return started ? created : null;
         }
 

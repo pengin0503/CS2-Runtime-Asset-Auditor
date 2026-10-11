@@ -54,6 +54,12 @@ namespace CS2RuntimeAssetAuditor.Core
         private Dictionary<string, PathfindQueryStat>? _previous;
         private double _previousTimestamp;
 
+        public void Reset()
+        {
+            _previous = null;
+            _previousTimestamp = 0d;
+        }
+
         public IReadOnlyList<NamedMetricValue> Sample(double timestampSeconds, IReadOnlyList<PathfindQueryStat> stats)
         {
             var current = new Dictionary<string, PathfindQueryStat>(StringComparer.Ordinal);

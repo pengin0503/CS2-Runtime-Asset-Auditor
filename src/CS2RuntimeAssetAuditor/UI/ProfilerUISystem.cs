@@ -435,8 +435,8 @@ namespace CS2RuntimeAssetAuditor.UI
             return new UiSnapshotInput(
                 _global?.Latest,
                 _capture?.State ?? CaptureState.Monitoring,
-                _domains?.Pathfinding?.Latest,
-                _domains?.Entities?.Latest,
+                _domains?.LatestPathfinding,
+                _domains?.LatestEntities,
                 timing,
                 captures,
                 _capture?.LastOverheadShare ?? 0d,

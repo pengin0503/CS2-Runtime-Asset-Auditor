@@ -19,14 +19,16 @@ namespace CS2RuntimeAssetAuditor.Collectors
         private readonly MonitoringLifecycleGate _monitoringGate = new MonitoringLifecycleGate(initiallyEnabled: true);
         private SimulationSystem _simulationSystem;
         private RecorderManager _recorderManager;
-        private GlobalSnapshotHistory _history;
+        private SessionScopedSnapshots _samples;
+        private long _sessionGeneration = long.MinValue;
         private IReadOnlyDictionary<string, string> _recorderUnits = new Dictionary<string, string>();
         private double _nextSampleAt;
         private RuntimeFrameSampleReader _frameReader;
         private RuntimeIntervalAccumulator _frameInterval = new RuntimeIntervalAccumulator();
 
         public string Name => "Global";
-        public GlobalMetricsSnapshot Latest { get; private set; }
+        /// <summary>The latest sample of the loaded city; null in menus, while loading and before the city's first sample.</summary>
+        public GlobalMetricsSnapshot Latest => _samples?.Latest(Mod.Sessions.Generation);
         public RecorderManager Recorders => _recorderManager;
         public double SamplingPeriodSeconds => Mod.Settings?.ResolvedSamplingPeriodSeconds ?? DefaultSamplingPeriodSeconds;
         public double CurrentTimestampSeconds => _clock.Elapsed.TotalSeconds;
@@ -39,7 +41,7 @@ namespace CS2RuntimeAssetAuditor.Collectors
             _simulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
             _frameReader = new RuntimeFrameSampleReader(_simulationSystem, World.GetOrCreateSystemManaged<PathfindResultSystem>());
             _recorderManager = new RecorderManager(new UnityRecorderBackend());
-            _history = new GlobalSnapshotHistory(HistoryCapacity);
+            _samples = new SessionScopedSnapshots(HistoryCapacity);
             _recorderManager.DiscoverAvailableMarkers();
             _recorderUnits = _recorderManager.Descriptors.ToDictionary(descriptor => descriptor.Id, descriptor => descriptor.UnitType);
             RestoreNormalRecorders();
@@ -58,21 +60,36 @@ namespace CS2RuntimeAssetAuditor.Collectors
             var transition = _monitoringGate.Observe(monitoringEnabled);
 
             if (transition == MonitoringTransition.Disabled)
+            {
                 _recorderManager?.DeactivateAll();
+                // Samples from before monitoring was turned off are not shown as current or used as a prebuffer.
+                _samples?.Clear();
+            }
 
             if (!monitoringEnabled)
                 return;
 
+            var now = CurrentTimestampSeconds;
             if (transition == MonitoringTransition.Enabled)
             {
                 RestoreNormalRecorders();
-                // Frames seen before monitoring was turned off must not be folded into the next sample.
-                _frameInterval = new RuntimeIntervalAccumulator();
+                RestartInterval(now);
             }
+
+            // Samples belong to one loaded city. Menus, the editor and loading screens are not sampled, and a new
+            // city starts from an empty interval so frames from the previous city or the loading screen are not
+            // folded into its first sample.
+            var generation = Mod.Sessions.Generation;
+            if (generation != _sessionGeneration)
+            {
+                _sessionGeneration = generation;
+                RestartInterval(now);
+            }
+            if (!Mod.Sessions.IsActive)
+                return;
 
             _frameInterval.AddFrame(_frameReader.Read());
 
-            var now = CurrentTimestampSeconds;
             if (now < _nextSampleAt)
                 return;
 
@@ -86,21 +103,28 @@ namespace CS2RuntimeAssetAuditor.Collectors
                 .Where(pair => pair.Value.Count > 0)
                 .ToDictionary(pair => pair.Key, pair => pair.Value, System.StringComparer.Ordinal);
 
-            Latest = new GlobalMetricsSnapshot(
+            _samples?.Add(_sessionGeneration, new GlobalMetricsSnapshot(
                 timestampSeconds,
                 _simulationSystem.selectedSpeed,
                 _simulationSystem.smoothSpeed,
                 readings,
                 _recorderUnits,
-                _frameInterval.Complete());
-            _history?.Add(Latest);
+                _frameInterval.Complete()));
         }
 
+        /// <summary>Samples of the loaded city only; empty when the city has none yet.</summary>
         public IReadOnlyList<GlobalMetricsSnapshot> GetRecentHistory(double windowSeconds = 5d)
         {
-            if (_history == null || Latest == null)
+            if (_samples == null)
                 return System.Array.Empty<GlobalMetricsSnapshot>();
-            return _history.Recent(Latest.TimestampSeconds, windowSeconds);
+            return _samples.Recent(Mod.Sessions.Generation, windowSeconds);
+        }
+
+        // The first sample of a new interval comes one full period later, so it summarizes that period's frames.
+        private void RestartInterval(double now)
+        {
+            _frameInterval = new RuntimeIntervalAccumulator();
+            _nextSampleAt = now + SamplingPeriodSeconds;
         }
 
         public void RestoreNormalRecorders()
