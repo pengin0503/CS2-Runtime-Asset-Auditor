@@ -17,7 +17,8 @@ namespace CS2RuntimeAssetAuditor.Assets.Core.Census
             ScanOptions scanOptions,
             DateTimeOffset capturedAt,
             long catalogGeneration,
-            IEnumerable<CensusEntry> entries)
+            IEnumerable<CensusEntry> entries,
+            DateTimeOffset? networkCapturedAt = null)
         {
             if (string.IsNullOrWhiteSpace(queryProfileVersion))
                 throw new ArgumentException("A query-profile version is required.", nameof(queryProfileVersion));
@@ -30,6 +31,7 @@ namespace CS2RuntimeAssetAuditor.Assets.Core.Census
             QueryProfileVersion = queryProfileVersion;
             ScanOptions = scanOptions;
             CapturedAt = capturedAt;
+            NetworkCapturedAt = networkCapturedAt;
             CatalogGeneration = catalogGeneration;
 
             var byKey = new Dictionary<PrefabKey, CensusEntry>();
@@ -56,7 +58,14 @@ namespace CS2RuntimeAssetAuditor.Assets.Core.Census
 
         public ScanOptions ScanOptions { get; }
 
+        /// <summary>When the object references were copied; the start of the census.</summary>
         public DateTimeOffset CapturedAt { get; }
+
+        /// <summary>
+        /// When the network edges were copied, after the object reduction finished. Null when network edges were
+        /// not scanned. The two domains describe the city at different moments when these times differ.
+        /// </summary>
+        public DateTimeOffset? NetworkCapturedAt { get; }
 
         public long CatalogGeneration { get; }
 

@@ -193,6 +193,8 @@ export interface UiSummary {
   catalogCapturedAt: string | null;
   censusWasScanned: boolean;
   censusCapturedAt: string | null;
+  /** When network edges were copied; later than censusCapturedAt (the object copy). Null when not scanned. */
+  censusNetworkCapturedAt?: string | null;
   censusCatalogGeneration: number | null;
   censusMatchesCatalog: boolean;
   queryProfileVersion: string | null;
@@ -279,6 +281,7 @@ export const EMPTY_UI_SNAPSHOT: UiSnapshot = {
     catalogCapturedAt: null,
     censusWasScanned: false,
     censusCapturedAt: null,
+    censusNetworkCapturedAt: null,
     censusCatalogGeneration: null,
     censusMatchesCatalog: false,
     queryProfileVersion: null,

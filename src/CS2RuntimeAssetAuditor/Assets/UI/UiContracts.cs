@@ -68,6 +68,7 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
         [DataMember(Name = "latestAssetSnapshotId", Order = 14, EmitDefaultValue = true)] public string? LatestAssetSnapshotId { get; set; }
         [DataMember(Name = "latestAssetSnapshotStartedAtUtc", Order = 15, EmitDefaultValue = true)] public string? LatestAssetSnapshotStartedAtUtc { get; set; }
         [DataMember(Name = "latestAssetSnapshotCompletedAtUtc", Order = 16, EmitDefaultValue = true)] public string? LatestAssetSnapshotCompletedAtUtc { get; set; }
+        [DataMember(Name = "censusNetworkCapturedAt", Order = 17, EmitDefaultValue = true)] public string? CensusNetworkCapturedAt { get; set; }
     }
 
     [DataContract]

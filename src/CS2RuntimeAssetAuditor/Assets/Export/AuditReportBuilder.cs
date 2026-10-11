@@ -72,6 +72,7 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
                 GeneratedAt = FormatTime(generatedAt),
                 CatalogCapturedAt = catalogCapturedAt.HasValue ? FormatTime(catalogCapturedAt.Value) : null,
                 CensusCapturedAt = census == null ? null : FormatTime(census.CapturedAt),
+                CensusNetworkCapturedAt = census?.NetworkCapturedAt == null ? null : FormatTime(census.NetworkCapturedAt.Value),
                 CatalogGeneration = catalogGeneration,
                 CensusCatalogGeneration = census?.CatalogGeneration,
                 WorldGeneration = census?.WorldGeneration ?? analysis?.WorldGeneration,

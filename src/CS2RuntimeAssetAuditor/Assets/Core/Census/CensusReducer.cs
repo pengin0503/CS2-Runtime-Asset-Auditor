@@ -38,6 +38,7 @@ namespace CS2RuntimeAssetAuditor.Assets.Core.Census
         private readonly long _worldGeneration;
         private readonly long _catalogGeneration;
         private readonly DateTimeOffset _capturedAt;
+        private DateTimeOffset? _networkCapturedAt;
 
         public CensusReducer(
             IEnumerable<PrefabRecord> catalog,
@@ -65,6 +66,16 @@ namespace CS2RuntimeAssetAuditor.Assets.Core.Census
         }
 
         public ScanOptions ScanOptions { get; }
+
+        /// <summary>
+        /// Records when the network edges were copied. Object references are copied when the reducer is created,
+        /// network edges only after every object reference is reduced, possibly many frames later while the
+        /// simulation keeps running, so the two domains carry their own capture time.
+        /// </summary>
+        public void MarkNetworkCaptured(DateTimeOffset capturedAt)
+        {
+            _networkCapturedAt = capturedAt;
+        }
 
         public void AddObject(PrefabKey key, bool isSubordinate)
         {
@@ -98,7 +109,8 @@ namespace CS2RuntimeAssetAuditor.Assets.Core.Census
                 ScanOptions,
                 _capturedAt,
                 _catalogGeneration,
-                entries);
+                entries,
+                _networkCapturedAt);
         }
 
         private MutableEntry GetEntry(PrefabKey key)
@@ -135,16 +147,18 @@ namespace CS2RuntimeAssetAuditor.Assets.Core.Census
                     ? Availability.NotApplicable
                     : Availability.NotScanned
                 : ScanOptions.CollectNetworkEdges ? Availability.Available : Availability.NotScanned;
-            var network = MakeCount(networkUnavailable, entry.NetworkEdges);
+            var network = MakeCount(networkUnavailable, entry.NetworkEdges, _networkCapturedAt ?? _capturedAt);
             var counters = new CensusCounters(top, subordinate, live, network);
             return new CensusEntry(entry.Record.Key, traits, counters, GetPresence(counters));
         }
 
-        private Observation<long> MakeCount(Availability availability, long value)
+        private Observation<long> MakeCount(Availability availability, long value) => MakeCount(availability, value, _capturedAt);
+
+        private static Observation<long> MakeCount(Availability availability, long value, DateTimeOffset capturedAt)
         {
             return availability == Availability.Available
-                ? Observation<long>.FromValue(value, ObservationOrigin.Ecs, _capturedAt)
-                : Observation<long>.Unavailable(availability, ObservationOrigin.Ecs, _capturedAt);
+                ? Observation<long>.FromValue(value, ObservationOrigin.Ecs, capturedAt)
+                : Observation<long>.Unavailable(availability, ObservationOrigin.Ecs, capturedAt);
         }
 
         private static CensusPresence GetPresence(CensusCounters counters)

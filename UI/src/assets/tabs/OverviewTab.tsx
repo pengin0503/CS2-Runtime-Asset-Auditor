@@ -3,6 +3,7 @@ import { Button } from "cs2/ui";
 import { ObservationValue } from "../components/ScanStatus";
 import type { AssetAuditorBindings, UiSnapshot } from "../types";
 import { useText } from "../../i18n/locale";
+import { censusNetworkLagSeconds, formatLagSeconds } from "../censusTiming";
 
 export function OverviewTab({
   snapshot,
@@ -13,6 +14,7 @@ export function OverviewTab({
 }): React.JSX.Element {
   const { t } = useText();
   const { summary, settings } = snapshot;
+  const networkLag = censusNetworkLagSeconds(summary);
   const isActive = snapshot.scanStatus.state === "Running" || snapshot.scanStatus.state === "CancellationRequested";
 
   return (
@@ -49,6 +51,7 @@ export function OverviewTab({
 
       <div className="apa__metadata-line">
         <span>{summary.censusWasScanned ? t("aoverview.censusCaptured", { at: summary.censusCapturedAt ?? t("aoverview.censusUnknownTime") }) : t("aoverview.censusNotScanned")}</span>
+        {summary.censusWasScanned && summary.censusNetworkCapturedAt && networkLag !== null ? <span>{t("aoverview.censusNetworkCaptured", { at: summary.censusNetworkCapturedAt, lag: formatLagSeconds(networkLag) })}</span> : null}
         {summary.censusWasScanned && !summary.censusMatchesCatalog ? <span>{t("aoverview.censusGeneration", { generation: summary.censusCatalogGeneration ?? t("aoverview.unknown") })}</span> : null}
         <span>{t("aoverview.queryProfile", { version: summary.queryProfileVersion ?? t("aoverview.notAvailable") })}</span>
         <span>{t("aoverview.mod", { version: summary.modVersion })}</span>

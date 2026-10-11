@@ -92,6 +92,7 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                     CatalogCapturedAt = catalogCapturedAt,
                     CensusWasScanned = census != null,
                     CensusCapturedAt = census == null ? null : FormatTime(census.CapturedAt),
+                    CensusNetworkCapturedAt = census?.NetworkCapturedAt == null ? null : FormatTime(census.NetworkCapturedAt.Value),
                     CensusCatalogGeneration = census?.CatalogGeneration,
                     CensusMatchesCatalog = census != null && census.CatalogGeneration == catalogGeneration,
                     QueryProfileVersion = census?.QueryProfileVersion,
@@ -149,7 +150,7 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                 TopLevelObjects = Aggregate(census, entry => entry.Counters.TopLevelObjects),
                 SubordinateObjects = Aggregate(census, entry => entry.Counters.SubordinateObjects),
                 LiveObjectReferences = Aggregate(census, entry => entry.Counters.LiveObjectReferences),
-                NetworkEdges = Aggregate(census, entry => entry.Counters.NetworkEdges)
+                NetworkEdges = Aggregate(census, entry => entry.Counters.NetworkEdges, census?.NetworkCapturedAt)
             };
             return _cachedCensusCounts;
         }
@@ -233,10 +234,11 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
             PrefabType = key.PrefabType
         };
 
-        private static UiObservation Aggregate(CensusSnapshot? census, Func<CensusEntry, Observation<long>> select)
+        private static UiObservation Aggregate(CensusSnapshot? census, Func<CensusEntry, Observation<long>> select, DateTimeOffset? domainCapturedAt = null)
         {
             if (census == null)
                 return Unscanned();
+            var capturedAt = FormatTime(domainCapturedAt ?? census.CapturedAt);
             long total = 0;
             var foundApplicable = false;
             foreach (var entry in census.Entries)
@@ -250,8 +252,8 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                 total = checked(total + observation.Value);
             }
             if (!foundApplicable)
-                return new UiObservation { Availability = Availability.NotApplicable.ToString(), Origin = ObservationOrigin.Derived.ToString(), CapturedAt = FormatTime(census.CapturedAt) };
-            return new UiObservation { Availability = Availability.Available.ToString(), Value = total, Origin = ObservationOrigin.Derived.ToString(), CapturedAt = FormatTime(census.CapturedAt) };
+                return new UiObservation { Availability = Availability.NotApplicable.ToString(), Origin = ObservationOrigin.Derived.ToString(), CapturedAt = capturedAt };
+            return new UiObservation { Availability = Availability.Available.ToString(), Value = total, Origin = ObservationOrigin.Derived.ToString(), CapturedAt = capturedAt };
         }
 
         private static UiObservation MapObservation(Observation<long> observation) => new UiObservation

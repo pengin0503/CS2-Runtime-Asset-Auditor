@@ -2,10 +2,12 @@ import React from "react";
 import { ObservationValue } from "../components/ScanStatus";
 import type { UiSnapshot } from "../types";
 import { useText } from "../../i18n/locale";
+import { censusNetworkLagSeconds, formatLagSeconds } from "../censusTiming";
 
 export function CensusTab({ snapshot }: { snapshot: UiSnapshot }): React.JSX.Element {
   const { t } = useText();
   const { summary } = snapshot;
+  const networkLag = censusNetworkLagSeconds(summary);
   const metrics = [
     [t("census.topLevel"), summary.censusCounts.topLevelObjects, t("census.topLevelDetail")],
     [t("census.subordinate"), summary.censusCounts.subordinateObjects, t("census.subordinateDetail")],
@@ -28,6 +30,13 @@ export function CensusTab({ snapshot }: { snapshot: UiSnapshot }): React.JSX.Ele
       {summary.censusWasScanned && !summary.censusMatchesCatalog ? (
         <p className="apa__empty-state">
           {t("census.stale", { censusGeneration: summary.censusCatalogGeneration ?? "?", catalogGeneration: summary.catalogGeneration })}
+        </p>
+      ) : null}
+      {summary.censusWasScanned && summary.censusCapturedAt ? (
+        <p className="apa__muted">
+          {summary.censusNetworkCapturedAt && networkLag !== null
+            ? t("census.domainTimes", { objects: summary.censusCapturedAt, network: summary.censusNetworkCapturedAt, lag: formatLagSeconds(networkLag) })
+            : t("census.objectsOnlyTime", { objects: summary.censusCapturedAt })}
         </p>
       ) : null}
       <div className="apa__metric-grid">

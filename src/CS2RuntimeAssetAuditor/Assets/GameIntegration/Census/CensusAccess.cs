@@ -117,6 +117,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Census
                     new[] { ComponentType.ReadOnly<Game.Net.Edge>(), ComponentType.ReadOnly<PrefabRef>() },
                     null,
                     Excluded(new[] { ComponentType.ReadOnly<Owner>(), ComponentType.ReadOnly<Controller>() }));
+                _reducer.MarkNetworkCaptured(DateTimeOffset.UtcNow);
             }
             _networkCaptured = true;
         }

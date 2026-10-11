@@ -393,6 +393,7 @@ export const en = {
   "aoverview.liveDetail": "Top-level plus subordinate objects",
   "aoverview.censusCaptured": "Census captured {at}",
   "aoverview.censusUnknownTime": "at an unknown time",
+  "aoverview.censusNetworkCaptured": "Network edges captured {at}, {lag} s after the objects",
   "aoverview.censusNotScanned": "Census not scanned",
   "aoverview.censusGeneration": "Census uses catalog generation {generation}",
   "aoverview.queryProfile": "Query profile {version}",
@@ -497,6 +498,8 @@ export const en = {
   "census.runHint": "Run Census to capture a city snapshot. Unscanned counts stay distinct from zero.",
   "census.stale": "This Census belongs to catalog generation {censusGeneration}; current catalog generation is {catalogGeneration}. Totals below are from that older snapshot, and asset row counts are marked Not scanned until the next Census completes.",
   "census.note": "Vehicle instances are a snapshot count. Disabled metrics remain Not scanned.",
+  "census.domainTimes": "Objects were copied at {objects} and network edges at {network}, {lag} s later. The city kept running in between, so the two counts describe different moments.",
+  "census.objectsOnlyTime": "Objects were copied at {objects}. Network edges were not scanned.",
 
   // Compare tab
   "compare.eyebrow": "Direct evidence comparison",
@@ -974,6 +977,7 @@ export const ja: Record<MessageKey, string> = {
   "aoverview.liveDetail": "トップレベルと従属オブジェクトの合計",
   "aoverview.censusCaptured": "Census 取得: {at}",
   "aoverview.censusUnknownTime": "時刻不明",
+  "aoverview.censusNetworkCaptured": "ネットワークエッジ取得: {at}（オブジェクトの {lag} 秒後）",
   "aoverview.censusNotScanned": "Census 未スキャン",
   "aoverview.censusGeneration": "Census はカタログ世代 {generation} を使用",
   "aoverview.queryProfile": "クエリプロファイル {version}",
@@ -1074,6 +1078,8 @@ export const ja: Record<MessageKey, string> = {
   "census.runHint": "Census を実行すると都市のスナップショットを取得します。未スキャンの件数はゼロとは区別して表示します。",
   "census.stale": "この Census はカタログ世代 {censusGeneration} のものです。現在のカタログ世代は {catalogGeneration} です。以下の合計は古いスナップショットの値で、アセット行の件数は次の Census が完了するまで「未スキャン」と表示します。",
   "census.note": "車両はスナップショット時点の件数です。無効にした項目は「未スキャン」のままです。",
+  "census.domainTimes": "オブジェクトは {objects}、ネットワークエッジは {lag} 秒後の {network} に取得しました。その間も都市は動いているため、2 つの件数は別の時点の値です。",
+  "census.objectsOnlyTime": "オブジェクトは {objects} に取得しました。ネットワークエッジはスキャンしていません。",
 
   "compare.eyebrow": "根拠の直接比較",
   "compare.title": "比較",

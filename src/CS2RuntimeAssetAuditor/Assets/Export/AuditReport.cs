@@ -38,6 +38,9 @@ namespace CS2RuntimeAssetAuditor.Assets.Export
         [DataMember(Name = "completedAtUtc", Order = 22, EmitDefaultValue = true)] public string? CompletedAtUtc { get; set; }
         // Set when Deep Inspection enriched the snapshot after the audit; the audit interval above is unchanged.
         [DataMember(Name = "enrichedAtUtc", Order = 23, EmitDefaultValue = false)] public string? EnrichedAtUtc { get; set; }
+        // censusCapturedAt is when the object references were copied; network edges are copied after the object
+        // reduction finishes, so they describe a later moment of the same city. Null when edges were not scanned.
+        [DataMember(Name = "censusNetworkCapturedAt", Order = 24, EmitDefaultValue = true)] public string? CensusNetworkCapturedAt { get; set; }
     }
 
     [DataContract]
