@@ -68,6 +68,42 @@ declare module "cs2/ui" {
   }
 
   export const Scrollable: (props: PropsWithChildren<ScrollableProps>) => JSX.Element | null;
+
+  // Vanilla dropdown (game-ui/common/input/dropdown, 1.6.2f1 index.js). `children` is the toggle, `content` the items.
+  // The menu opens in a popup layer, closes on an outside mouse-down, and consumes the Back action while open.
+  // Without `theme` the game's default dropdown theme is used.
+  export interface DropdownProps {
+    focusKey?: unknown;
+    initialFocused?: unknown;
+    theme?: Record<string, string>;
+    content: ReactNode;
+    alignment?: string;
+    onToggle?: (visible: boolean) => void;
+  }
+
+  export const Dropdown: (props: PropsWithChildren<DropdownProps>) => JSX.Element;
+
+  // Selecting an item calls onChange, or onToggleSelected when it is already `selected`, then closes the menu
+  // unless closeOnSelect is false.
+  export interface DropdownItemProps<T> {
+    value: T;
+    selected?: boolean;
+    disabled?: boolean;
+    focusKey?: unknown;
+    className?: string;
+    closeOnSelect?: boolean;
+    onChange?: (value: T) => void;
+    onToggleSelected?: (value: T) => void;
+  }
+
+  export function DropdownItem<T>(props: PropsWithChildren<DropdownItemProps<T>>): JSX.Element;
+
+  // A Button that opens and closes the surrounding Dropdown, with the theme's open/closed indicator.
+  export interface DropdownToggleProps extends Omit<ButtonProps, "onSelect"> {
+    showHint?: boolean;
+  }
+
+  export const DropdownToggle: (props: PropsWithChildren<DropdownToggleProps>) => JSX.Element;
 }
 
 declare module "cs2/input" {

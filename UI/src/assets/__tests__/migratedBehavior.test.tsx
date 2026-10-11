@@ -45,6 +45,8 @@ describe("migrated Asset UI behavior", () => {
       act(() => button.props.onClick());
     };
     click("CSV");
+    // The scope has five choices, so it is a dropdown (issue #59): open it, then choose.
+    act(() => renderer.root.findAllByType("button").find(item => item.props["aria-label"] === "Scope")!.props.onClick());
     click("Selected asset");
     click("Save Asset CSV report");
     expect(onExport).toHaveBeenCalledWith({

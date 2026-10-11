@@ -38,6 +38,7 @@
 // Filters: a caption over a row of choice buttons; the search box follows the vanilla toolbar field.
 .assetSection :global(.apa__field) { display: flex; flex-direction: column; gap: 4rem; }
 .assetSection :global(.apa__field) > span { font-size: var(--fontSizeXS); text-transform: uppercase; opacity: .75; }
+.assetSection :global(.apa__dropdown) { min-width: 220rem; font-size: var(--fontSizeS); }
 .assetSection :global(.apa__field input) { min-width: 220rem; padding: 6rem 10rem; color: var(--normalTextColor); font-size: var(--fontSizeS); background-color: var(--toolbarFieldColor); border-width: var(--toolbarFieldBorderWidth); border-style: solid; border-color: var(--toolbarFieldBorderColor); border-radius: var(--toolbarFieldRadius); }
 .assetSection :global(.apa__field input:hover) { background-color: var(--toolbarFieldColor-hover); }
 .assetSection :global(.apa__field input:focus) { border-color: var(--accentColorNormal); }
