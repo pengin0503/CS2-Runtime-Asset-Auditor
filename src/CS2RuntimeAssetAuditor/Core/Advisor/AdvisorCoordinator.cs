@@ -61,7 +61,7 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor
                 {
                     evidence = _projector.Project(capture);
                     observations = _classifier.Classify(evidence);
-                    recommendations = _recommendations.Build(observations, catalog);
+                    recommendations = _recommendations.Build(observations, catalog, evidence);
                 }
                 catch (Exception ex)
                 {

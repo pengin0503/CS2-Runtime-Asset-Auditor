@@ -5,7 +5,7 @@ import { advisorTextLabel, advisorTranslatedTexts } from "./text";
 
 // Every rationale sentence the advisor backend writes must have a Japanese translation; an untranslated one
 // would show English in the Japanese UI.
-const backendSources = ["BottleneckClassifier.cs", "RecommendationEngine.cs"]
+const backendSources = ["BottleneckClassifier.cs", "RecommendationEngine.cs", "QualityGroupRules.cs"]
   .map(file => path.resolve(process.cwd(), "../src/CS2RuntimeAssetAuditor/Core/Advisor", file));
 
 function rationaleLiterals(source: string): string[] {

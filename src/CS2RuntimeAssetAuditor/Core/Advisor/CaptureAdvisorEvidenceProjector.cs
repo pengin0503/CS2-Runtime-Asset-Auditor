@@ -56,6 +56,7 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor
                     metrics.Add(NamedMetricValue.Available("system." + system.SystemId + ".ms",
                         system.Milliseconds, system.Confidence, "Milliseconds"));
                 }
+            AddRenderingEvidence(metrics, samples);
             if (capture.PathfindingSnapshot != null)
                 metrics.AddRange(capture.PathfindingSnapshot.Metrics.Values);
             if (capture.DomainMetricsSnapshot != null)
@@ -108,6 +109,22 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor
                 metrics.Add(gpu.Count == 0 ? NamedMetricValue.Unavailable("gpu.frame.ms", "GPU timer unavailable")
                     : NamedMetricValue.Available("gpu.frame.ms", MetricStatistics.From(gpu).P95, MetricConfidence.Full, "Milliseconds"));
             }
+        }
+
+        // Supporting values for the detailed quality-group proposals: the median of each rendering counter and of the
+        // VT working-set LOD bias over the capture. They describe what was drawn; they never classify a bottleneck.
+        private static void AddRenderingEvidence(List<NamedMetricValue> metrics, IReadOnlyList<GlobalMetricsSnapshot> samples)
+        {
+            var counters = samples.Where(sample => sample != null)
+                .SelectMany(sample => RenderCounters.Read(sample.RecorderReadings))
+                .Where(metric => metric.Availability == MetricAvailability.Available && metric.Value.HasValue)
+                .ToLookup(metric => metric.Id, metric => metric.Value!.Value, StringComparer.Ordinal);
+            foreach (var counter in RenderCounters.All)
+                metrics.Add(MedianOf(counter.Id, counters[counter.Id], RenderCounters.UnavailableReason, counter.UnitType));
+            var bias = samples.Where(sample => sample?.VirtualTexturing?.WorkingSetLodBias != null)
+                .Select(sample => sample.VirtualTexturing.WorkingSetLodBias!.Value);
+            metrics.Add(MedianOf(VirtualTexturingMetrics.WorkingSetLodBias, bias,
+                "The virtual-texturing working-set bias was not read back during the capture", MetricUnits.Factor));
         }
 
         // Values that tell why the simulation ran slower than selected: the frame-rate step cap, pathfinding waits,

@@ -8,7 +8,7 @@ namespace CS2RuntimeAssetAuditor.Advisor
 {
     /// <summary>
     /// The settings the Advisor reads and changes: the reflective standard Options catalog plus the graphics quality
-    /// preset, which the game exposes through methods rather than a property.
+    /// preset and the detailed quality-group levels, which the game exposes through methods rather than properties.
     /// </summary>
     internal sealed class AdvisorSettingCatalog : IStandardGameSettingCatalog
     {
@@ -27,6 +27,14 @@ namespace CS2RuntimeAssetAuditor.Advisor
             {
                 Mod.ReportFailure("Reading the graphics quality preset failed", ex);
             }
+            try
+            {
+                entries.AddRange(QualityGroupSettings.Describe());
+            }
+            catch (Exception ex)
+            {
+                Mod.ReportFailure("Reading the detailed graphics quality levels failed", ex);
+            }
             return entries;
         }
 
@@ -42,6 +50,14 @@ namespace CS2RuntimeAssetAuditor.Advisor
             catch (Exception ex)
             {
                 Mod.ReportFailure("The graphics quality preset cannot be changed by the Advisor", ex);
+            }
+            try
+            {
+                adapters.AddRange(QualityGroupSettings.CreateAdapters());
+            }
+            catch (Exception ex)
+            {
+                Mod.ReportFailure("The detailed graphics quality levels cannot be changed by the Advisor", ex);
             }
             return new GameSettingGateway(adapters, new AdvisorSettingCatalog());
         }
