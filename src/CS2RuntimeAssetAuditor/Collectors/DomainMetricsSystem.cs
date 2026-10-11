@@ -41,13 +41,13 @@ namespace CS2RuntimeAssetAuditor.Collectors
         {
             base.OnCreate();
 
-            _queries["Game.Citizens.Citizen"] = CreateReadOnlyQuery<Citizen>();
-            _queries["Game.Citizens.Household"] = CreateReadOnlyQuery<Household>();
-            _queries["Game.Citizens.TouristHousehold"] = CreateReadOnlyQuery<TouristHousehold>();
-            _queries["Game.Vehicles.Vehicle"] = CreateReadOnlyQuery<Vehicle>();
-            _queries["Game.Vehicles.PublicTransport"] = CreateReadOnlyQuery<PublicTransport>();
-            _queries["Game.Vehicles.CargoTransport"] = CreateReadOnlyQuery<CargoTransport>();
-            _queries["Game.Vehicles.ServiceVehicleUnion"] = GetEntityQuery(new EntityQueryDesc
+            _queries[EntityMetricsCollector.CitizenQuery] = CreateReadOnlyQuery<Citizen>();
+            _queries[EntityMetricsCollector.HouseholdQuery] = CreateReadOnlyQuery<Household>();
+            _queries[EntityMetricsCollector.TouristHouseholdQuery] = CreateReadOnlyQuery<TouristHousehold>();
+            _queries[EntityMetricsCollector.VehicleQuery] = CreateReadOnlyQuery<Vehicle>();
+            _queries[EntityMetricsCollector.PublicTransportQuery] = CreateReadOnlyQuery<PublicTransport>();
+            _queries[EntityMetricsCollector.CargoTransportQuery] = CreateReadOnlyQuery<CargoTransport>();
+            _queries[EntityMetricsCollector.ServiceVehicleUnionQuery] = GetEntityQuery(new EntityQueryDesc
             {
                 Any = new[]
                 {

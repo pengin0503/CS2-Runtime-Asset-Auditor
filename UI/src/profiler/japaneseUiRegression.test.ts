@@ -12,20 +12,10 @@ describe("Japanese profiler UI regression coverage", () => {
     expect(formatMetricValue({ value: 4_559_608_748, availability: "Available", unitType: "Bytes" } as any)).toBe("4.25 GiB");
   });
 
-  it("uses Japanese labels and CS2-native select events for the main tabs", () => {
-    const source = readFileSync(new URL("../shell/RuntimeAssetAuditorRoot.tsx", import.meta.url), "utf8");
+  it("uses Japanese labels for the main tabs", () => {
     const labels = ["nav.overview", "nav.systems", "nav.mods", "nav.pathfinding", "nav.timeline", "nav.captures", "nav.advisor", "nav.diagnostics"] as const;
     expect(labels.map(key => ja[key])).toEqual(["概要", "システム", "MOD", "経路探索", "タイムライン", "キャプチャ", "改善提案", "診断"]);
     expect(labels.map(key => en[key])).toEqual(["Overview", "Systems", "Mods", "Pathfinding", "Timeline", "Captures", "Advisor", "Diagnostics"]);
-    expect(source).toContain('from "cs2/ui"');
-    expect(source).toContain("onSelect={() => setSection(id)}");
-  });
-
-  it("renders the top-left launcher as a floating CS2 icon button", () => {
-    const source = readFileSync(new URL("./components/ProfilerHud.tsx", import.meta.url), "utf8");
-    expect(source).toContain('variant="floating"');
-    expect(source).toContain("onSelect={onToggle}");
-    expect(source).not.toContain(">Profiler<");
   });
 
   it("localizes mixed-timing and cross-capture memory warnings", () => {

@@ -47,12 +47,12 @@ namespace CS2RuntimeAssetAuditor.UI
         private RawValueBinding _panelLayoutBinding;
         private ProxyAction? _togglePanelAction;
         private double _nextRefreshAt;
-        private bool _panelVisible;
+        private readonly PanelVisibility _panel = new PanelVisibility();
         private string _selectedCaptureId = string.Empty;
 
         public override GameMode gameMode => GameMode.Game;
 
-        public bool IsPanelVisible => _panelVisible;
+        public bool IsPanelVisible => _panel.IsVisible;
 
         protected override void OnCreate()
         {
@@ -137,15 +137,10 @@ namespace CS2RuntimeAssetAuditor.UI
             _nextRefreshAt = now + GetUiRefreshPeriodSeconds();
             _uiScalePercentBinding.Update(GetUiScalePercent());
             _localeBinding.Update(ActiveLocaleReader.Read());
-            _hudSnapshotBinding.Update();
-
-            if (!_panelVisible)
-                return;
-
-            PublishSnapshot();
+            Apply(_panel.RefreshTick());
         }
 
-        private void TogglePanel() => SetPanelVisible(!_panelVisible);
+        private void TogglePanel() => SetPanelVisible(!_panel.IsVisible);
 
         // The action exists only when the settings registered their key bindings; an unassigned binding never performs.
         private static ProxyAction? EnableTogglePanelAction()
@@ -170,17 +165,18 @@ namespace CS2RuntimeAssetAuditor.UI
 
         // Idempotent so that a close request (for example the game's Back/Escape input action)
         // can never reopen the panel if it is delivered twice.
-        private void SetPanelVisible(bool visible)
+        private void SetPanelVisible(bool visible) => Apply(_panel.Request(visible));
+
+        private void Apply(PanelBindingUpdate update)
         {
-            if (_panelVisible == visible)
-                return;
-
-            _panelVisible = visible;
-            _panelVisibleBinding.Update(_panelVisible);
-            _uiScalePercentBinding.Update(GetUiScalePercent());
-            _hudSnapshotBinding.Update();
-
-            if (_panelVisible)
+            if ((update & PanelBindingUpdate.Visibility) != 0)
+            {
+                _panelVisibleBinding.Update(_panel.IsVisible);
+                _uiScalePercentBinding.Update(GetUiScalePercent());
+            }
+            if ((update & PanelBindingUpdate.Hud) != 0)
+                _hudSnapshotBinding.Update();
+            if ((update & PanelBindingUpdate.Snapshot) != 0)
                 PublishSnapshot();
         }
 
@@ -227,86 +223,86 @@ namespace CS2RuntimeAssetAuditor.UI
             _capture?.RequestManualCapture();
             _hudSnapshotBinding.Update();
 
-            if (_panelVisible)
+            if (_panel.IsVisible)
                 PublishSnapshot();
         }
 
         private void DiagnoseAdvisor(string id)
         {
             _advisor?.DiagnoseCompletedCapture(id);
-            if (_panelVisible) PublishSnapshot();
+            if (_panel.IsVisible) PublishSnapshot();
         }
 
         private void RediagnoseAdvisor(string id)
         {
             _advisor?.Rediagnose(id);
-            if (_panelVisible) PublishSnapshot();
+            if (_panel.IsVisible) PublishSnapshot();
         }
 
         private void SelectAdvisorBaseline(string id)
         {
             _advisor?.SelectBaseline(id);
-            if (_panelVisible) PublishSnapshot();
+            if (_panel.IsVisible) PublishSnapshot();
         }
 
         private void AdvisorApply(string id, string proposed, bool confirmed)
         {
             _advisor?.ApplySetting(id, proposed, confirmed);
-            if (_panelVisible) PublishSnapshot();
+            if (_panel.IsVisible) PublishSnapshot();
         }
 
         private void AdvisorUndo(string id, bool confirmed)
         {
             _advisor?.UndoSetting(id, confirmed);
-            if (_panelVisible) PublishSnapshot();
+            if (_panel.IsVisible) PublishSnapshot();
         }
 
         private void AdvisorUndoSession(bool confirmed)
         {
             _advisor?.UndoSession(confirmed);
-            if (_panelVisible) PublishSnapshot();
+            if (_panel.IsVisible) PublishSnapshot();
         }
 
         private void AdvisorResolveConflict(string id, bool restoreOriginal)
         {
             _advisor?.ResolveConflict(id, restoreOriginal);
-            if (_panelVisible) PublishSnapshot();
+            if (_panel.IsVisible) PublishSnapshot();
         }
 
         private void AdvisorStartExperiment(string captureId, string settingId, string proposedValue)
         {
             _advisor?.StartExperiment(captureId, settingId, proposedValue);
-            if (_panelVisible) PublishSnapshot();
+            if (_panel.IsVisible) PublishSnapshot();
         }
 
         private void AdvisorApplyExperiment(bool confirmed)
         {
             _advisor?.ApplyExperimentChange(confirmed);
-            if (_panelVisible) PublishSnapshot();
+            if (_panel.IsVisible) PublishSnapshot();
         }
 
         private void AdvisorStartExperimentFollowUp()
         {
             _advisor?.StartExperimentFollowUpCapture();
-            if (_panelVisible) PublishSnapshot();
+            if (_panel.IsVisible) PublishSnapshot();
         }
 
         private void AdvisorCancelExperiment()
         {
             _advisor?.CancelExperiment();
-            if (_panelVisible) PublishSnapshot();
+            if (_panel.IsVisible) PublishSnapshot();
         }
 
         private void AdvisorKeepExperiment()
         {
             _advisor?.KeepExperimentChange();
-            if (_panelVisible) PublishSnapshot();
+            if (_panel.IsVisible) PublishSnapshot();
         }
 
         private void AdvisorUndoExperiment(bool confirmed)
         {
             _advisor?.UndoExperimentChange(confirmed);
-            if (_panelVisible) PublishSnapshot();
+            if (_panel.IsVisible) PublishSnapshot();
         }
 
         private void SelectCapture(string id)
@@ -314,7 +310,7 @@ namespace CS2RuntimeAssetAuditor.UI
             _selectedCaptureId = id ?? string.Empty;
             _selectedCaptureBinding.Update(_selectedCaptureId);
 
-            if (_panelVisible)
+            if (_panel.IsVisible)
                 PublishSnapshot();
         }
 

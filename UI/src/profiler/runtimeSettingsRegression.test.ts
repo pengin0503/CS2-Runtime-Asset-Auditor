@@ -35,11 +35,10 @@ describe("runtime settings and panel ergonomics", () => {
 
   it("scrolls the panel body with the vanilla Scrollable inside a definite flex viewport", () => {
     const stylesheet = readFileSync(new URL("./profiler.module.scss", import.meta.url), "utf8");
-    const root = readFileSync(new URL("../shell/RuntimeAssetAuditorRoot.tsx", import.meta.url), "utf8");
     const panelBody = stylesheet.match(/\.panelBody\s*\{([\s\S]*?)\}/)?.[1] ?? "";
 
     // Gameface draws no native scrollbar for overflow containers; Scrollable renders a draggable track.
-    expect(root).toMatch(/<Scrollable vertical trackVisibility="scrollable" className=\{styles\.panelBody\}>/);
+    // That the panel body is this Scrollable is exercised in shell/panelBehaviour.test.tsx.
     expect(panelBody).toMatch(/flex\s*:\s*1\s+1\s+0\s*;/);
     expect(panelBody).toMatch(/min-height\s*:\s*0\s*;/);
   });
@@ -47,29 +46,13 @@ describe("runtime settings and panel ergonomics", () => {
   it("persists a user-adjusted panel position and size through hidden settings", () => {
     const setting = repoFile("src/CS2RuntimeAssetAuditor/Setting.cs");
     const system = repoFile("src/CS2RuntimeAssetAuditor/UI/ProfilerUISystem.cs");
-    const root = readFileSync(new URL("../shell/RuntimeAssetAuditorRoot.tsx", import.meta.url), "utf8");
-
     for (const property of ["PanelLeft", "PanelTop", "PanelWidth", "PanelHeight"]) {
       expect(setting).toMatch(new RegExp(`\\[SettingsUIHidden\\]\\s*public int ${property}`));
     }
     expect(system).toContain('new TriggerBinding<int, int, int, int>(Group, "setPanelLayout", SetPanelLayout)');
     expect(system).toContain('new RawValueBinding(Group, "panelLayout", WritePanelLayout)');
     expect(system).toContain("settings.ApplyAndSave()");
-    expect(root).toContain('onMouseDown={beginDrag("move")}');
-    expect(root).toContain('onMouseDown={beginDrag("resize")}');
-    // Layout is saved once per drag, not on every mouse move.
-    expect(root).toMatch(/const onMouseUp = useCallback\(\(\) => \{[\s\S]*?savePanelLayout\(/);
-    expect(root).not.toMatch(/const onMouseMove = useCallback\([\s\S]*?savePanelLayout[\s\S]*?\}, \[scale\]\);/);
-  });
-
-  it("binds the configured UI scale into the profiler panel", () => {
-    const bindings = readFileSync(new URL("./bindings.ts", import.meta.url), "utf8");
-    const root = readFileSync(new URL("../shell/RuntimeAssetAuditorRoot.tsx", import.meta.url), "utf8");
-
-    expect(bindings).toContain('bindValue<number>(GROUP, "uiScalePercent"');
-    expect(bindings).toContain("useUiScalePercent");
-    expect(root).toContain("useUiScalePercent");
-    expect(root).toContain("transform: `scale(${scale})`");
+    // The drag itself (one save when the drag ends) is exercised in shell/panelBehaviour.test.tsx.
   });
 
   it("localizes the new option groups and user-facing controls in Japanese", () => {

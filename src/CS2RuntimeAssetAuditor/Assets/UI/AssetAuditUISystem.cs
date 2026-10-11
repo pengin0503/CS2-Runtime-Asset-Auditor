@@ -280,7 +280,7 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
                 {
                     var directory = Path.Combine(EnvPath.kUserDataPath, "ModsData", Mod.Id);
                     Directory.CreateDirectory(directory);
-                    var stem = $"CS2RuntimeAssetAuditor-assets-{DateTime.Now:yyyy-MM-dd_HHmmss_fff}";
+                    var stem = ReportFileNames.AssetCsvStem(DateTime.Now);
                     var built = System.Diagnostics.Stopwatch.GetTimestamp();
                     var csv = _csvExporter.Export(report);
                     var formatted = System.Diagnostics.Stopwatch.GetTimestamp();

@@ -3,7 +3,7 @@ import TestRenderer, { act } from "react-test-renderer";
 import { describe, expect, it } from "vitest";
 import { PerformanceAdvisorTab } from "./tabs/PerformanceAdvisorTab";
 import { EMPTY_ADVISOR, type AdvisorRecommendation, type AdvisorUiState } from "./bindings";
-import { readFileSync } from "node:fs";
+import { TOP_SECTIONS } from "../shell/navigation";
 import { useGameLocale } from "../test/locale";
 import { ja } from "../i18n/messages";
 
@@ -67,12 +67,10 @@ function text(node: any): string {
 }
 
 describe("Performance Advisor read-only tab", () => {
-  it("is a Japanese tab inside the existing scroll viewport", () => {
-    const root = readFileSync(new URL("../shell/RuntimeAssetAuditorRoot.tsx", import.meta.url), "utf8");
-    const navigation = readFileSync(new URL("../shell/navigation.ts", import.meta.url), "utf8");
-    expect(navigation).toContain('{ id: "advisor", labelKey: "nav.advisor" }');
+  it("is a top-level tab with a Japanese label", () => {
+    // Rendering inside the panel's Scrollable is exercised in shell/panelBehaviour.test.tsx.
+    expect(TOP_SECTIONS).toContainEqual({ id: "advisor", labelKey: "nav.advisor" });
     expect(ja["nav.advisor"]).toBe("改善提案");
-    expect(root.indexOf('section === "advisor"')).toBeGreaterThan(root.indexOf('<Scrollable vertical'));
   });
 
   it("separates priority, headroom and no-recommendation groups and collapses the last by default", () => {

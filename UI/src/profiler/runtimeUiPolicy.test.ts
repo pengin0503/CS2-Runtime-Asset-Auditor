@@ -7,18 +7,8 @@ const source = fs.readFileSync(
   "utf8"
 );
 
-it("updates only the lightweight HUD on periodic refresh while the panel is closed", () => {
-  expect(source).toContain('new RawValueBinding(Group, "hudSnapshot", WriteHudSnapshot)');
-  expect(source).toMatch(
-    /_hudSnapshotBinding\.Update\(\);\s*if \(!_panelVisible\)\s*return;\s*PublishSnapshot\(\);/s
-  );
-});
-
-it("rebuilds the full snapshot immediately when the panel opens", () => {
-  expect(source).toMatch(
-    /private void SetPanelVisible\(bool visible\)[\s\S]*?_panelVisibleBinding\.Update\(_panelVisible\);[\s\S]*?if \(_panelVisible\)\s*PublishSnapshot\(\);/
-  );
-});
+// Which bindings a refresh or an open/close updates is decided by Core/PanelVisibility.cs and covered by the
+// NUnit PanelVisibilityTests; this file keeps only the capture-detail wiring.
 
 it("sends the capture detail binding only when the detail was rebuilt", () => {
   expect(source).toContain('new RawValueBinding(Group, "captureDetail", WriteCaptureDetail)');

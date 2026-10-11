@@ -1,13 +1,14 @@
-import fs from "node:fs";
-import path from "node:path";
 import { expect, test } from "vitest";
+import register from "../index";
+import { RuntimeAssetAuditorRoot } from "./RuntimeAssetAuditorRoot";
 
-test("one launcher and one Game panel own the Back action", () => {
-  const index = fs.readFileSync(path.resolve(process.cwd(), "src/index.tsx"), "utf8");
-  const shell = fs.readFileSync(path.resolve(process.cwd(), "src/shell/RuntimeAssetAuditorRoot.tsx"), "utf8");
-  expect(index.match(/append\("GameTopLeft"/g)).toHaveLength(1);
-  expect(index.match(/append\("Game"/g)).toHaveLength(1);
-  expect(shell).toContain("InputActionConsumer");
-  expect(shell).toContain("BACK_ACTIONS");
-  expect(shell).not.toContain('addEventListener("keydown"');
+test("registers one launcher and one Game panel", () => {
+  const appended: Array<{ slot: string; component: unknown }> = [];
+  const registry = { append: (slot: string, component: unknown) => { appended.push({ slot, component }); } };
+
+  register(registry as unknown as Parameters<typeof register>[0]);
+
+  expect(appended.map(entry => entry.slot)).toEqual(["GameTopLeft", "Game"]);
+  // The Game panel is the one that consumes the Back action (see backAction.test.tsx).
+  expect(appended[1].component).toBe(RuntimeAssetAuditorRoot);
 });

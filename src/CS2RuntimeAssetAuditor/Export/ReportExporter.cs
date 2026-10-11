@@ -34,7 +34,7 @@ namespace CS2RuntimeAssetAuditor.Export
                 Directory.CreateDirectory(directory);
 
                 var timestamp = DateTime.Now;
-                var stem = $"CS2RuntimeAssetAuditor-report-{timestamp:yyyy-MM-dd_HHmmss_fff}";
+                var stem = ReportFileNames.ReportStem(timestamp);
                 var start = Stopwatch.GetTimestamp();
                 long bytes = 0;
                 // The report is serialized straight into the file; it never exists as one JSON string in memory.

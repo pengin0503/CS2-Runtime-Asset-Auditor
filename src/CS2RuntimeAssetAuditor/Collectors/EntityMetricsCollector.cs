@@ -11,17 +11,30 @@ namespace CS2RuntimeAssetAuditor.Collectors
 
     public sealed class EntityMetricsCollector : IMetricCollector
     {
+        // Query keys the count source must answer; DomainMetricsSystem registers its ECS queries under these names.
+        public const string CitizenQuery = "Game.Citizens.Citizen";
+        public const string HouseholdQuery = "Game.Citizens.Household";
+        public const string TouristHouseholdQuery = "Game.Citizens.TouristHousehold";
+        public const string VehicleQuery = "Game.Vehicles.Vehicle";
+        public const string PublicTransportQuery = "Game.Vehicles.PublicTransport";
+        public const string CargoTransportQuery = "Game.Vehicles.CargoTransport";
+        /// <summary>Any of the city-service vehicle components (ambulance through prisoner transport).</summary>
+        public const string ServiceVehicleUnionQuery = "Game.Vehicles.ServiceVehicleUnion";
+
         private static readonly IReadOnlyDictionary<string, string> VerifiedDomains =
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                ["citizens"] = "Game.Citizens.Citizen",
-                ["households"] = "Game.Citizens.Household",
-                ["touristHouseholds"] = "Game.Citizens.TouristHousehold",
-                ["vehicles"] = "Game.Vehicles.Vehicle",
-                ["publicTransportVehicles"] = "Game.Vehicles.PublicTransport",
-                ["cargoTransportVehicles"] = "Game.Vehicles.CargoTransport",
-                ["serviceVehicles"] = "Game.Vehicles.ServiceVehicleUnion"
+                ["citizens"] = CitizenQuery,
+                ["households"] = HouseholdQuery,
+                ["touristHouseholds"] = TouristHouseholdQuery,
+                ["vehicles"] = VehicleQuery,
+                ["publicTransportVehicles"] = PublicTransportQuery,
+                ["cargoTransportVehicles"] = CargoTransportQuery,
+                ["serviceVehicles"] = ServiceVehicleUnionQuery
             };
+
+        /// <summary>Every query key a sample asks the count source for.</summary>
+        public static IEnumerable<string> RequiredQueries => VerifiedDomains.Values;
 
         private readonly IEntityDomainCountSource _source;
         private readonly double _samplePeriodSeconds;

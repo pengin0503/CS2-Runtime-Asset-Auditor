@@ -8,54 +8,35 @@ namespace CS2RuntimeAssetAuditor.Profiling
 {
     internal sealed class UnityRecorderBackend : IRecorderBackend
     {
-        private readonly Dictionary<string, ProfilerRecorderHandle> _handles = new Dictionary<string, ProfilerRecorderHandle>(StringComparer.Ordinal);
+        private readonly RecorderHandleTable<ProfilerRecorderHandle> _handles = new RecorderHandleTable<ProfilerRecorderHandle>();
 
-        public IReadOnlyList<RecorderDescriptor> Discover()
+        public IReadOnlyList<RecorderDescriptor> Discover() => _handles.Rediscover(EnumerateHandles, Describe);
+
+        private static IReadOnlyList<ProfilerRecorderHandle> EnumerateHandles()
         {
             var handles = new List<ProfilerRecorderHandle>();
             ProfilerRecorderHandle.GetAvailable(handles);
+            return handles;
+        }
 
-            var discoveredHandles = new Dictionary<string, ProfilerRecorderHandle>(StringComparer.Ordinal);
-            var result = new List<RecorderDescriptor>(handles.Count);
-
-            foreach (var handle in handles)
-            {
-                if (!handle.Valid)
-                    continue;
-
-                try
-                {
-                    var description = ProfilerRecorderHandle.GetDescription(handle);
-                    var category = description.Category.Name ?? string.Empty;
-                    var name = description.Name ?? string.Empty;
-                    var id = category + "\u001f" + name;
-                    if (discoveredHandles.ContainsKey(id))
-                        continue;
-
-                    discoveredHandles[id] = handle;
-                    result.Add(new RecorderDescriptor(
-                        id,
-                        category,
-                        name,
-                        description.UnitType.ToString(),
-                        description.DataType.ToString()));
-                }
-                catch
-                {
-                    // Unsupported/stripped marker: omit from the usable runtime catalog.
-                }
-            }
-
-            _handles.Clear();
-            foreach (var pair in discoveredHandles)
-                _handles[pair.Key] = pair.Value;
-
-            return result;
+        private static RecorderDescriptor? Describe(ProfilerRecorderHandle handle)
+        {
+            if (!handle.Valid)
+                return null;
+            var description = ProfilerRecorderHandle.GetDescription(handle);
+            var category = description.Category.Name ?? string.Empty;
+            var name = description.Name ?? string.Empty;
+            return new RecorderDescriptor(
+                category + "\u001f" + name,
+                category,
+                name,
+                description.UnitType.ToString(),
+                description.DataType.ToString());
         }
 
         public IActiveRecorder Start(RecorderDescriptor descriptor, int capacity)
         {
-            if (!_handles.TryGetValue(descriptor.Id, out var handle))
+            if (!_handles.TryGet(descriptor.Id, out var handle))
                 throw new InvalidOperationException($"Profiler marker '{descriptor.Id}' is no longer available.");
 
             var recorder = new ProfilerRecorder(handle, Math.Max(1, capacity));

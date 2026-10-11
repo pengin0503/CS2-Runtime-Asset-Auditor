@@ -182,7 +182,7 @@ namespace CS2RuntimeAssetAuditor.Profiling
 
             ApplyRuntimeSettings();
             var captureConfiguration = RuntimeCaptureConfigurationProvider.Capture();
-            var now = _global?.CurrentTimestampSeconds ?? Math.Max(0d, _lastObservedTimestamp);
+            var now = ManualCaptureClock.RequestTime(_global?.CurrentTimestampSeconds, _lastObservedTimestamp);
             var before = _controller?.CurrentSession;
             _controller?.RequestManualCapture(now, _global?.GetRecentHistory(GetPrebufferSeconds()));
             var created = _controller?.CurrentSession;

@@ -46,6 +46,7 @@
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/PerformanceReport.cs" Link="Export/PerformanceReport.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/ProfilerReportBuilder.cs" Link="Export/ProfilerReportBuilder.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/ReportFileWriter.cs" Link="Export/ReportFileWriter.cs" />
+    <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/ReportFileNames.cs" Link="Export/ReportFileNames.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/ExportResultFormat.cs" Link="Export/ExportResultFormat.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/RuntimeReportMetadata.cs" Link="Export/RuntimeReportMetadata.cs" />
     <Compile Include="../../src/CS2RuntimeAssetAuditor/Export/EnabledModNames.cs" Link="Export/EnabledModNames.cs" />

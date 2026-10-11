@@ -74,4 +74,25 @@ public class EntityMetricsCollectorTests
         Assert.That(citizens.Value, Is.Null);
         Assert.That(citizens.Reason, Does.Contain("unsupported"));
     }
+
+    [Test]
+    public void Every_domain_is_requested_under_the_query_keys_the_ecs_system_registers()
+    {
+        // DomainMetricsSystem registers one ECS query per RequiredQueries key; a source that answers exactly those
+        // keys must make every domain available, including the service-vehicle union.
+        var source = new FakeSource();
+        var value = 1;
+        foreach (var key in EntityMetricsCollector.RequiredQueries)
+            source.Counts[key] = value++;
+        var collector = new EntityMetricsCollector(source);
+
+        collector.Sample(0);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(collector.Latest.Metrics.Values.All(metric => metric.Availability == MetricAvailability.Available), Is.True);
+            Assert.That(collector.Latest.Get("serviceVehicles").Value, Is.EqualTo(source.Counts[EntityMetricsCollector.ServiceVehicleUnionQuery]));
+            Assert.That(EntityMetricsCollector.RequiredQueries, Does.Contain("Game.Vehicles.ServiceVehicleUnion"));
+        });
+    }
 }

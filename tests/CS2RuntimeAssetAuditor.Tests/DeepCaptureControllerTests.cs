@@ -202,6 +202,27 @@ public class DeepCaptureControllerTests
         });
     }
 
+    [Test]
+    public void Manual_capture_is_stamped_with_the_runtime_clock_not_the_older_latest_sample()
+    {
+        using var controller = CreateController(maxConcurrent: 2);
+        var latestSample = CreateGlobalSample(100);
+
+        var now = ManualCaptureClock.RequestTime(runtimeClockSeconds: 100.9, lastObservedSeconds: latestSample.TimestampSeconds);
+        controller.RequestManualCapture(now, new[] { latestSample });
+        // One deep second after the click, the capture is still recording; stamped with the sample time it would
+        // already have moved on.
+        controller.Observe(101.5, global: null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(now, Is.EqualTo(100.9));
+            Assert.That(controller.CurrentSession!.Trigger.TimestampSeconds, Is.EqualTo(100.9));
+            Assert.That(controller.State, Is.EqualTo(CaptureState.DeepCapture));
+            Assert.That(ManualCaptureClock.RequestTime(null, -3), Is.EqualTo(0));
+        });
+    }
+
     private static DeepCaptureController CreateController(int maxConcurrent, int maxCompletedSessions = 20)
     {
         var descriptors = Enumerable.Range(0, maxConcurrent)
