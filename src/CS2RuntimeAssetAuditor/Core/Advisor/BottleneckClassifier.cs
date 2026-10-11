@@ -69,24 +69,8 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor
             // time in both cases.
             if (frameSlow && Available(frameMedian) && frameMedian.Value > 0 && Available(cpuMain) && Available(presentWait))
             {
-                // Slow typical frames are a sustained limit; slow P95 alone means intermittent spikes.
-                var severity = frameMedian.Value >= SlowFrameMilliseconds ? BottleneckSeverity.High : BottleneckSeverity.Medium;
-                if (presentWait.Value >= GpuBoundPresentWaitShare * frameMedian.Value)
-                {
-                    result.Add(new BottleneckObservation(BottleneckCategory.RenderingGpu, severity,
-                        overheadHigh ? AdvisorConfidence.Low : AdvisorConfidence.High,
-                        new[] { "frame.p95.ms", "present.wait.ms", "gpu.frame.ms" },
-                        "Frame time is high and the main thread waits for the GPU to present each frame, so rendering on the GPU limits the frame rate."));
-                    return;
-                }
-                if (cpuMain.Value >= MainThreadBoundShare * frameMedian.Value)
-                {
-                    result.Add(new BottleneckObservation(BottleneckCategory.MainThreadCpu, severity,
-                        overheadHigh ? AdvisorConfidence.Low : AdvisorConfidence.High,
-                        new[] { "frame.p95.ms", "cpu.main.ms", "present.wait.ms" },
-                        "Frame time is high and the main thread is busy for almost the whole frame without waiting for the GPU, so CPU work on the main thread (including waiting for worker jobs) limits the frame rate. GPU time is not used here because it also counts time the GPU waits for the CPU."));
-                    return;
-                }
+                ClassifyThreadTimings(evidence, frameMedian, cpuMain, presentWait, gpu, overheadHigh, result);
+                return;
             }
 
             if (Available(gpu) && gpu.Value >= SlowGpuMilliseconds && frameSlow)
@@ -108,6 +92,90 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor
                     new[] { "gpu.frame.ms" }, "Direct GPU time is high. Total frame time is unavailable, so confidence is reduced."));
             }
         }
+
+        // Shares of the median frame, after Unity's BottleneckHistory.DetermineBottleneck (HDRP debug frame timing):
+        // a thread above 80% of the frame limits it. Unlike Unity's rule, a high GPU time does not count as GPU-bound
+        // here, because on D3D11 it includes time the GPU waits for the CPU; the main thread's wait for present does.
+        // FrameTimingManager ends the render thread's time when it calls Present, so a render thread that blocks in
+        // Present for the GPU does not look busy, while one that is busy issuing draw calls makes the main thread wait
+        // for present (Gfx.WaitForPresentOnGfxThread) just as a GPU-bound frame does: the render-thread time is what
+        // tells the two apart.
+        private static void ClassifyThreadTimings(AdvisorEvidenceSnapshot evidence, NamedMetricValue frameMedian,
+            NamedMetricValue cpuMain, NamedMetricValue presentWait, NamedMetricValue gpu,
+            bool overheadHigh, List<BottleneckObservation> result)
+        {
+            var cpuRender = evidence.Find("cpu.render.ms");
+            var frameCap = evidence.Find("display.frame.cap");
+            var busy = MainThreadBoundShare * frameMedian.Value;
+            var renderKnown = Available(cpuRender);
+            var renderBusy = renderKnown && cpuRender.Value >= busy;
+            var gpuBusy = Available(gpu) && gpu.Value >= busy;
+            var waitsForPresent = presentWait.Value >= GpuBoundPresentWaitShare * frameMedian.Value;
+
+            // Typical frames are not slow, only the P95 is: the timings describe the typical frames, so they do not
+            // tell what made the slow ones slow.
+            var spikesOnly = frameMedian.Value < SlowFrameMilliseconds;
+            var severity = spikesOnly ? BottleneckSeverity.Medium : BottleneckSeverity.High;
+
+            void Add(BottleneckCategory category, AdvisorConfidence confidence, IEnumerable<string> ids, string rationale)
+            {
+                if (overheadHigh || spikesOnly) confidence = AdvisorConfidence.Low;
+                result.Add(new BottleneckObservation(category, severity, confidence, ids,
+                    spikesOnly ? rationale + IntermittentSuffix : rationale));
+            }
+
+            if (renderBusy)
+            {
+                var ids = new List<string> { "frame.p95.ms", "cpu.render.ms", "present.wait.ms" };
+                if (gpuBusy) ids.Add("gpu.frame.ms");
+                Add(BottleneckCategory.RenderThreadCpu, gpuBusy ? AdvisorConfidence.Medium : AdvisorConfidence.High, ids,
+                    gpuBusy
+                        ? "Frame time is high and the render thread is busy for almost the whole frame, so issuing draw calls limits the frame rate. GPU time is also close to the frame time; it includes time the GPU waits for the CPU, so whether the GPU is also at its limit cannot be told."
+                        : "Frame time is high and the render thread is busy for almost the whole frame while the GPU is not, so issuing draw calls (the number of objects, materials and shadow casters drawn) limits the frame rate, not GPU rendering.");
+                return;
+            }
+
+            if (waitsForPresent)
+            {
+                if (renderKnown && Available(gpu) && !gpuBusy && cpuMain.Value - presentWait.Value < busy)
+                {
+                    // Nothing is busy, yet the main thread waits: a frame-rate cap paces the frames.
+                    var capped = Available(frameCap) && frameCap.Value > 0;
+                    var ids = new List<string> { "frame.p95.ms", "present.wait.ms", "gpu.frame.ms", "cpu.render.ms" };
+                    if (capped) ids.Add("display.frame.cap");
+                    Add(BottleneckCategory.PresentLimited, capped ? AdvisorConfidence.High : AdvisorConfidence.Medium, ids,
+                        "The main thread waits for present while the GPU and the render thread have time to spare, so a frame-rate cap (VSync, a target frame rate or a driver limit) sets the frame time. Lowering graphics settings will not raise the frame rate.");
+                    return;
+                }
+
+                var gpuIds = new List<string> { "frame.p95.ms", "present.wait.ms", "gpu.frame.ms" };
+                if (renderKnown) gpuIds.Add("cpu.render.ms");
+                // High only when the render thread is known not to be the limit and the GPU is busy; without GPU time a
+                // frame-rate cap is not ruled out either.
+                Add(BottleneckCategory.RenderingGpu, renderKnown && gpuBusy ? AdvisorConfidence.High : AdvisorConfidence.Medium, gpuIds,
+                    renderKnown
+                        ? "Frame time is high and the main thread waits for the GPU to present each frame, so rendering on the GPU limits the frame rate."
+                        : "Frame time is high and the main thread waits for present. Render-thread time was not measured, so a render thread busy issuing draw calls cannot be ruled out.");
+                return;
+            }
+
+            if (cpuMain.Value >= busy)
+            {
+                Add(BottleneckCategory.MainThreadCpu, AdvisorConfidence.High,
+                    new[] { "frame.p95.ms", "cpu.main.ms", "present.wait.ms" },
+                    "Frame time is high and the main thread is busy for almost the whole frame without waiting for the GPU, so CPU work on the main thread (including waiting for worker jobs) limits the frame rate. GPU time is not used here because it also counts time the GPU waits for the CPU.");
+                return;
+            }
+
+            var mixedIds = new List<string> { "frame.p95.ms", "cpu.main.ms", "present.wait.ms" };
+            if (renderKnown) mixedIds.Add("cpu.render.ms");
+            if (Available(gpu)) mixedIds.Add("gpu.frame.ms");
+            result.Add(new BottleneckObservation(BottleneckCategory.Unknown, severity, AdvisorConfidence.Low, mixedIds,
+                "Frame time is high, but neither the GPU nor a single CPU thread accounts for most of it; the load is mixed or changed during the capture."));
+        }
+
+        internal const string IntermittentSuffix =
+            " Only some frames are slow; the thread timings describe typical frames, so they may not explain the slow ones.";
 
         private static void ClassifySimulationSlowdown(AdvisorEvidenceSnapshot evidence, NamedMetricValue efficiency, string scope,
             BottleneckSeverity severity, bool overheadHigh, List<BottleneckObservation> result, string lowEfficiencyRationale,

@@ -36,7 +36,8 @@ public class FrameRateBottleneckTests
     {
         var result = Classify(
             Available("frame.p95.ms", 34), Available("frame.median.ms", 30), Available("cpu.main.ms", 29),
-            Available("present.wait.ms", 12), Available("gpu.frame.ms", 29.5), Available("simulation.efficiency", 1));
+            Available("present.wait.ms", 12), Available("gpu.frame.ms", 29.5), Available("cpu.render.ms", 9),
+            Available("simulation.efficiency", 1));
 
         var gpu = result.Single();
         Assert.Multiple(() =>

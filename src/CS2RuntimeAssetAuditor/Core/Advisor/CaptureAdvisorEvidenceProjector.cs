@@ -89,7 +89,14 @@ namespace CS2RuntimeAssetAuditor.Core.Advisor
             // main thread waiting for present; D3D11 GPU time also counts time the GPU idles waiting for the CPU.
             var timed = intervals.Where(x => x.FrameTimingSamples > 0).ToArray();
             metrics.Add(MedianOf("cpu.main.ms", timed.Where(x => x.CpuMainThreadMs.HasValue).Select(x => x.CpuMainThreadMs.Median), "Main-thread frame timing unavailable"));
+            metrics.Add(MedianOf("cpu.render.ms", timed.Where(x => x.CpuRenderThreadMs.HasValue).Select(x => x.CpuRenderThreadMs.Median), "Render-thread frame timing unavailable"));
             metrics.Add(MedianOf("present.wait.ms", timed.Where(x => x.PresentWaitMs.HasValue).Select(x => x.PresentWaitMs.Median), "Present-wait frame timing unavailable"));
+            // A frame-rate cap (VSync or a target frame rate) set at any point of the capture.
+            var paced = intervals.Where(x => x.VSyncCount.HasValue || x.TargetFrameRate.HasValue).ToArray();
+            metrics.Add(paced.Length == 0
+                ? NamedMetricValue.Unavailable("display.frame.cap", "VSync and the target frame rate were not read")
+                : NamedMetricValue.Available("display.frame.cap",
+                    paced.Any(x => x.VSyncCount > 0 || x.TargetFrameRate > 0) ? 1d : 0d, MetricConfidence.Full, string.Empty));
             var gpuTimings = timed.Where(x => x.GpuMs.HasValue).Select(x => x.GpuMs.Median).ToArray();
             if (gpuTimings.Length > 0)
             {

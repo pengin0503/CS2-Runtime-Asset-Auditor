@@ -3,7 +3,14 @@ using System.Linq;
 
 namespace CS2RuntimeAssetAuditor.Core.Advisor
 {
-    public enum BottleneckCategory { RenderingGpu, SimulationCpu, MemoryGc, Pathfinding, Unknown, MainThreadCpu, FrameRateLimit }
+    public enum BottleneckCategory
+    {
+        RenderingGpu, SimulationCpu, MemoryGc, Pathfinding, Unknown, MainThreadCpu, FrameRateLimit,
+        /// <summary>The render thread (issuing draw calls to the graphics API) limits the frame rate.</summary>
+        RenderThreadCpu,
+        /// <summary>A frame-rate cap (VSync or a target frame rate), not a workload, sets the frame time.</summary>
+        PresentLimited
+    }
     public enum BottleneckSeverity { Low, Medium, High }
     public enum AdvisorConfidence { InsufficientEvidence, Low, Medium, High }
 

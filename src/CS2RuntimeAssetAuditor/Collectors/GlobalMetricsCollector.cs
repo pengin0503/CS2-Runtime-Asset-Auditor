@@ -103,13 +103,17 @@ namespace CS2RuntimeAssetAuditor.Collectors
                 .Where(pair => pair.Value.Count > 0)
                 .ToDictionary(pair => pair.Key, pair => pair.Value, System.StringComparer.Ordinal);
 
+            var interval = _frameInterval.Complete();
+            // A frame-rate cap makes the main thread wait for present just like a GPU-bound frame does.
+            interval.VSyncCount = UnityEngine.QualitySettings.vSyncCount;
+            interval.TargetFrameRate = UnityEngine.Application.targetFrameRate;
             _samples?.Add(_sessionGeneration, new GlobalMetricsSnapshot(
                 timestampSeconds,
                 _simulationSystem.selectedSpeed,
                 _simulationSystem.smoothSpeed,
                 readings,
                 _recorderUnits,
-                _frameInterval.Complete()));
+                interval));
         }
 
         /// <summary>Samples of the loaded city only; empty when the city has none yet.</summary>

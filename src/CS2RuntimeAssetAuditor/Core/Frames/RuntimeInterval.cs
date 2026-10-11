@@ -18,6 +18,12 @@ namespace CS2RuntimeAssetAuditor.Core.Frames
         public SampleSummary GpuMs { get; set; }
         public SampleSummary PresentWaitMs { get; set; }
 
+        /// <summary>QualitySettings.vSyncCount when the interval ended (0 is off); null when it was not read.</summary>
+        public int? VSyncCount { get; set; }
+
+        /// <summary>Application.targetFrameRate when the interval ended (-1 or 0 is no cap); null when it was not read.</summary>
+        public int? TargetFrameRate { get; set; }
+
         /// <summary>Selected speed of the interval's last frame.</summary>
         public double? SelectedSpeed { get; set; }
         public double? ActualSpeedMean { get; set; }

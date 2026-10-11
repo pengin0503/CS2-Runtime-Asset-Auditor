@@ -149,12 +149,18 @@ const ADVISOR_TEXTS_JA: Record<string, string> = {
   "Frame time is high and the main thread waits for the GPU to present each frame, so rendering on the GPU limits the frame rate.": "フレーム時間が長く、メインスレッドが毎フレームGPUの表示完了を待っているため、GPUの描画がフレームレートを制限しています。",
   "Frame time is high and the main thread is busy for almost the whole frame without waiting for the GPU, so CPU work on the main thread (including waiting for worker jobs) limits the frame rate. GPU time is not used here because it also counts time the GPU waits for the CPU.": "フレーム時間が長く、メインスレッドがGPUを待たずにほぼフレーム全体で処理を続けているため、メインスレッドのCPU処理（ワーカージョブの完了待ちを含む）がフレームレートを制限しています。GPU時間はCPUを待つ時間も含むため、この判定には使っていません。",
   "The simulation runs as fast as the frame rate allows: below 30 fps the game cannot run enough simulation steps per rendered frame (at most two per frame for each 1x of speed). Lowering frame time, not simulation load, raises the speed.": "シミュレーションはフレームレートが許す上限で動いています。30 fps を下回ると、1描画フレームで実行できるシミュレーションのステップ数（速度1倍につき最大2）が足りなくなります。速度を上げるにはシミュレーション負荷ではなくフレーム時間を下げる必要があります。",
-  "The simulation often waited for pathfinding results: the game slows the simulation when fewer than 48 frames of pathfinding lead remain.": "シミュレーションが経路探索の結果を頻繁に待っていました。ゲームは経路探索の先行分が48フレームを下回るとシミュレーションを減速させます。"
+  "The simulation often waited for pathfinding results: the game slows the simulation when fewer than 48 frames of pathfinding lead remain.": "シミュレーションが経路探索の結果を頻繁に待っていました。ゲームは経路探索の先行分が48フレームを下回るとシミュレーションを減速させます。",
+  "Frame time is high and the render thread is busy for almost the whole frame, so issuing draw calls limits the frame rate. GPU time is also close to the frame time; it includes time the GPU waits for the CPU, so whether the GPU is also at its limit cannot be told.": "フレーム時間が長く、レンダースレッドがほぼフレーム全体で処理を続けているため、描画命令の発行がフレームレートを制限しています。GPU時間もフレーム時間に近いですが、GPU時間はCPUを待つ時間も含むため、GPUも限界に達しているかは判断できません。",
+  "Frame time is high and the render thread is busy for almost the whole frame while the GPU is not, so issuing draw calls (the number of objects, materials and shadow casters drawn) limits the frame rate, not GPU rendering.": "フレーム時間が長く、GPUには余裕がある一方でレンダースレッドがほぼフレーム全体で処理を続けているため、GPUの描画ではなく描画命令の発行（描画するオブジェクト・マテリアル・影投影物の数）がフレームレートを制限しています。",
+  "The main thread waits for present while the GPU and the render thread have time to spare, so a frame-rate cap (VSync, a target frame rate or a driver limit) sets the frame time. Lowering graphics settings will not raise the frame rate.": "GPUとレンダースレッドに余裕があるのにメインスレッドが表示完了を待っているため、フレームレートの上限（垂直同期、目標フレームレート、ドライバーの制限）がフレーム時間を決めています。グラフィック設定を下げてもフレームレートは上がりません。",
+  "Frame time is high and the main thread waits for present. Render-thread time was not measured, so a render thread busy issuing draw calls cannot be ruled out.": "フレーム時間が長く、メインスレッドが表示完了を待っています。レンダースレッドの時間を計測できなかったため、描画命令の発行で忙しいレンダースレッドが原因である可能性を否定できません。",
+  "Frame time is high, but neither the GPU nor a single CPU thread accounts for most of it; the load is mixed or changed during the capture.": "フレーム時間は長いものの、GPUや特定のCPUスレッドだけでは大部分を説明できません。負荷が混在しているか、キャプチャ中に変化しています。"
 };
 
 // Sentences the backend appends to another rationale; each part is translated on its own.
 const ADVISOR_SUFFIXES_JA: Record<string, string> = {
-  " The Performance Preference option also limits simulation steps to the time left in each frame, so part of the slowdown may come from that setting.": "また Performance Preference 設定によりシミュレーションのステップが各フレームの残り時間に制限されるため、低下の一部はこの設定による可能性があります。"
+  " The Performance Preference option also limits simulation steps to the time left in each frame, so part of the slowdown may come from that setting.": "また Performance Preference 設定によりシミュレーションのステップが各フレームの残り時間に制限されるため、低下の一部はこの設定による可能性があります。",
+  " Only some frames are slow; the thread timings describe typical frames, so they may not explain the slow ones.": "遅いのは一部のフレームだけです。スレッド別の時間は通常のフレームを表すため、遅いフレームの原因を説明していない可能性があります。"
 };
 
 /** Advisor rationale and comparison sentences are generated in English; unknown sentences stay as sent. */
