@@ -81,7 +81,15 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
         public string? LastDiagnosticCode { get; private set; }
         public int UnmatchedPrefabReferenceCount => _censusAccess?.UnmatchedPrefabReferenceCount ?? 0;
         // While a scan runs, elapsed time is live; once it ends the snapshot is frozen at the frame the scan ended.
-        public ScanTelemetrySnapshot? TelemetrySnapshot => _finalTelemetry ?? _scanTelemetry?.Snapshot(DateTimeOffset.UtcNow);
+        public ScanTelemetrySnapshot? TelemetrySnapshot => _finalTelemetry ?? LiveTelemetrySnapshot();
+
+        private ScanTelemetrySnapshot? LiveTelemetrySnapshot()
+        {
+            if (_scanTelemetry == null)
+                return null;
+            global::CS2RuntimeAssetAuditor.Core.DiagnosticLog.AssetUiActivity.RecordTelemetrySnapshot();
+            return _scanTelemetry.Snapshot(DateTimeOffset.UtcNow);
+        }
 
         // Change detection without building a snapshot (which copies and sorts the slice samples): the frozen
         // telemetry of a finished scan, and whether a running scan's telemetry is still changing.
@@ -633,6 +641,8 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration
             StampPublishedAnalysis(session, snapshot, DateTimeOffset.UtcNow);
 
             _publishedRuntimeRenderGraph = collector.RenderGraph;
+            Mod.Info("Asset analysis caches at publish: " + collector.DescribeCaches()
+                + " renderAssets=" + collector.GeometryTargetCount.ToString(System.Globalization.CultureInfo.InvariantCulture));
             session.Complete();
             LastDiagnosticCode = null;
             _analysisCollector = null;

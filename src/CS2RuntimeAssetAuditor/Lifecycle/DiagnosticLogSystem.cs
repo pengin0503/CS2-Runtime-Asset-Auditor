@@ -130,6 +130,7 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
                 _lastSnapshot = null;
                 _autoSaves.Reset();
                 _autoSaveStarts = 0;
+                AssetUiActivity.Take(); // Counts from before this file belong to no row.
                 _clock.Restart();
                 _nextRowAt = RowIntervalSeconds;
 
@@ -195,6 +196,12 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
             Mod.Info("Game autosave started: file=" + _fileName);
         }
 
+        private string? DescribeAssetScan()
+        {
+            var scan = World.GetExistingSystemManaged<Assets.GameIntegration.AssetAuditSystem>()?.CurrentScan;
+            return scan != null && scan.State == Assets.Core.Scanning.ScanState.Running ? scan.Kind + ":" + scan.Stage : null;
+        }
+
         private void WriteRow(DiagnosticLogAccumulator accumulator, double elapsed)
         {
             var writer = _writer;
@@ -208,7 +215,9 @@ namespace CS2RuntimeAssetAuditor.Lifecycle
                 capture?.Id,
                 GC.GetTotalMemory(false),
                 GC.CollectionCount(0),
-                AutoSaveCheckField != null && _autoSaveSystem != null ? _autoSaveStarts : (int?)null);
+                AutoSaveCheckField != null && _autoSaveSystem != null ? _autoSaveStarts : (int?)null,
+                DescribeAssetScan(),
+                AssetUiActivity.Take());
             _autoSaveStarts = 0;
             var row = accumulator.Complete(DateTimeOffset.UtcNow, elapsed, context);
             if (writer.TryWriteLine(DiagnosticLogCsv.FormatRow(row)))

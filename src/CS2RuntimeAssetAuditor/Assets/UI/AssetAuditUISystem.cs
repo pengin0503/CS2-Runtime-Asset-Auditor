@@ -408,6 +408,7 @@ namespace CS2RuntimeAssetAuditor.Assets.UI
             UiAnalysisProjection.ApplyDeepInspections(snapshot, analysis);
             snapshot.Diagnostics = CreateDiagnostics(auditSystem);
             _snapshotBinding.Update(UiSnapshotBuilder.Serialize(snapshot));
+            global::CS2RuntimeAssetAuditor.Core.DiagnosticLog.AssetUiActivity.RecordPublish();
             PublishFindingsIfChanged(analysis);
             _deferredChanges = false;
             _lastPublishedAt = DateTimeOffset.UtcNow;

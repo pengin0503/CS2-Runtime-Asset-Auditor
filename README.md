@@ -89,6 +89,8 @@ JSON レポートはメモリ上に一つの文字列として組み立てず、
 | `vtWorkingSetLodBias` / `vtWorkingSetLodBiasLevels` | ゲームの `TextureStreamingSystem.workingSetLodBias`（仮想テクスチャ作業セットの LOD バイアス係数）と、その log2（ミップ段数）。1（0 段）を超えると、作業セットに収めるため粗いミップで描画しています。ゲームが GPU から非同期に読み戻した値で数フレーム遅れます。最初の読み戻し前は空欄。VRAM 使用量ではありません |
 | `vtMipBias` | VT 初期化時のミップバイアス（テクスチャ品質設定に対応）。VT 初期化前は空欄 |
 | `vtBusyRequests` / `vtAvailableRequests` / `vtMaterialsLeftToLoad` | タイル読み込み要求の処理中数・空き数、初回読み込み待ちの VT マテリアル数。MOD は値を読むだけで、GPU 読み戻しや VT キャッシュの処理は追加しません |
+| `assetScan` | この行を書いた時点で実行中の Asset スキャン（`種類:段階`、例 `AssetAudit:CollectingGeometry`）。実行中でなければ空欄 |
+| `assetUiPublishes` / `assetTelemetrySnapshots` | この区間に Asset パネルがスナップショットを送った回数と、実行中スキャンのテレメトリ（スライス時間の配列のコピーと並べ替え）を作った回数。パネルを閉じている間は送らないため 0 になります。スキャン中は「進捗の更新間隔」（既定 200 ms）ごとに 1 回程度が想定値です |
 | `recorder:<名前> [単位]` | 通常監視で有効にしているプロファイラーレコーダーの区間内の最後の値（単位はマーカーの単位のまま） |
 
 記録の開始・停止（理由と行数）、失敗、Deep Capture の開始（トリガーと効率）、ゲームの自動保存の開始は MOD ログに出力します。MOD ログの行は、ゲームのログ（`Logs/CS2RuntimeAssetAuditor.Mod.log`）に加えて `ModsData/CS2RuntimeAssetAuditor/CS2RuntimeAssetAuditor-events.log` にも書きます。実機の環境で、ゲームのログに OnLoad 以外の行が残らないことがあったためです。このファイルは 4 MiB に達すると `.old` に移し、2 ファイルまで保持します。ゲームのロガーの設定レベルも起動・都市の読み込み・終了の行に記録します。停止（ヒッチ）の原因を追うため、診断ログの有効・無効にかかわらず、次の行も MOD ログに出力します。

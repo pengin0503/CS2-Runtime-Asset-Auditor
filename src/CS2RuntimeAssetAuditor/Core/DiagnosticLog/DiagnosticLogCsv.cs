@@ -63,7 +63,10 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
             "vtMipBias",
             "vtBusyRequests",
             "vtAvailableRequests",
-            "vtMaterialsLeftToLoad"
+            "vtMaterialsLeftToLoad",
+            "assetScan",
+            "assetUiPublishes",
+            "assetTelemetrySnapshots"
         };
 
         public static readonly IReadOnlyList<string> MarkerInventoryColumns = new[]
@@ -144,7 +147,10 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
                 Integer(row.VirtualTexturing?.MipBias),
                 Integer(row.VirtualTexturing?.BusyRequests),
                 Integer(row.VirtualTexturing?.AvailableRequests),
-                Integer(row.VirtualTexturing?.MaterialsLeftToLoad)
+                Integer(row.VirtualTexturing?.MaterialsLeftToLoad),
+                row.AssetScan ?? string.Empty,
+                Integer(row.AssetUiPublishes),
+                Integer(row.AssetTelemetrySnapshots)
             };
             foreach (var value in row.RecorderValues)
                 fields.Add(Number(value));

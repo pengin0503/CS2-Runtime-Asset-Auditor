@@ -102,6 +102,13 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
         public int FindingsProcessedCount => _findingIndex;
         public int FindingsTargetCount => _catalog.Length;
 
+        // The geometry and texture caches live as long as this collector (one analysis) and hold the same observation
+        // objects the snapshot keeps; only the surface metadata cache is bounded by MetadataCacheLimit (issue #47).
+        public string DescribeCaches() => string.Format(System.Globalization.CultureInfo.InvariantCulture,
+            "geometryCached={0} textureCached={1} surfaceCached={2}/{3} surfaceHits={4} surfaceMisses={5} surfaceEvictions={6}",
+            _geometryReader.CachedCount, _textureReader.CachedCount, _surfaceCache.Count, _surfaceCache.Capacity,
+            _surfaceCache.Hits, _surfaceCache.Misses, _surfaceCache.Evictions);
+
         public bool ProcessRenderGraphSlice(double frameBudgetMilliseconds)
         {
             EnsureWorld();

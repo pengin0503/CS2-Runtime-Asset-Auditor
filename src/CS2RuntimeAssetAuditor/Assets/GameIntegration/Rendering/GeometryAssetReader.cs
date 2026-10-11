@@ -29,6 +29,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
         }
 
         public void ClearCache() => _cache.Clear();
+        public int CachedCount => _cache.Count;
 
         private static GeometryObservation ReadCore(RenderPrefab renderPrefab, GeometryAsset geometryAsset, string id, DateTimeOffset capturedAt)
         {

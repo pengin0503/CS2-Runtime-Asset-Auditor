@@ -50,6 +50,7 @@ namespace CS2RuntimeAssetAuditor.Tests.Assets
             Assert.That(second, Is.EqualTo(10));
             Assert.That(nextGeneration, Is.EqualTo(30));
             Assert.That(calls, Is.EqualTo(2));
+            Assert.That(cache.Count, Is.EqualTo(1), "a new generation drops the previous one's entries");
         }
     }
 }

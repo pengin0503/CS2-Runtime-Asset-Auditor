@@ -28,8 +28,12 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
             string? captureId,
             long? managedHeapBytes,
             int? gcCollectionCount,
-            int? autoSaveStarts = null)
+            int? autoSaveStarts = null,
+            string? assetScan = null,
+            AssetUiActivityCounts? assetUi = null)
         {
+            AssetScan = assetScan;
+            AssetUi = assetUi;
             AutoSaveStarts = autoSaveStarts;
             CaptureState = captureState;
             CaptureTrigger = captureTrigger;
@@ -48,6 +52,12 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
 
         /// <summary>Game autosaves that started in the interval; null when the game's autosave state is unreadable.</summary>
         public int? AutoSaveStarts { get; }
+
+        /// <summary>The running asset scan as "Kind:Stage"; null when none runs.</summary>
+        public string? AssetScan { get; }
+
+        /// <summary>Asset panel publishes and live telemetry snapshots in the interval; null when not counted.</summary>
+        public AssetUiActivityCounts? AssetUi { get; }
     }
 
     /// <summary>One diagnostic-log row (normally one second). Absent values are written as empty cells.</summary>
@@ -60,6 +70,9 @@ namespace CS2RuntimeAssetAuditor.Core.DiagnosticLog
         public int? GcCollections { get; set; }
         public double? ManagedHeapMiB { get; set; }
         public int? AutoSaveStarts { get; set; }
+        public string? AssetScan { get; set; }
+        public int? AssetUiPublishes { get; set; }
+        public int? AssetTelemetrySnapshots { get; set; }
 
         public string? CaptureState { get; set; }
         public string? CaptureTrigger { get; set; }

@@ -16,6 +16,7 @@ namespace CS2RuntimeAssetAuditor.Assets.GameIntegration.Rendering
         }
 
         public void ClearCache() => _cache.Clear();
+        public int CachedCount => _cache.Count;
 
         private static TextureObservation ReadCore(TextureAsset texture, string id, DateTimeOffset capturedAt)
         {

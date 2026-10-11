@@ -55,5 +55,7 @@ namespace CS2RuntimeAssetAuditor.Assets.Core.Rendering
             return value;
         }
         public void Clear() { _values.Clear(); _generation = null; }
+        /// <summary>Entries of the current generation (the cache holds no other generation).</summary>
+        public int Count => _values.Count;
     }
 }
